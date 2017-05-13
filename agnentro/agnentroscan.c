@@ -413,7 +413,6 @@ Verify that the user understands that exoelasticity is normalized, but then set 
         }
         dump_delta=(ULONG)(parameter);
         status=ascii_decimal_to_u64_convert(argv[8], &parameter, ULONG_MAX);
-        status=(u8)(status|!parameter);
         if(status){
           agnentroscan_parameter_error_print("dump_size");
           break;

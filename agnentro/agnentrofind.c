@@ -340,7 +340,6 @@ Don't accept ranks larger than we can fit in the address space, considering that
         }
         dump_delta=(ULONG)(parameter);
         status=ascii_decimal_to_u64_convert(argv[8], &parameter, ULONG_MAX);
-        status=(u8)(status|!parameter);
         if(status){
           agnentrofind_parameter_error_print("dump_size");
           break;
