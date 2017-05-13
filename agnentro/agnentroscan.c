@@ -413,6 +413,7 @@ Verify that the user understands that exoelasticity is normalized, but then set 
         }
         dump_delta=(ULONG)(parameter);
         status=ascii_decimal_to_u64_convert(argv[8], &parameter, ULONG_MAX);
+        status=(u8)(status|!parameter);
         if(status){
           agnentroscan_parameter_error_print("dump_size");
           break;
@@ -888,17 +889,9 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
           DEBUG_U64("", match_u8_idx);
           DEBUG_PRINT("\n");
           if(dump_status){
-            if(dump_size){
-              match_u8_idx_post=match_u8_idx+dump_size;
-              if((match_u8_idx_post<dump_size)||(haystack_file_size<match_u8_idx_post)){
-                match_u8_idx_post=haystack_file_size;
-              }
-            }else{
-              if(match_idx!=(match_count-1)){
-                match_u8_idx_post=match_u8_idx_list_base[match_idx+1];
-              }else{
-                match_u8_idx_post=haystack_file_size;
-              }
+            match_u8_idx_post=match_u8_idx+dump_size;
+            if((match_u8_idx_post<dump_size)||(haystack_file_size<match_u8_idx_post)){
+              match_u8_idx_post=haystack_file_size;
             }
             dump_size_clipped=match_u8_idx_post-match_u8_idx;
             switch(dump_status){
