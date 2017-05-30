@@ -32,8 +32,6 @@ Documentation is in the header of fracterval_u64.h.
 #include "constant.h"
 #include "debug.h"
 #include "debug_xtrn.h"
-#include "biguint.h"
-#include "biguint_xtrn.h"
 #include "bitscan.h"
 #include "bitscan_xtrn.h"
 #include "fracterval_u64.h"
