@@ -29,8 +29,8 @@ BUILD_BREAK_COUNT increases each time either: (1) a change is made which is not 
 /*
 BUILD_FEATURE_COUNT increases each time a feature is added for which callers should be able to query via initialization code. This could even include performance enhancements without which a caller might opt to require the user to upgrade. If this library depends on other libraries, then it should be expressed as the sum of the local feature count plus the feature counts of the dependencies, and in any event must increase monotonically even if some of the latter are removed. Initialization code receiving a _greater_ expected value from the caller must fail.
 */
-#define FRU128_BUILD_FEATURE_COUNT 0
+#define FRU128_BUILD_FEATURE_COUNT 1
 /*
 BUILD_ID must increase with every code release, even if only a comment changes. It allows the user to discern one build from another, but is invisible to other libraries. If this library depends on other libraries, then it should be expressed as the sum of the local build ID plus the build IDs of the dependencies, and in any event must increase monotonically even if some of the latter are removed.
 */
-#define FRU128_BUILD_ID 2
+#define FRU128_BUILD_ID 5

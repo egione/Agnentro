@@ -22,7 +22,7 @@ License version 3 along with the Agnentro Library (filename
 */
 VERSION
 
-Version info for various components is provided in the files starting with "flag". The build ID of the entire Agnentro toolkit is provided in flag_agnentro.h.
+Version info for various components is provided in the files starting with "flag".
 
 THEORY
 
@@ -47,6 +47,12 @@ Agnentro Find
 Agnentro Find is binary search on steroids! You can search files and folders for text, hex values, duplicate files, or approximate matches to all of the above. You can operate on samples (masks) of 1, 2, 3, or 4 bytes. Preprocessing with deltafication and optional bytewise channelization is supported. You can also elect to overlap masks for better entropy contrast. Optionally, dump search results as text, hex values, or files saved to storage. By the way, it uses interval math on the unit interval, through what I call "fractervals"; you can enable an option called "precise" (see the help text) in order to display the results as 128-bit hex fractervals.
 
 Type "make agnentrofind" to build, then run "tmp/agnentrofind" to display the help text. (The slash goes the other way in Windows.)
+
+Agnentro Quant
+--------------
+Agnentro Quant is a general purpose mask quantizer. The input consists of a binary file or set of files, each record of which being from one to 8 bytes in size. A record is treated as a fraction on [0, 1). These records can then be converted to masks of up to 4 bytes in size by multiplying that fraction by a specified quantizer. The whole idea is to provide a generic 64-bit data pathway to interface between other numerical types and the unsigned integer types supported by Agnentro.
+
+Type "make agnentroquant" to build, then run "tmp/agnentroquant" to display the help text. (The slash goes the other way in Windows.)
 
 Agnentro Scan
 -------------

@@ -205,6 +205,12 @@ TYPEDEF_END(fru128);
     _a-=U64_MAX; \
     _a--
 
+  #define U128_DIVIDE_U128_SATURATE(_a, _p, _q, _z) \
+    _z=(u8)(_z|u128_divide_u128_saturate(&_a, _p, _q))
+
+  #define U128_DIVIDE_U128_SATURATE_SELF(_a, _p, _z) \
+    _z=(u8)(_z|u128_divide_u128_saturate(&_a, _a, _p))
+
   #define U128_DIVIDE_U64_TO_U128_SATURATE(_a, _p, _v, _z) \
     _z=(u8)(_z|u128_divide_u64_to_u128_saturate(&_a, _p, _v))
 
@@ -1201,6 +1207,12 @@ TYPEDEF_END(fru128);
 #define FRU128_DIVIDE_FRU128_SELF(_a, _p, _z) \
   _z=(u8)(_z|fracterval_u128_divide_fracterval_u128(&_a, _a, _p))
 
+#define FRU128_DIVIDE_U128(_a, _p, _q, _z) \
+  _z=(u8)(_z|fracterval_u128_divide_u128(&_a, _p, _q))
+
+#define FRU128_DIVIDE_U128_SELF(_a, _v, _z) \
+  _z=(u8)(_z|fracterval_u128_divide_u128(&_a, _a, _v))
+
 #define FRU128_DIVIDE_U64(_a, _p, _v, _z) \
   _z=(u8)(_z|fracterval_u128_divide_u64(&_a, _p, _v))
 
@@ -1385,6 +1397,9 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
 #define FRU128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
   _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a.a, _v)); \
   _a.b=_a.a
+
+#define FRU128_ROOT_FRACTOID_U128(_a, _p) \
+  fracterval_u128_root_fractoid_u128(&_a, _p);
 
 #define FRU128_SCALE_U128(_a, _p, _q) \
   _a.a=fractoid_u128_scale_u128(_p, _q); \

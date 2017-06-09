@@ -54,7 +54,7 @@ In:
 
 Out:
 
-  Returns one if ((q.b+1)/p.a) exceeds one, or q.a is zero; else zero.
+  Returns one if ((p.b+1)/q.a) exceeds one, or q.a is zero; else zero.
 
   *a_base is (p/q) expressed as a fracterval.
 */
@@ -190,6 +190,46 @@ Out:
 }
 
 u8
+fracterval_u128_divide_u128(fru128 *a_base, fru128 p, u128 q){
+/*
+Use FRU128_DIVIDE_U128() instead of calling here directly.
+
+Divide a fracterval by a u128.
+
+In:
+
+  *a_base is undefined.
+
+  p is the dividend fracterval.
+
+  q is the divisor.
+
+Out:
+
+  Returns one if q is zero; else zero.
+
+  *a_base is (p/q) expressed as a fracterval.
+*/
+  fru128 a;
+  u64 divisor_hi;
+  u64 divisor_lo;
+  u8 status;
+
+  U128_TO_U64_HI(divisor_hi, q);
+  status=0;
+  if(!divisor_hi){
+    U128_TO_U64_LO(divisor_lo, q);
+    U128_DIVIDE_U64_TO_U128_SATURATE(a.a, p.a, divisor_lo, status);
+    U128_DIVIDE_U64_TO_U128_SATURATE(a.b, p.b, divisor_lo, status);
+  }else{
+    U128_DIVIDE_U128_SATURATE(a.a, p.a, q, status);
+    U128_DIVIDE_U128_SATURATE(a.b, p.b, q, status);
+  }
+  *a_base=a;
+  return status;
+}
+
+u8
 fracterval_u128_divide_u64(fru128 *a_base, fru128 p, u64 v){
 /*
 Use FRU128_DIVIDE_U64() instead of calling here directly.
@@ -211,20 +251,11 @@ Out:
   *a_base is (p/v) expressed as a fracterval.
 */
   fru128 a;
-  u8 phase;
-  u128 q;
   u8 status;
 
-  U128_SET_ZERO(a.b);
-  phase=0;
-  q=p.a;
   status=0;
-  do{
-    a.a=a.b;
-    U128_DIVIDE_U64_TO_U128_SATURATE(a.b, q, v, status);
-    q=p.b;
-    phase=!phase;
-  }while(phase);
+  U128_DIVIDE_U64_TO_U128_SATURATE(a.a, p.a, v, status);
+  U128_DIVIDE_U64_TO_U128_SATURATE(a.b, p.b, v, status);
   *a_base=a;
   return status;
 }
@@ -560,7 +591,7 @@ Compute the terms of the log series. We lose some accuracy by converting a manti
       FRU128_ADD_FRU128_SELF(log, term, status);
     }while(U128_IS_NOT_ZERO(term.b));
 /*
-The error is bounded by the magnitude of the last term computed because terms are scaling by a factor of less than (1/2). The last term spans one ULP because term1 is zero.
+The error is bounded by the magnitude of the last term computed because terms are scaling by a factor of less than (1/2). The last term spans one ULP because term.b is zero.
 */
     FRU128_EXPAND_UP_SELF(log, status);
 /*
@@ -1205,6 +1236,60 @@ Ensure that the allocated size in bits can be described in 64 bits.
   return list_base;
 }
 
+void
+fracterval_u128_root_fractoid_u128(fru128 *a_base, u128 p){
+/*
+Use FRU128_ROOT_FRACTOID_U128() instead of calling here directly.
+
+Set a fracterval to the square root of a u128 fractoid.
+
+In:
+
+  *a_base is undefined.
+
+  v is the u64 whose reciprocal to compute.
+
+Out:
+
+  Returns one if v is fracterval overflow occurred, else zero.
+
+  *a_base is (p^(1/2)) expressed as a fracterval.
+*/
+  u128 root;
+  u128 root_max;
+  u128 root_min;
+  u128 square;
+
+  U128_SET_ONES(root_max);
+  U128_SET_ZERO(root_min);
+  do{
+    U128_SUBTRACT_U128(root, root_max, root_min);
+    U128_SHIFT_RIGHT_SELF(root, 1);
+    U128_SUBTRACT_FROM_U128_SELF(root, root_max);
+    FTD128_SCALE_U128(square, root, root);
+    if(U128_IS_LESS(square, p)){
+      root_min=root;
+    }else{
+      U128_DECREMENT(root_max, root);
+    }
+  }while(U128_IS_NOT_EQUAL(root_max, root_min));
+  a_base[0].a=root_min;
+  U128_SET_ONES(root_max);
+  do{
+    U128_SUBTRACT_U128(root, root_max, root_min);
+    U128_SHIFT_RIGHT_SELF(root, 1);
+    U128_SUBTRACT_FROM_U128_SELF(root, root_max);
+    FTD128_SCALE_U128(square, root, root);
+    if(U128_IS_LESS_EQUAL(square, p)){
+      root_min=root;
+    }else{
+      U128_DECREMENT(root_max, root);
+    }
+  }while(U128_IS_NOT_EQUAL(root_max, root_min));
+  a_base[0].b=root_max;
+  return;
+}
+
 u8
 fracterval_u128_shift_left(fru128 *a_base, u8 b, fru128 p){
 /*
@@ -1578,6 +1663,80 @@ Out:
     U128_DECREMENT_SATURATE_SELF(a1);
   }
   return a1;
+}
+
+u8
+u128_divide_u128_saturate(u128 *a_base, u128 p, u128 q){
+/*
+Use U128_DIVIDE_U128_SATURATE() instead of calling here directly.
+
+Divide a u128 by a u128 and saturate the result to (2^128-1).
+
+In:
+
+  *a_base is undefined.
+
+  p is the u128 dividend.
+
+  q is the u128 divisor.
+
+Out:
+
+  Returns one if q is zero, else zero.
+
+  *a_base is MIN((p/q), (2^128-1)).
+*/
+  u128 a;
+  u128 dividend;
+  u64 dividend_hi;
+  u8 dividend_shift;
+  u128 dividend_shifted;
+  u128 divisor;
+  u64 divisor_hi;
+  u64 divisor_lo;
+  u8 divisor_shift;
+  u128 divisor_shifted;
+  u128 product;
+  u64 quotient;
+  u8 status;
+
+  U128_SET_ZERO(a);
+  status=0;
+  dividend=p;
+  divisor=q;
+  U128_TO_U64_HI(divisor_hi, divisor);
+  if(U128_IS_ZERO(divisor_hi)){
+    U128_TO_U64_LO(divisor_lo, divisor);
+    U128_DIVIDE_U64_TO_U128_SATURATE(a, dividend, divisor_lo, status);
+  }else if(U128_IS_LESS(divisor, dividend)){
+    divisor_shift=0;
+    do{
+      divisor_shift++;
+      U128_SHIFT_RIGHT(divisor_shifted, divisor_shift, divisor);
+      U128_TO_U64_HI(divisor_hi, divisor_shifted);
+    }while(U128_IS_NOT_ZERO(divisor_hi));
+    U128_INCREMENT_SELF(divisor_shifted);
+    dividend_shift=divisor_shift;
+    U128_SHIFT_RIGHT(dividend_shifted, dividend_shift, dividend);
+    U128_TO_U64_HI(dividend_hi, dividend_shifted);
+    U128_TO_U64_LO(divisor_lo, divisor_shifted);
+    if(U128_IS_LESS_EQUAL(divisor_lo, dividend_hi)){
+      U128_SHIFT_RIGHT_SELF(dividend_shifted, 1);
+      dividend_shift++;
+    }
+    U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend_shifted, divisor_lo, status);
+    U128_MULTIPLY_U64_SATURATE(product, divisor, quotient, status);
+    U128_SUBTRACT_U128_SELF(dividend, product);
+    while(U128_IS_LESS_EQUAL(divisor, dividend)){
+      U128_SUBTRACT_U128_SELF(dividend, divisor);
+      quotient++;
+    }
+    U128_FROM_U64_LO(a, quotient);
+  }else if(U128_IS_EQUAL(divisor, dividend)){
+    U128_SET_ULP(a);
+  }
+  *a_base=a;
+  return status;
 }
 
 u8

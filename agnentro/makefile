@@ -71,6 +71,16 @@ agnentroprox:
 agnentroprox_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)agnentroprox$(OBJ) agnentroprox.c
 
+agnentroquant:
+	make ascii
+	make bitscan
+	make debug
+	make filesys
+	make fracterval_u128
+	make fracterval_u64
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) -otmp$(SLASH)agnentroquant$(EXE) agnentroquant.c
+	@echo You can now run \"tmp$(SLASH)agnentroquant\".
+
 agnentroscan:
 	make ascii
 	make agnentroprox

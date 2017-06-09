@@ -20,6 +20,7 @@ License version 3 along with the Fracterval U128 Library (filename
 "COPYING"). If not, see http://www.gnu.org/licenses/ .
 */
 extern u8 fracterval_u128_divide_fracterval_u128(fru128 *a_base, fru128 p, fru128 q);
+extern u8 fracterval_u128_divide_u128(fru128 *a_base, fru128 p, u128 q);
 extern u8 fracterval_u128_divide_u64(fru128 *a_base, fru128 p, u64 q);
 extern void *fracterval_u128_free(void *base);
 extern u8 fracterval_u128_init(u32 build_break_count, u32 build_feature_count);
@@ -46,7 +47,9 @@ extern u8 fractoid_u128_ratio_u128_saturate(u128 *a_base, u128 p, u128 q);
 extern u8 fractoid_u128_ratio_u64_saturate(u128 *a_base, u64 v, u64 w);
 extern u8 fractoid_u128_reciprocal_u128_saturate(u128 *a_base, u128 p);
 extern u8 fractoid_u128_reciprocal_u64_saturate(u128 *a_base, u64 v);
+extern void fracterval_u128_root_fractoid_u128(fru128 *a_base, u128 p);
 extern u128 fractoid_u128_scale_u128(u128 p, u128 q);
+extern u8 u128_divide_u128_saturate(u128 *a_base, u128 p, u128 q);
 extern u8 u128_divide_u64_to_u128_saturate(u128 *a, u128 p, u64 v);
 extern u8 u128_divide_u64_to_u64_saturate(u64 *a, u128 p, u64 v);
 extern u128 u128_from_u128_pair_bit_idx(u8 b, u128 p, u128 q);
