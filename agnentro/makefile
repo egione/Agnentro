@@ -65,6 +65,14 @@ agnentrofind:
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentrofind$(EXE) agnentrofind.c
 	@echo You can now run \"tmp$(SLASH)agnentrofind\".
 
+agnentrolog:
+	make ascii
+	make bitscan
+	make debug
+	make filesys
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) -otmp$(SLASH)agnentolog$(EXE) agnentrolog.c
+	@echo You can now run \"tmp$(SLASH)agnentrolog\".
+
 agnentroprox:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)agnentroprox$(OBJ) agnentroprox.c
 

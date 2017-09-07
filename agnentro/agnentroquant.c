@@ -37,10 +37,10 @@ Mask Quantization Utility
 #include "ascii_xtrn.h"
 #include "filesys.h"
 #include "filesys_xtrn.h"
-#include "fracterval_u64.h"
-#include "fracterval_u64_xtrn.h"
 #include "fracterval_u128.h"
 #include "fracterval_u128_xtrn.h"
+#include "fracterval_u64.h"
+#include "fracterval_u64_xtrn.h"
 
 void
 agnentroquant_error_print(char *char_list_base){
@@ -92,7 +92,6 @@ main(int argc, char *argv[]){
   u64 mask_count_in;
   u64 mask_count_out;
   u8 mask_count_power_of_2_status;
-  u64 mask_fractoid;
   u8 mask_size_in;
   u8 mask_size_out;
   u64 mask_u64;
@@ -155,9 +154,8 @@ main(int argc, char *argv[]){
       break;
     }
     mask_size_in=(u8)(parameter+1);
-    mask_bit_count_in=(u8)(mask_size_in<<U8_BITS_LOG2);
     status=ascii_hex_to_u64_convert(argv[3], &parameter, U32_MAX);
-    status=(u8)(status|(!parameter));
+    status=(u8)(status|!parameter);
     if(status){
       agnentroquant_parameter_error_print("mask_max");
       break;
@@ -178,9 +176,18 @@ main(int argc, char *argv[]){
       status=1;
       break;
     }
-    mask_bit_count_out=(u8)(mask_size_out<<U8_BITS_LOG2);
-    mask_bit_count_delta=(u8)(U64_BITS-mask_bit_count_out+mask_bit_count_in);
-    mask_count_power_of_2_status=!(mask_count_out&(parameter));
+    mask_bit_count_in=(u8)(mask_size_in<<U8_BITS_LOG2);
+    mask_bit_count_out=0;
+    mask_count_power_of_2_status=!(mask_count_out&parameter);
+    do{
+      parameter>>=1;
+      mask_bit_count_out++;
+    }while(parameter);
+    mask_bit_count_delta=mask_bit_count_in;
+    if(normalize_status){
+      mask_bit_count_delta=U64_BITS;
+    }
+    mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
     out_filename_size=(ULONG)(strlen(argv[5]));
 /*
 Allocate enough space for the maximum path size that filesys_filename_list_get may append, plus one for a path separator, plus one for a terminating null.
@@ -254,8 +261,9 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
           mask_u64_max=0;
           mask_u64_min=~mask_u64_max;
           do{
-            memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(U64_SIZE));
-            in_u8_idx+=U64_SIZE;
+            mask_u64=0;
+            memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+            in_u8_idx+=mask_size_in;
             mask_u64_max=MAX(mask_u64, mask_u64_max);
             mask_u64_min=MIN(mask_u64, mask_u64_min);
           }while(in_u8_idx<=in_u8_idx_max);
@@ -267,17 +275,25 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
           mask_u64=0;
           memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
           in_u8_idx+=mask_size_in;
-          if(normalize_status&&mask_count_in){
-            mask_u64-=mask_u64_min;
-            FTD64_RATIO_U64_SATURATE(mask_fractoid, mask_u64, mask_count_in, overflow_status);
-            mask_u64=mask_fractoid;
-          }
-          if(mask_count_power_of_2_status){
-            mask_u64>>=mask_bit_count_delta;
+          if(normalize_status){
+            if(mask_count_in){
+              mask_u64-=mask_u64_min;
+              FTD64_RATIO_U64_SATURATE_SELF(mask_u64, mask_count_in, overflow_status);
+            }
+            if(mask_count_power_of_2_status){
+              mask_u64>>=mask_bit_count_delta;
+            }else{
+              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_count_out);
+              U128_TO_U64_HI(mask_u64, mask_u128);
+            }
           }else{
-            U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_count_out);
-            U128_SHIFT_RIGHT_SELF(mask_u128, mask_bit_count_in);
-            U128_TO_U64_LO(mask_u64, mask_u128);
+            if(mask_count_power_of_2_status){
+              mask_u64>>=mask_bit_count_delta;
+            }else{
+              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_count_out);
+              U128_SHIFT_RIGHT_SELF(mask_u128, mask_bit_count_in);
+              U128_TO_U64_LO(mask_u64, mask_u128);
+            }
           }
           memcpy(&in_u8_list_base[out_u8_idx], &mask_u64, (size_t)(mask_size_out));
           out_u8_idx+=mask_size_out;

@@ -48,6 +48,12 @@ Agnentro Find is binary search on steroids! You can search files and folders for
 
 Type "make agnentrofind" to build, then run "tmp/agnentrofind" to display the help text. (The slash goes the other way in Windows.)
 
+Agnentro Log
+------------
+Agnentro Log is a general purpose logarithmic mask quantizer. The input consists of a binary file or set of files, each record of which being from one to 8 bytes in size. The output is then a corresponding list of bytes on [0, 64], corresponding to to the log2 floor of the respective input records, plus one. (Zero maps to zero; one maps to one; (2^63) and ((2^64)-1) map to 64.)
+
+Type "make agnentrolog" to build, then run "tmp/agnentrolog" to display the help text. (The slash goes the other way in Windows.)
+
 Agnentro Quant
 --------------
 Agnentro Quant is a general purpose mask quantizer. The input consists of a binary file or set of files, each record of which being from one to 8 bytes in size. A record is treated as a fraction on [0, 1). These records can then be converted to masks of up to 4 bytes in size by multiplying that fraction by a specified quantizer. The whole idea is to provide a generic 64-bit data pathway to interface between other numerical types and the unsigned integer types supported by Agnentro.

@@ -94,8 +94,14 @@ TYPEDEF_END(fru64);
 #define FTD64_RATIO_U64_SATURATE(_a, _v, _w, _z) \
   _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _v, _w))
 
+#define FTD64_RATIO_U64_SATURATE_SELF(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _a, _v))
+
 #define FTD64_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
   _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _v))
+
+#define FTD64_RECIPROCAL_U64_SATURATE_SELF(_a, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _a))
 
 #define FTD64_SCALE_U64(_a, _v, _w) \
   _a=fractoid_u64_scale_u64(_v, _w)
