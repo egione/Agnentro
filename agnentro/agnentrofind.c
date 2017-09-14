@@ -205,7 +205,8 @@ main(int argc, char *argv[]){
   overflow_status=0;
   status=ascii_init(0, 0);
   status=(u8)(status|filesys_init(0, 0));
-  loggamma_base=loggamma_init(0, 0);
+  status=(u8)(status|fracterval_u128_init(1, 0));
+  loggamma_base=loggamma_init(1, 0);
   status=(u8)(status|!loggamma_base);
   agnentroprox_base=NULL;
   case_insensitive_status=0;
@@ -555,7 +556,7 @@ If we're in exact match mode, then set match_idx_max_max to ULONG_MAX because we
     }
     mask_max=(u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1);
     status=1;
-    agnentroprox_base=agnentroprox_init(0, 0, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, needle_mask_idx_max, overlap_status, sweep_mask_idx_max_max);
+    agnentroprox_base=agnentroprox_init(2, 0, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, needle_mask_idx_max, overlap_status, sweep_mask_idx_max_max);
     if(!agnentroprox_base){
       agnentrofind_out_of_memory_print();
       break;

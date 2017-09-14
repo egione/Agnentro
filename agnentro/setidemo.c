@@ -134,7 +134,8 @@ main(int argc, char *argv[]){
   overflow_status=0;
   status=ascii_init(0, 0);
   status=(u8)(status|filesys_init(0, 0));
-  loggamma_base=loggamma_init(0, 0);
+  status=(u8)(status|fracterval_u128_init(1, 0));
+  loggamma_base=loggamma_init(1, 0);
   status=(u8)(status|!loggamma_base);
   agnentroprox_base=NULL;
   file_mask_list_base=NULL;
@@ -272,7 +273,7 @@ It's safe to ignore the status return from agnentroprox_mask_idx_max_get() when 
       break;
     }
     DEBUG_PRINT("Initializing Agnentro...\n");
-    agnentroprox_base=agnentroprox_init(0, 0, U8_BYTE_MAX, loggamma_base, SETIDEMO_MASK_IDX_MAX, U8_MAX, mode_bitmap, 0, 0, sweep_mask_idx_max);
+    agnentroprox_base=agnentroprox_init(2, 0, U8_BYTE_MAX, loggamma_base, SETIDEMO_MASK_IDX_MAX, U8_MAX, mode_bitmap, 0, 0, sweep_mask_idx_max);
     status=!agnentroprox_base;
     if(status){
       setidemo_error_print("Agnentro initialization failed");

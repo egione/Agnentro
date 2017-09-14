@@ -607,7 +607,7 @@ Out:
   ULONG *freq_tree_base;
   u32 mask;
   ULONG mask_count_max_max;
-  ULONG mask_count_plus_span_max;
+  ULONG mask_count_plus_span_max_max;
   u64 mask_span;
   ULONG pochhammer_chunk_idx_max_max;
   ULONG *pochhammer_chunk_list_base;
@@ -618,7 +618,7 @@ Out:
 
   agnentrocodec_base=NULL;
   status=biguint_init(0, 0);
-  status=(u8)(status|fracterval_u128_init(0, 0));
+  status=(u8)(status|fracterval_u128_init(1, 0));
   status=(u8)(status|(AGNENTROCODEC_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|(build_break_count!=AGNENTROCODEC_BUILD_BREAK_COUNT));
   status=(u8)(status|(!mask_max));

@@ -186,7 +186,7 @@ main(int argc, char *argv[]){
   status=ascii_init(0, 0);
   status=(u8)(status|biguint_init(0, 0));
   status=(u8)(status|filesys_init(0, 0));
-  status=(u8)(status|fracterval_u128_init(0, 0));
+  status=(u8)(status|fracterval_u128_init(1, 0));
   agnentrocodec_base=NULL;
   agnentroprox_base=NULL;
   loggamma_base=NULL;
@@ -214,7 +214,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("(output_file) is the name of the file to overwrite, for (mode>1).\n\n");
       break;
     }
-    loggamma_base=loggamma_init(0, 0);
+    loggamma_base=loggamma_init(1, 0);
     if(!loggamma_base){
       agnentrofile_error_print("Loggamma initialization failed");
       break;
@@ -341,13 +341,13 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
     if((mode==AGNENTROFILE_MODE_ESTIMATE)||(mode==AGNENTROFILE_MODE_EXACT)||(mode==AGNENTROFILE_MODE_COMPRESS)||(mode==AGNENTROFILE_MODE_DECOMPRESS)){
       if(mode!=AGNENTROFILE_MODE_DECOMPRESS){
         if(mode==AGNENTROFILE_MODE_ESTIMATE){
-          agnentroprox_base=agnentroprox_init(0, 0, granularity, loggamma_base, mask_idx_max, mask_max, AGNENTROPROX_MODE_AGNENTROPY, 0, 0, mask_idx_max);
+          agnentroprox_base=agnentroprox_init(2, 0, granularity, loggamma_base, mask_idx_max, mask_max, AGNENTROPROX_MODE_AGNENTROPY, 0, 0, mask_idx_max);
           if(!agnentroprox_base){
             agnentrofile_error_print("Agnentroprox initialization failed.\nTry reducing granularity or file size");
             break;
           }
         }else{
-          agnentrocodec_base=agnentrocodec_init(0, 0, granularity, loggamma_base, mask_idx_max, mask_max);
+          agnentrocodec_base=agnentrocodec_init(2, 0, granularity, loggamma_base, mask_idx_max, mask_max);
           if(!agnentrocodec_base){
             agnentrofile_error_print("Agnentro initialization failed.\nTry reducing granularity or file size");
             break;
@@ -439,7 +439,7 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
         }
         DEBUG_U8("mask_idx_max_logplex_bit_count", mask_idx_max_logplex_bit_count);
         DEBUG_U8("mask_max_logplex_bit_count", mask_max_logplex_bit_count);
-        agnentrocodec_base=agnentrocodec_init(0, 0, granularity, loggamma_base, mask_idx_max, mask_max);
+        agnentrocodec_base=agnentrocodec_init(2, 0, granularity, loggamma_base, mask_idx_max, mask_max);
         if(!agnentrocodec_base){
           agnentrofile_error_print("Agnentro initialization failed");
           break;
