@@ -97,940 +97,953 @@ TYPEDEF_END(fru128);
 #define FRU128_LOG2_FLOOR_LO 0xC9E3B39803F2F6AFULL
 
 #ifdef _64_
-  #define U128_ADD_U128(_a, _p, _q) \
-    _a=(_p)+(_q)
+  #define U128_ADD_U128(__a, __p, __q) \
+    __a=(__p)+(__q)
 
-  #define U128_ADD_U128_CHECK(_a, _p, _q, _z) \
-    _a=(_p)+(_q); \
-    _z=(u8)(_z|(_a<(_p)))
+  #define U128_ADD_U128_CHECK(__a, __p, __q, __z) \
+    __a=(__p)+(__q); \
+    __z=(u8)(__z|(__a<(__p)))
 
-  #define U128_ADD_U128_SELF(_a, _p) \
-    _a+=(_p)
+  #define U128_ADD_U128_SELF(__a, __p) \
+    __a+=(__p)
 
-  #define U128_ADD_U128_SELF_CHECK(_a, _p, _z) \
-    _a+=(_p); \
-    _z=(u8)(_z|(_a<(_p)))
+  #define U128_ADD_U128_SELF_CHECK(__a, __p, __z) \
+    __a+=(__p); \
+    __z=(u8)(__z|(__a<(__p)))
 
-  #define U128_ADD_U64_HI(_a, _p, _v) \
-    _a=(_p)+((u128)(_v)<<64)
+  #define U128_ADD_U64_HI(__a, __p, __v) \
+    __a=(__p)+((u128)(__v)<<64)
 
-  #define U128_ADD_U64_HI_CHECK(_a, _p, _v, _z) \
-    _a=(_p)+((u128)(_v)<<64); \
-    _z=(u8)(_z|(_a<(_p)))
+  #define U128_ADD_U64_HI_CHECK(__a, __p, __v, __z) \
+    __a=(__p)+((u128)(__v)<<64); \
+    __z=(u8)(__z|(__a<(__p)))
 
-  #define U128_ADD_U64_HI_SELF(_a, _v) \
-    _a+=((u128)(_v)<<64)
+  #define U128_ADD_U64_HI_SELF(__a, __v) \
+    __a+=((u128)(__v)<<64)
 
-  #define U128_ADD_U64_HI_SELF_CHECK(_a, _v, _z) \
+  #define U128_ADD_U64_HI_SELF_CHECK(__a, __v, __z) \
     do{ \
       u128 __p; \
       \
-      __p=_a; \
-      U128_ADD_U64_HI_CHECK(_a, __p, _v, _z); \
+      __p=__a; \
+      U128_ADD_U64_HI_CHECK(__a, __p, __v, __z); \
     }while(0)
 
-  #define U128_ADD_U64_LO(_a, _p, _v) \
-    _a=(_p)+(_v)
+  #define U128_ADD_U64_LO(__a, __p, __v) \
+    __a=(__p)+(__v)
 
-  #define U128_ADD_U64_LO_CHECK(_a, _p, _v, _z) \
-    _a=(_p)+(_v); \
-    _z=(u8)(_z|(_a<(_v)))
+  #define U128_ADD_U64_LO_CHECK(__a, __p, __v, __z) \
+    __a=(__p)+(__v); \
+    __z=(u8)(__z|(__a<(__v)))
 
-  #define U128_ADD_U64_LO_SELF(_a, _v) \
-    _a+=(_v)
+  #define U128_ADD_U64_LO_SELF(__a, __v) \
+    __a+=(__v)
 
-  #define U128_ADD_U64_LO_SELF_CHECK(_a, _v, _z) \
-    _a+=(_v); \
-    _z=(u8)(_z|(_a<(_v)))
+  #define U128_ADD_U64_LO_SELF_CHECK(__a, __v, __z) \
+    __a+=(__v); \
+    __z=(u8)(__z|(__a<(__v)))
 
-  #define U128_ADD_U64_SHIFTED(_a, _b, _p, _v) \
-    _a=(_p)+((u128)(_v)<<(_b))
+  #define U128_ADD_U64_SHIFTED(__a, __b, __p, __v) \
+    __a=(__p)+((u128)(__v)<<(__b))
 
-  #define U128_ADD_U64_SHIFTED_SELF(_a, _b, _v) \
-    _a+=((u128)(_v)<<(_b))
+  #define U128_ADD_U64_SHIFTED_SELF(__a, __b, __v) \
+    __a+=((u128)(__v)<<(__b))
 
-  #define U128_ADD_U8(_a, _c, _p); \
-    _a=(_c)+(_p)
+  #define U128_ADD_U8(__a, __c, __p); \
+    __a=(__c)+(__p)
 
-  #define U128_ADD_U8_HI(_a, _c, _p); \
-    _a=((u128)(_c)<<64)+(_p)
+  #define U128_ADD_U8_HI(__a, __c, __p); \
+    __a=((u128)(__c)<<64)+(__p)
 
-  #define U128_ADD_U8_HI_SELF(_a, _c); \
-    _a+=((u128)(_c)<<64)
+  #define U128_ADD_U8_HI_SELF(__a, __c); \
+    __a+=((u128)(__c)<<64)
 
-  #define U128_ADD_U8_SELF(_a, _c); \
-    _a+=(_c)
+  #define U128_ADD_U8_SELF(__a, __c); \
+    __a+=(__c)
 
-  #define U128_BIT_CLEAR(_a, _b, _p); \
-    _a=(u128)(_p)&(~((u128)(1)<<(_b)))
+  #define U128_BIT_CLEAR(__a, __b, __p); \
+    __a=(u128)(__p)&(~((u128)(1)<<(__b)))
 
-  #define U128_BIT_CLEAR_SELF(_a, _b); \
-    U128_BIT_CLEAR(_a, _b, _a)
+  #define U128_BIT_CLEAR_SELF(__a, __b); \
+    U128_BIT_CLEAR(__a, __b, __a)
 
-  #define U128_BIT_FLIP(_a, _b, _p); \
-    _a=(u128)(_p)^((u128)(1)<<(_b))
+  #define U128_BIT_FLIP(__a, __b, __p); \
+    __a=(u128)(__p)^((u128)(1)<<(__b))
 
-  #define U128_BIT_FLIP_SELF(_a, _b); \
-    U128_BIT_FLIP(_a, _b, _a)
+  #define U128_BIT_FLIP_SELF(__a, __b); \
+    U128_BIT_FLIP(__a, __b, __a)
 
-  #define U128_BIT_GET(_c, _b, _p); \
-    _c=(u8)(((_p)>>(_b))&1)
+  #define U128_BIT_GET(__c, __b, __p); \
+    __c=(u8)(((__p)>>(__b))&1)
 
-  #define U128_BIT_SET(_a, _b, _p); \
-    _a=(u128)(_p)|((u128)(1)<<(_b))
+  #define U128_BIT_SET(__a, __b, __p); \
+    __a=(u128)(__p)|((u128)(1)<<(__b))
 
-  #define U128_BIT_SET_SELF(_a, _b); \
-    U128_BIT_SET(_a, _b, _a)
+  #define U128_BIT_SET_SELF(__a, __b); \
+    U128_BIT_SET(__a, __b, __a)
 
-  #define U128_CHECKSUM_TO_U64(_t, _p, _v) \
-    _t=(u64)((_p)>>64)+(u64)(_p)+(_v)
+  #define U128_CHECKSUM_TO_U64(__t, __p, __v) \
+    __t=(u64)((__p)>>64)+(u64)(__p)+(__v)
 
-  #define U128_DECREMENT(_a, _p) \
-    _a=(_p)-1
+  #define U128_DECREMENT(__a, __p) \
+    __a=(__p)-1
 
-  #define U128_DECREMENT_SATURATE(_a, _p) \
-    _a=(_p)-!!(_p)
+  #define U128_DECREMENT_SATURATE(__a, __p) \
+    __a=(__p)-!!(__p)
 
-  #define U128_DECREMENT_SATURATE_SELF(_a) \
-    _a=(_a)-!!(_a)
+  #define U128_DECREMENT_SATURATE_SELF(__a) \
+    __a=(__a)-!!(__a)
 
-  #define U128_DECREMENT_SELF(_a) \
-    _a--
+  #define U128_DECREMENT_SELF(__a) \
+    __a--
 
-  #define U128_DECREMENT_U64_HI(_a, _p) \
-    _a=(_p.b)-U64_MAX; \
-    _a--
+  #define U128_DECREMENT_U64_HI(__a, __p) \
+    __a=(__p.b)-U64_MAX; \
+    __a--
 
-  #define U128_DECREMENT_U64_HI_SELF(_a) \
-    _a-=U64_MAX; \
-    _a--
+  #define U128_DECREMENT_U64_HI_SELF(__a) \
+    __a-=U64_MAX; \
+    __a--
 
-  #define U128_DIVIDE_U128_SATURATE(_a, _p, _q, _z) \
-    _z=(u8)(_z|u128_divide_u128_saturate(&_a, _p, _q))
+  #define U128_DIVIDE_U128_SATURATE(__a, __p, __q, __z) \
+    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __p, __q))
 
-  #define U128_DIVIDE_U128_SATURATE_SELF(_a, _p, _z) \
-    _z=(u8)(_z|u128_divide_u128_saturate(&_a, _a, _p))
+  #define U128_DIVIDE_U128_SATURATE_SELF(__a, __p, __z) \
+    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __a, __p))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE(_a, _p, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u128_saturate(&_a, _p, _v))
+  #define U128_DIVIDE_U64_TO_U128_SATURATE(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __p, __v))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(_a, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u128_saturate(&_a, _a, _v))
+  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __a, __v))
 
-  #define U128_DIVIDE_U64_TO_U64_SATURATE(_t, _p, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u64_saturate(&_t, _p, _v))
+  #define U128_DIVIDE_U64_TO_U64_SATURATE(__t, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u64_saturate(&__t, __p, __v))
 
-  #define U128_FROM_BOOL(_a, _c) \
-    _a=0; \
-    _a-=!!_c
+  #define U128_FROM_BOOL(__a, __c) \
+    __a=0; \
+    __a-=!!__c
 
-  #define U128_FROM_U128_PAIR_BIT_IDX(_a, _b, _p, _q) \
-    _a=(_p)>>(_b); \
-    if(_b){ \
-      _a+=(_q)<<(128-(_b)); \
+  #define U128_FROM_U128_PAIR_BIT_IDX(__a, __b, __p, __q) \
+    __a=(__p)>>(__b); \
+    if(__b){ \
+      __a+=(__q)<<(128-(__b)); \
     }
 
-  #define U128_FROM_U64_HI(_a, _w) \
-    _a=(u128)(_w)<<64
+  #define U128_FROM_U64_HI(__a, __w) \
+    __a=(u128)(__w)<<64
 
-  #define U128_FROM_U64_HI_SATURATE(_a, _w) \
-    _a=((u128)(_w)<<64)|U64_MAX;
+  #define U128_FROM_U64_HI_SATURATE(__a, __w) \
+    __a=((u128)(__w)<<64)|U64_MAX;
 
-  #define U128_FROM_U64_LO(_a, _v) \
-    _a=(_v)
+  #define U128_FROM_U64_LO(__a, __v) \
+    __a=(__v)
 
-  #define U128_FROM_U64_PAIR(_a, _v, _w) \
-    _a=((u128)(_w)<<64)|(_v)
+  #define U128_FROM_U64_PAIR(__a, __v, __w) \
+    __a=((u128)(__w)<<64)|(__v)
 
-  #define U128_FROM_U64_PRODUCT(_a, _v, _w) \
-    _a=(u128)(_v)*(_w)
+  #define U128_FROM_U64_PRODUCT(__a, __v, __w) \
+    __a=(u128)(__v)*(__w)
 
-  #define U128_FROM_U64_SHIFTED(_a, _b, _v) \
-    _a=(u128)(_v)<<(_b)
+  #define U128_FROM_U64_SHIFTED(__a, __b, __v) \
+    __a=(u128)(__v)<<(__b)
 
-  #define U128_INCREMENT(_a, _p) \
-    _a=(_p)+1
+  #define U128_INCREMENT(__a, __p) \
+    __a=(__p)+1
 
-  #define U128_INCREMENT_SATURATE(_a, _p) \
-    _a=(_p)+!!(~(_p))
+  #define U128_INCREMENT_SATURATE(__a, __p) \
+    __a=(__p)+!!(~(__p))
 
-  #define U128_INCREMENT_SATURATE_SELF(_a) \
-    _a=(_a)+!!(~(_a))
+  #define U128_INCREMENT_SATURATE_SELF(__a) \
+    __a=(__a)+!!(~(__a))
 
-  #define U128_INCREMENT_SELF(_a) \
-    _a++
+  #define U128_INCREMENT_SELF(__a) \
+    __a++
 
-  #define U128_INCREMENT_U64_HI(_a, _p) \
-    _a=(_p.b)+U64_MAX; \
-    _a++
+  #define U128_INCREMENT_U64_HI(__a, __p) \
+    __a=(__p.b)+U64_MAX; \
+    __a++
 
-  #define U128_INCREMENT_U64_HI_SELF(_a) \
-    _a+=U64_MAX; \
-    _a++
+  #define U128_INCREMENT_U64_HI_SELF(__a) \
+    __a+=U64_MAX; \
+    __a++
 
-  #define U128_IS_EQUAL(_p, _q) \
-    ((_p)==(_q))
+  #define U128_IS_EQUAL(__p, __q) \
+    ((__p)==(__q))
 
-  #define U128_IS_LESS(_p, _q) \
-    ((_p)<(_q))
+  #define U128_IS_LESS(__p, __q) \
+    ((__p)<(__q))
 
-  #define U128_IS_LESS_EQUAL(_p, _q) \
-    ((_p)<=(_q))
+  #define U128_IS_LESS_EQUAL(__p, __q) \
+    ((__p)<=(__q))
 
-  #define U128_IS_LESS_EQUAL_U64(_p, _q) \
-    ((_p)<=(_q))
+  #define U128_IS_LESS_EQUAL_U64(__p, __q) \
+    ((__p)<=(__q))
 
-  #define U128_IS_LESS_U64(_p, _q) \
-    ((_p)<(_q))
+  #define U128_IS_LESS_U64(__p, __q) \
+    ((__p)<(__q))
 
-  #define U128_IS_NOT_EQUAL(_p, _q) \
-    ((_p)!=(_q))
+  #define U128_IS_NOT_EQUAL(__p, __q) \
+    ((__p)!=(__q))
 
-  #define U128_IS_NOT_EQUAL_U64(_p, _q) \
-    ((_p)!=(_q))
+  #define U128_IS_NOT_EQUAL_U64(__p, __q) \
+    ((__p)!=(__q))
 
-  #define U128_IS_NOT_ONES(_p) \
-    (!!(~(_p)))
+  #define U128_IS_NOT_ONES(__p) \
+    (!!(~(__p)))
 
-  #define U128_IS_NOT_POWER_OF_2(_p) \
+  #define U128_IS_NOT_POWER_OF_2(__p) \
     (!!(p&(p-1)))
 
-  #define U128_IS_NOT_SIGNED(_p) \
-    (!((_p)>>127))
+  #define U128_IS_NOT_SIGNED(__p) \
+    (!((__p)>>127))
 
-  #define U128_IS_NOT_ZERO(_p) \
-    (!!(_p))
+  #define U128_IS_NOT_ZERO(__p) \
+    (!!(__p))
 
-  #define U128_IS_ONES(_p) \
-    (!(~(_p)))
+  #define U128_IS_ONES(__p) \
+    (!(~(__p)))
 
-  #define U128_IS_POWER_OF_2(_p) \
+  #define U128_IS_POWER_OF_2(__p) \
     (!(p&(p-1)))
 
-  #define U128_IS_SIGNED(_p) \
-    (!!((_p)>>127))
+  #define U128_IS_SIGNED(__p) \
+    (!!((__p)>>127))
 
-  #define U128_IS_ZERO(_p) \
-    (!(_p))
+  #define U128_IS_ZERO(__p) \
+    (!(__p))
 
-  #define U128_MAX(_a, _p, _q) \
-    _a=((_p)<=(_q))?(_q):(_p)
+  #define U128_MAX(__a, __p, __q) \
+    __a=((__p)<=(__q))?(__q):(__p)
 
-  #define U128_MAX_SELF(_a, _p) \
-    _a=((_a)<=(_p))?(_p):(_a)
+  #define U128_MAX_SELF(__a, __p) \
+    __a=((__a)<=(__p))?(__p):(__a)
 
-  #define U128_MEAN_FLOOR(_a, _p, _q) \
-    _a=((_p)>>1)+((_q)>>1)+(1&(_p)&(_q))
+  #define U128_MEAN_FLOOR(__a, __p, __q) \
+    __a=((__p)>>1)+((__q)>>1)+(1&(__p)&(__q))
 
-  #define U128_MIN(_a, _p, _q) \
-    _a=((_p)<=(_q))?(_p):(_q)
+  #define U128_MIN(__a, __p, __q) \
+    __a=((__p)<=(__q))?(__p):(__q)
 
-  #define U128_MIN_SELF(_a, _p) \
-    _a=((_a)<=(_p))?(_a):(_p)
+  #define U128_MIN_SELF(__a, __p) \
+    __a=((__a)<=(__p))?(__a):(__p)
 
-  #define U128_MSB_GET(_b, _p) \
-    _b=u128_msb_get(_p)
+  #define U128_MSB_GET(__b, __p) \
+    __b=u128_msb__get(__p)
 
-  #define U128_MULTIPLY_U64_SATURATE(_a, _p, _v, _z) \
-    _z=(u8)(_z|u128_multiply_u64_saturate(&_a, _p, _v))
+  #define U128_MULTIPLY_U64_SATURATE(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __p, __v))
 
-  #define U128_MULTIPLY_U64_SATURATE_SELF(_a, _v, _z) \
-    _z=(u8)(_z|u128_multiply_u64_saturate(&_a, _a, _v))
+  #define U128_MULTIPLY_U64_SATURATE_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __a, __v))
 
-  #define U128_NEGATE(_a, _p) \
-    _a=0U-(_p);
+  #define U128_NEGATE(__a, __p) \
+    __a=0U-(__p);
 
-  #define U128_NEGATE_SELF(_a) \
-    _a=0U-_a;
+  #define U128_NEGATE_SELF(__a) \
+    __a=0U-__a;
 
-  #define U128_NOT(_a, _p) \
-    _a=~(_p);
+  #define U128_NOT(__a, __p) \
+    __a=~(__p);
 
-  #define U128_NOT_SELF(_a) \
-    _a=~_a;
+  #define U128_NOT_SELF(__a) \
+    __a=~__a;
 
-  #define U128_SET_ONES(_a) \
-    _a=0; \
-    _a=~_a
+  #define U128_SET_ONES(__a) \
+    __a=0; \
+    __a=~__a
 
-  #define U128_SET_SPAN_HALF(_a) \
-    _a=(u128)(1)<<127
+  #define U128_SET_SPAN_HALF(__a) \
+    __a=(u128)(1)<<127
 
-  #define U128_SET_SPAN_HALF_MINUS_1(_a) \
-    _a=~((u128)(1)<<127)
+  #define U128_SET_SPAN_HALF_MINUS_1(__a) \
+    __a=~((u128)(1)<<127)
 
-  #define U128_SET_ULP(_a) \
-    _a=1
+  #define U128_SET_ULP(__a) \
+    __a=1
 
-  #define U128_SET_ZERO(_a) \
-    _a=0
+  #define U128_SET_ZERO(__a) \
+    __a=0
 
-  #define U128_SHIFT_LEFT(_a, _b, _p) \
-    _a=(_p)<<(_b)
+  #define U128_SHIFT_LEFT(__a, __b, __p) \
+    __a=(__p)<<(__b)
 
-  #define U128_SHIFT_LEFT_CHECK(_a, _b, _p, _z) \
-    _a=(_p)<<(_b); \
-    _z=(u8)(_z|((_a>>(_b))!=(_p)))
+  #define U128_SHIFT_LEFT_CHECK(__a, __b, __p, __z) \
+    __a=(__p)<<(__b); \
+    __z=(u8)(__z|((__a>>(__b))!=(__p)))
 
-  #define U128_SHIFT_LEFT_SELF(_a, _b) \
-    _a<<=(_b)
+  #define U128_SHIFT_LEFT_SELF(__a, __b) \
+    __a<<=(__b)
 
-  #define U128_SHIFT_LEFT_SELF_CHECK(_a, _b, _z) \
+  #define U128_SHIFT_LEFT_SELF_CHECK(__a, __b, __z) \
     do{ \
       u128 __p; \
       \
-      __p=_a; \
-      U128_SHIFT_LEFT_CHECK(_a, _b, __p, _z); \
+      __p=__a; \
+      U128_SHIFT_LEFT_CHECK(__a, __b, __p, __z); \
     }while(0)
 
-  #define U128_SHIFT_RIGHT(_a, _b, _p) \
-    _a=(_p)>>(_b)
+  #define U128_SHIFT_RIGHT(__a, __b, __p) \
+    __a=(__p)>>(__b)
 
-  #define U128_SHIFT_RIGHT_SELF(_a, _b) \
-    _a>>=(_b)
+  #define U128_SHIFT_RIGHT_SELF(__a, __b) \
+    __a>>=(__b)
 
-  #define U128_SHIFTED_TO_U64(_t, _b, _p) \
-    _t=(u64)((_p)>>(_b))
+  #define U128_SHIFTED_TO_U64(__t, __b, __p) \
+    __t=(u64)((__p)>>(__b))
 
-  #define U128_SUBTRACT_FROM_U128_SELF(_a, _p) \
-    _a=(_p)-_a;
+  #define U128_SUBTRACT_FROM_U128_SELF(__a, __p) \
+    __a=(__p)-__a;
 
-  #define U128_SUBTRACT_U128(_a, _p, _q) \
-    _a=(_p)-(_q)
+  #define U128_SUBTRACT_U128(__a, __p, __q) \
+    __a=(__p)-(__q)
 
-  #define U128_SUBTRACT_U128_SELF(_a, _p) \
-    _a-=(_p)
+  #define U128_SUBTRACT_U128_SELF(__a, __p) \
+    __a-=(__p)
 
-  #define U128_SUBTRACT_U64_HI(_a, _p, _v) \
-    _a=(_p)-((u128)(_v)<<64)
+  #define U128_SUBTRACT_U64_HI(__a, __p, __v) \
+    __a=(__p)-((u128)(__v)<<64)
 
-  #define U128_SUBTRACT_U64_HI_CHECK(_a, _p, _v, _z) \
-    _a=((u128)(_v)<<64); \
-    _z=(u8)(_z|((_p)<_a)); \
-    _a=(_p)-_a
+  #define U128_SUBTRACT_U64_HI_CHECK(__a, __p, __v, __z) \
+    __a=((u128)(__v)<<64); \
+    __z=(u8)(__z|((__p)<__a)); \
+    __a=(__p)-__a
 
-  #define U128_SUBTRACT_U64_HI_SELF(_a, _v) \
-    _a-=((u128)(_v)<<64)
+  #define U128_SUBTRACT_U64_HI_SELF(__a, __v) \
+    __a-=((u128)(__v)<<64)
 
-  #define U128_SUBTRACT_U64_HI_SELF_CHECK(_a, _v, _z) \
+  #define U128_SUBTRACT_U64_HI_SELF_CHECK(__a, __v, __z) \
     do{ \
       u128 __p; \
       \
-      __p=_a; \
-      U128_SUBTRACT_U64_HI_CHECK(_a, __p, _v, _z); \
+      __p=__a; \
+      U128_SUBTRACT_U64_HI_CHECK(__a, __p, __v, __z); \
     }while(0)
 
-  #define U128_SUBTRACT_U64_LO_CHECK(_a, _p, _v, _z) \
-    _z=(u8)(_z|((_p)<(_v))); \
-    _a=(_p)-(_v)
+  #define U128_SUBTRACT_U64_LO(__a, __p, __v) \
+    __a=(__p)-(__v)
 
-  #define U128_SUBTRACT_U64_LO_SELF(_a, _v) \
-    _a-=(_v)
+  #define U128_SUBTRACT_U64_LO_CHECK(__a, __p, __v, __z) \
+    __z=(u8)(__z|((__p)<(__v))); \
+    __a=(__p)-(__v)
 
-  #define U128_SUBTRACT_U64_LO_SELF_CHECK(_a, _v, _z) \
+  #define U128_SUBTRACT_U64_LO_SELF(__a, __v) \
+    __a-=(__v)
+
+  #define U128_SUBTRACT_U64_LO_SELF_CHECK(__a, __v, __z) \
     do{ \
       u128 __p; \
       \
-      __p=_a; \
-      U128_SUBTRACT_U64_LO_CHECK(_a, __p, _v, _z); \
+      __p=__a; \
+      U128_SUBTRACT_U64_LO_CHECK(__a, __p, __v, __z); \
     }while(0)
 
-  #define U128_SUBTRACT_U64_SHIFTED(_a, _b, _p, _v) \
-    _a=(_p)-((u128)(_v)<<(_b))
+  #define U128_SUBTRACT_U64_SHIFTED(__a, __b, __p, __v) \
+    __a=(__p)-((u128)(__v)<<(__b))
 
-  #define U128_SUBTRACT_U64_SHIFTED_SELF(_a, _b, _v) \
-    _a-=((u128)(_v)<<(_b))
+  #define U128_SUBTRACT_U64_SHIFTED_SELF(__a, __b, __v) \
+    __a-=((u128)(__v)<<(__b))
 
-  #define U128_SWAP(_p, _q) \
-    (_p)^=(_q); \
-    (_q)^=(_p); \
-    (_p)^=(_q)
+  #define U128_SWAP(__p, __q) \
+    (__p)^=(__q); \
+    (__q)^=(__p); \
+    (__p)^=(__q)
 
-  #define U128_TO_U64_HI(_u, _p) \
-    _u=(u64)((_p)>>64)
+  #define U128_TO_U64_HI(__u, __p) \
+    __u=(u64)((__p)>>64)
 
-  #define U128_TO_U64_LO(_t, _p) \
-    _t=(u64)(_p)
+  #define U128_TO_U64_LO(__t, __p) \
+    __t=(u64)(__p)
 
-  #define U128_TO_U64_PAIR(_t, _u, _p) \
-    _t=(u64)(_p); \
-    _u=(u64)((_p)>>64)
+  #define U128_TO_U64_PAIR(__t, __u, __p) \
+    __t=(u64)(__p); \
+    __u=(u64)((__p)>>64)
 #else
-  #define U128_ADD_U128(_a, _p, _q) \
-    _a.a=(_p.a)+(_q.a); \
-    _a.b=(_p.b)+(_q.b); \
-    _a.b+=(_a.a<(_p.a))
+  #define U128_ADD_U128(__a, __p, __q) \
+    __a.a=(__p.a)+(__q.a); \
+    __a.b=(__p.b)+(__q.b); \
+    __a.b+=(__a.a<(__p.a))
 
-  #define U128_ADD_U128_CHECK(_a, _p, _q, _z) \
-    _a.a=(_p.a)+(_q.a); \
-    _a.b=(_p.b)+(_q.b); \
-    _z=(u8)(_z|(_a.b<(_p.b))); \
-    if(_a.a<(_p.a)){ \
-      _a.b++; \
-      _z=(u8)(_z|!_a.b); \
+  #define U128_ADD_U128_CHECK(__a, __p, __q, __z) \
+    __a.a=(__p.a)+(__q.a); \
+    __a.b=(__p.b)+(__q.b); \
+    __z=(u8)(__z|(__a.b<(__p.b))); \
+    if(__a.a<(__p.a)){ \
+      __a.b++; \
+      __z=(u8)(__z|!__a.b); \
     }
 
-  #define U128_ADD_U128_SELF(_a, _p) \
-    _a.a+=(_p.a); \
-    _a.b+=(_p.b)+(_a.a<(_p.a))
+  #define U128_ADD_U128_SELF(__a, __p) \
+    __a.a+=(__p.a); \
+    __a.b+=(__p.b)+(__a.a<(__p.a))
 
-  #define U128_ADD_U128_SELF_CHECK(_a, _p, _z) \
-    _a.a+=(_p.a); \
-    _a.b+=(_p.b); \
-    _z=(u8)(_z|(_a.b<(_p.b))); \
-    if(_a.a<(_p.a)){ \
-      _a.b++; \
-      _z=(u8)(_z|!_a.b); \
+  #define U128_ADD_U128_SELF_CHECK(__a, __p, __z) \
+    __a.a+=(__p.a); \
+    __a.b+=(__p.b); \
+    __z=(u8)(__z|(__a.b<(__p.b))); \
+    if(__a.a<(__p.a)){ \
+      __a.b++; \
+      __z=(u8)(__z|!__a.b); \
     }
 
-  #define U128_ADD_U64_HI(_a, _p, _v) \
-    _a.a=_p.a; \
-    _a.b=(_p.b)+(_v)
+  #define U128_ADD_U64_HI(__a, __p, __v) \
+    __a.a=__p.a; \
+    __a.b=(__p.b)+(__v)
 
-  #define U128_ADD_U64_HI_CHECK(_a, _p, _v, _z) \
-    _a.a=_p.a; \
-    _a.b=(_p.b)+(_v); \
-    _z=(u8)(_z|(_a.b<(_v)))
+  #define U128_ADD_U64_HI_CHECK(__a, __p, __v, __z) \
+    __a.a=__p.a; \
+    __a.b=(__p.b)+(__v); \
+    __z=(u8)(__z|(__a.b<(__v)))
 
-  #define U128_ADD_U64_HI_SELF(_a, _v) \
-    _a.b+=(_v)
+  #define U128_ADD_U64_HI_SELF(__a, __v) \
+    __a.b+=(__v)
 
-  #define U128_ADD_U64_HI_SELF_CHECK(_a, _v, _z) \
-    _a.b+=(_v); \
-    _z=(u8)(_z|(_a.b<(_v)))
+  #define U128_ADD_U64_HI_SELF_CHECK(__a, __v, __z) \
+    __a.b+=(__v); \
+    __z=(u8)(__z|(__a.b<(__v)))
 
-  #define U128_ADD_U64_LO(_a, _p, _v) \
-    _a.a=(_p.a)+(_v); \
-    _a.b=(_p.b)+(_a.a<(_v))
+  #define U128_ADD_U64_LO(__a, __p, __v) \
+    __a.a=(__p.a)+(__v); \
+    __a.b=(__p.b)+(__a.a<(__v))
 
-  #define U128_ADD_U64_LO_CHECK(_a, _p, _v, _z) \
-    _a.a=(_p.a)+(_v); \
-    _a.b=(_p.b); \
-    if(_a.a<(_v)){ \
-      _a.b++; \
-      _z=(u8)(_z|!_a.b); \
+  #define U128_ADD_U64_LO_CHECK(__a, __p, __v, __z) \
+    __a.a=(__p.a)+(__v); \
+    __a.b=(__p.b); \
+    if(__a.a<(__v)){ \
+      __a.b++; \
+      __z=(u8)(__z|!__a.b); \
     }
 
-  #define U128_ADD_U64_LO_SELF(_a, _v) \
-    _a.a+=(_v); \
-    _a.b+=(_a.a<(_v))
+  #define U128_ADD_U64_LO_SELF(__a, __v) \
+    __a.a+=(__v); \
+    __a.b+=(__a.a<(__v))
 
-  #define U128_ADD_U64_LO_SELF_CHECK(_a, _v, _z) \
-    _a.a+=(_v); \
-    if(_a.a<(_v)){ \
-      _a.b++; \
-      _z=(u8)(_z|!_a.b); \
+  #define U128_ADD_U64_LO_SELF_CHECK(__a, __v, __z) \
+    __a.a+=(__v); \
+    if(__a.a<(__v)){ \
+      __a.b++; \
+      __z=(u8)(__z|!__a.b); \
     }
 
-  #define U128_ADD_U64_SHIFTED(_a, _b, _p, _v) \
-    _a.a=(_p.a)+((_v)<<(_b)); \
-    _a.b=(_p.b)+(_a.a<(_p.a)); \
-    if(_b){ \
-      _a.b+=(_v)>>(64-(_b)); \
+  #define U128_ADD_U64_SHIFTED(__a, __b, __p, __v) \
+    __a.a=(__p.a)+((__v)<<(__b)); \
+    __a.b=(__p.b)+(__a.a<(__p.a)); \
+    if(__b){ \
+      __a.b+=(__v)>>(64-(__b)); \
     }
 
-  #define U128_ADD_U64_SHIFTED_SELF(_a, _b, _v) \
+  #define U128_ADD_U64_SHIFTED_SELF(__a, __b, __v) \
     do{ \
       u64 __w; \
       \
-      __w=(_v)<<(_b); \
-      _a.a+=__w; \
-      _a.b+=(_a.a<__w); \
-      if(_b){ \
-        _a.b+=(_v)>>(64-(_b)); \
+      __w=(__v)<<(__b); \
+      __a.a+=__w; \
+      __a.b+=(__a.a<__w); \
+      if(__b){ \
+        __a.b+=(__v)>>(64-(__b)); \
       } \
     }while(0)
 
-  #define U128_ADD_U8(_a, _c, _p); \
-    _a.a=(_c)+(_p.a); \
-    _a.b=(_a.a<(_p.a))+(_p.b)
+  #define U128_ADD_U8(__a, __c, __p); \
+    __a.a=(__c)+(__p.a); \
+    __a.b=(__a.a<(__p.a))+(__p.b)
 
-  #define U128_ADD_U8_HI(_a, _c, _p); \
-    _a.a=(_p.a); \
-    _a.b=(_c)+(_p.b)
+  #define U128_ADD_U8_HI(__a, __c, __p); \
+    __a.a=(__p.a); \
+    __a.b=(__c)+(__p.b)
 
-  #define U128_ADD_U8_HI_SELF(_a, _c); \
-    _a.b+=(_c)
+  #define U128_ADD_U8_HI_SELF(__a, __c); \
+    __a.b+=(__c)
 
-  #define U128_ADD_U8_SELF(_a, _c); \
-    _a.a+=(_c); \
-    _a.b+=(_a.a<(_c))
+  #define U128_ADD_U8_SELF(__a, __c); \
+    __a.a+=(__c); \
+    __a.b+=(__a.a<(__c))
 
-  #define U128_BIT_CLEAR(_a, _b, _p); \
+  #define U128_BIT_CLEAR(__a, __b, __p); \
     do{ \
       u64 __q; \
       \
-      _a.a=_p.a; \
-      _a.b=_p.b; \
-      __q=~(1ULL<<((_b)&63)); \
-      if((_b)<=63){ \
-        _a.a&=__q; \
+      __a.a=__p.a; \
+      __a.b=__p.b; \
+      __q=~(1ULL<<((__b)&63)); \
+      if((__b)<=63){ \
+        __a.a&=__q; \
       }else{ \
-        _a.b&=__q; \
+        __a.b&=__q; \
       } \
     }while(0)
 
-  #define U128_BIT_CLEAR_SELF(_a, _b); \
+  #define U128_BIT_CLEAR_SELF(__a, __b); \
     do{ \
       u64 __q; \
       \
-      __q=~(1ULL<<((_b)&63)); \
-      if((_b)<=63){ \
-        _a.a&=__q; \
+      __q=~(1ULL<<((__b)&63)); \
+      if((__b)<=63){ \
+        __a.a&=__q; \
       }else{ \
-        _a.b&=__q; \
+        __a.b&=__q; \
       } \
     }while(0)
 
-  #define U128_BIT_FLIP(_a, _b, _p); \
+  #define U128_BIT_FLIP(__a, __b, __p); \
     do{ \
       u64 __q; \
       \
-      __q=1ULL<<((_b)&63); \
-      if((_b)<=63){ \
-        _a.a=_p.a^__q; \
-        _a.b=_p.b; \
+      __q=1ULL<<((__b)&63); \
+      if((__b)<=63){ \
+        __a.a=__p.a^__q; \
+        __a.b=__p.b; \
       }else{ \
-        _a.a=_p.a; \
-        _a.b=_p.b^__q; \
+        __a.a=__p.a; \
+        __a.b=__p.b^__q; \
       } \
     }while(0)
 
-  #define U128_BIT_FLIP_SELF(_a, _b); \
-    U128_BIT_FLIP(_a, _b, _a)
+  #define U128_BIT_FLIP_SELF(__a, __b); \
+    U128_BIT_FLIP(__a, __b, __a)
 
-  #define U128_BIT_GET(_c, _b, _p); \
-    if((_b)<=63){ \
-      _c=(u8)((_p.a)>>(_b)); \
+  #define U128_BIT_GET(__c, __b, __p); \
+    if((__b)<=63){ \
+      __c=(u8)((__p.a)>>(__b)); \
     }else{ \
-      _c=(u8)((_p.b)>>((_b)&63)); \
+      __c=(u8)((__p.b)>>((__b)&63)); \
     } \
-    _c=(u8)(_c&1)
+    __c=(u8)(__c&1)
 
-  #define U128_BIT_SET(_a, _b, _p); \
+  #define U128_BIT_SET(__a, __b, __p); \
     do{ \
       u64 __q; \
       \
-      _a.a=_p.a; \
-      _a.b=_p.b; \
-      __q=~(1ULL<<((_b)&63)); \
-      if((_b)<=63){ \
-        _a.a|=__q; \
+      __a.a=__p.a; \
+      __a.b=__p.b; \
+      __q=~(1ULL<<((__b)&63)); \
+      if((__b)<=63){ \
+        __a.a|=__q; \
       }else{ \
-        _a.b|=__q; \
+        __a.b|=__q; \
       } \
     }while(0)
 
-  #define U128_BIT_SET_SELF(_a, _b); \
+  #define U128_BIT_SET_SELF(__a, __b); \
     do{ \
       u64 __q; \
       \
-      __q=~(1ULL<<((_b)&63)); \
-      if((_b)<=63){ \
-        _a.a|=__q; \
+      __q=~(1ULL<<((__b)&63)); \
+      if((__b)<=63){ \
+        __a.a|=__q; \
       }else{ \
-        _a.b|=__q; \
+        __a.b|=__q; \
       } \
     }while(0)
 
-  #define U128_CHECKSUM_TO_U64(_t, _p, _v) \
-    _t=(_p.a)+(_p.b)+(_v)
+  #define U128_CHECKSUM_TO_U64(__t, __p, __v) \
+    __t=(__p.a)+(__p.b)+(__v)
 
-  #define U128_DECREMENT(_a, _p) \
-    _a.b=(_p.b)-!(_p.a); \
-    _a.a=(_p.a)-1
+  #define U128_DECREMENT(__a, __p) \
+    __a.b=(__p.b)-!(__p.a); \
+    __a.a=(__p.a)-1
 
-  #define U128_DECREMENT_SATURATE(_a, _p) \
-    _a.a=0; \
-    _a.b=0; \
-    if((_p.a)|(_p.b)){ \
-      _a.b=(_p.b)-!(_p.a); \
-      _a.a=(_p.a)-1; \
+  #define U128_DECREMENT_SATURATE(__a, __p) \
+    __a.a=0; \
+    __a.b=0; \
+    if((__p.a)|(__p.b)){ \
+      __a.b=(__p.b)-!(__p.a); \
+      __a.a=(__p.a)-1; \
     }
 
-  #define U128_DECREMENT_SATURATE_SELF(_a) \
-    if(_a.a|_a.b){ \
-      _a.b-=!_a.a; \
-      _a.a--; \
+  #define U128_DECREMENT_SATURATE_SELF(__a) \
+    if(__a.a|__a.b){ \
+      __a.b-=!__a.a; \
+      __a.a--; \
     }
 
-  #define U128_DECREMENT_SELF(_a) \
-    _a.b-=!_a.a; \
-    _a.a--
+  #define U128_DECREMENT_SELF(__a) \
+    __a.b-=!__a.a; \
+    __a.a--
 
-  #define U128_DECREMENT_U64_HI(_a, _p) \
-    _a.a=(_p.a); \
-    _a.b=(_p.b)-1
+  #define U128_DECREMENT_U64_HI(__a, __p) \
+    __a.a=(__p.a); \
+    __a.b=(__p.b)-1
 
-  #define U128_DECREMENT_U64_HI_SELF(_a) \
-    _a.b--
+  #define U128_DECREMENT_U64_HI_SELF(__a) \
+    __a.b--
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE(_a, _p, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u128_saturate(&_a, _p, _v))
+  #define U128_DIVIDE_U128_SATURATE(__a, __p, __q, __z) \
+    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __p, __q))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(_a, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u128_saturate(&_a, _a, _v))
+  #define U128_DIVIDE_U128_SATURATE_SELF(__a, __p, __z) \
+    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __a, __p))
 
-  #define U128_DIVIDE_U64_TO_U64_SATURATE(_t, _p, _v, _z) \
-    _z=(u8)(_z|u128_divide_u64_to_u64_saturate(&_t, _p, _v))
+  #define U128_DIVIDE_U64_TO_U128_SATURATE(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __p, __v))
 
-  #define U128_FROM_BOOL(_a, _c) \
-    _a.a=!_c; \
-    _a.a--; \
-    _a.b=_a.a
+  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __a, __v))
 
-  #define U128_FROM_U128_PAIR_BIT_IDX(_a, _b, _p, _q) \
-    _a=u128_from_u128_pair_bit_idx(_b, _p, _q)
+  #define U128_DIVIDE_U64_TO_U64_SATURATE(__t, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u64_saturate(&__t, __p, __v))
 
-  #define U128_FROM_U64_HI(_a, _w) \
-    _a.a=0; \
-    _a.b=(_w)
+  #define U128_FROM_BOOL(__a, __c) \
+    __a.a=!__c; \
+    __a.a--; \
+    __a.b=__a.a
 
-  #define U128_FROM_U64_HI_SATURATE(_a, _w) \
-    _a.a=0; \
-    _a.a=~_a.a; \
-    _a.b=(_w)
+  #define U128_FROM_U128_PAIR_BIT_IDX(__a, __b, __p, __q) \
+    __a=u128_from_u128_pair_bit_idx(__b, __p, __q)
 
-  #define U128_FROM_U64_LO(_a, _v) \
-    _a.a=(_v); \
-    _a.b=0
+  #define U128_FROM_U64_HI(__a, __w) \
+    __a.a=0; \
+    __a.b=(__w)
 
-  #define U128_FROM_U64_PAIR(_a, _v, _w) \
-    _a.a=(_v); \
-    _a.b=(_w)
+  #define U128_FROM_U64_HI_SATURATE(__a, __w) \
+    __a.a=0; \
+    __a.a=~__a.a; \
+    __a.b=(__w)
 
-  #define U128_FROM_U64_PRODUCT(_a, _v, _w) \
-    _a=u128_from_u64_product(_v, _w)
+  #define U128_FROM_U64_LO(__a, __v) \
+    __a.a=(__v); \
+    __a.b=0
 
-  #define U128_FROM_U64_SHIFTED(_a, _b, _v) \
-    _a.a=(_v)<<(_b); \
-    _a.b=0; \
-    if(_b){ \
-      _a.b=(_v)>>(64-(_b)); \
+  #define U128_FROM_U64_PAIR(__a, __v, __w) \
+    __a.a=(__v); \
+    __a.b=(__w)
+
+  #define U128_FROM_U64_PRODUCT(__a, __v, __w) \
+    __a=u128_from_u64_product(__v, __w)
+
+  #define U128_FROM_U64_SHIFTED(__a, __b, __v) \
+    __a.a=(__v)<<(__b); \
+    __a.b=0; \
+    if(__b){ \
+      __a.b=(__v)>>(64-(__b)); \
     }
 
-  #define U128_INCREMENT(_a, _p) \
-    _a.a=(_p.a)+1; \
-    _a.b=(_p.b)+!_a.a
+  #define U128_INCREMENT(__a, __p) \
+    __a.a=(__p.a)+1; \
+    __a.b=(__p.b)+!__a.a
 
-  #define U128_INCREMENT_SATURATE(_a, _p) \
-    _a.a=(_p.a)+1; \
-    _a.b=(_p.b); \
-    if(!_a.a){ \
-      _a.b++; \
-      if(!_a.b){ \
-        _a.a=~_a.a; \
-        _a.b=~_a.b; \
+  #define U128_INCREMENT_SATURATE(__a, __p) \
+    __a.a=(__p.a)+1; \
+    __a.b=(__p.b); \
+    if(!__a.a){ \
+      __a.b++; \
+      if(!__a.b){ \
+        __a.a=~__a.a; \
+        __a.b=~__a.b; \
       } \
     }
 
-  #define U128_INCREMENT_SATURATE_SELF(_a) \
-    if(~(_a.a&_a.b)){ \
-      _a.a++; \
-      _a.b+=!_a.a; \
+  #define U128_INCREMENT_SATURATE_SELF(__a) \
+    if(~(__a.a&__a.b)){ \
+      __a.a++; \
+      __a.b+=!__a.a; \
     }
 
-  #define U128_INCREMENT_SELF(_a) \
-    _a.a++; \
-    _a.b+=!_a.a
+  #define U128_INCREMENT_SELF(__a) \
+    __a.a++; \
+    __a.b+=!__a.a
 
-  #define U128_INCREMENT_U64_HI(_a, _p) \
-    _a.a=(_p.a); \
-    _a.b=(_p.b)+1
+  #define U128_INCREMENT_U64_HI(__a, __p) \
+    __a.a=(__p.a); \
+    __a.b=(__p.b)+1
 
-  #define U128_INCREMENT_U64_HI_SELF(_a) \
-    _a.b++
+  #define U128_INCREMENT_U64_HI_SELF(__a) \
+    __a.b++
 
-  #define U128_IS_EQUAL(_p, _q) \
-    (((_p.a)==(_q.a))&&((_p.b)==(_q.b)))
+  #define U128_IS_EQUAL(__p, __q) \
+    (((__p.a)==(__q.a))&&((__p.b)==(__q.b)))
 
-  #define U128_IS_EQUAL_U64(_p, _q) \
-    ((_p.a)==(_q))
+  #define U128_IS_EQUAL_U64(__p, __q) \
+    ((__p.a)==(__q))
 
-  #define U128_IS_LESS(_p, _q) \
-    (((_p.b)<(_q.b))||(((_p.b)==(_q.b))&&((_p.a)<(_q.a))))
+  #define U128_IS_LESS(__p, __q) \
+    (((__p.b)<(__q.b))||(((__p.b)==(__q.b))&&((__p.a)<(__q.a))))
 
-  #define U128_IS_LESS_EQUAL(_p, _q) \
-    (((_p.b)<(_q.b))||(((_p.b)==(_q.b))&&((_p.a)<=(_q.a))))
+  #define U128_IS_LESS_EQUAL(__p, __q) \
+    (((__p.b)<(__q.b))||(((__p.b)==(__q.b))&&((__p.a)<=(__q.a))))
 
-  #define U128_IS_LESS_EQUAL_U64(_p, _q) \
-    ((!(_p.b))&&((_p.a)<=(_q)))
+  #define U128_IS_LESS_EQUAL_U64(__p, __q) \
+    ((!(__p.b))&&((__p.a)<=(__q)))
 
-  #define U128_IS_LESS_U64(_p, _q) \
-    ((!(_p.b))&&((_p.a)<(_q)))
+  #define U128_IS_LESS_U64(__p, __q) \
+    ((!(__p.b))&&((__p.a)<(__q)))
 
-  #define U128_IS_NOT_EQUAL(_p, _q) \
-    (((_p.a)!=(_q.a))||((_p.b)!=(_q.b)))
+  #define U128_IS_NOT_EQUAL(__p, __q) \
+    (((__p.a)!=(__q.a))||((__p.b)!=(__q.b)))
 
-  #define U128_IS_NOT_EQUAL_U64(_p, _q) \
-    ((_p.b)||((_p.a)!=(_q)))
+  #define U128_IS_NOT_EQUAL_U64(__p, __q) \
+    ((__p.b)||((__p.a)!=(__q)))
 
-  #define U128_IS_NOT_ONES(_p) \
-    ((~(_p.a))||(~(_p.b)))
+  #define U128_IS_NOT_ONES(__p) \
+    ((~(__p.a))||(~(__p.b)))
 
-  #define U128_IS_NOT_POWER_OF_2(_p) \
+  #define U128_IS_NOT_POWER_OF_2(__p) \
     ((p.a&(p.a-1))||(p.b&(p.b-1)))
 
-  #define U128_IS_NOT_SIGNED(_p) \
-    (!((_p.b)>>63))
+  #define U128_IS_NOT_SIGNED(__p) \
+    (!((__p.b)>>63))
 
-  #define U128_IS_NOT_ZERO(_p) \
-    ((_p.a)||(_p.b))
+  #define U128_IS_NOT_ZERO(__p) \
+    ((__p.a)||(__p.b))
 
-  #define U128_IS_ONES(_p) \
-    (!(~((_p.a)&(_p.b))))
+  #define U128_IS_ONES(__p) \
+    (!(~((__p.a)&(__p.b))))
 
-  #define U128_IS_POWER_OF_2(_p) \
+  #define U128_IS_POWER_OF_2(__p) \
     (!((p.a&(p.a-1))||(p.b&(p.b-1))))
 
-  #define U128_IS_SIGNED(_p) \
-    (!!((_p.b)>>63))
+  #define U128_IS_SIGNED(__p) \
+    (!!((__p.b)>>63))
 
-  #define U128_IS_ZERO(_p) \
-    (!((_p.a)|(_p.b)))
+  #define U128_IS_ZERO(__p) \
+    (!((__p.a)|(__p.b)))
 
-  #define U128_MAX(_a, _p, _q) \
-    _a.a=(_p.a); \
-    _a.b=(_p.b); \
-    if(((_p.b)<(_q.b))||(((_p.b)==(_q.b))&&((_p.a)<(_q.a)))){ \
-      _a.a=(_q.a); \
-      _a.b=(_q.b); \
+  #define U128_MAX(__a, __p, __q) \
+    __a.a=(__p.a); \
+    __a.b=(__p.b); \
+    if(((__p.b)<(__q.b))||(((__p.b)==(__q.b))&&((__p.a)<(__q.a)))){ \
+      __a.a=(__q.a); \
+      __a.b=(__q.b); \
     }
 
-  #define U128_MAX_SELF(_a, _p) \
-    if(((_a.b)<(_p.b))||(((_a.b)==(_p.b))&&((_a.a)<(_p.a)))){ \
-      _a.a=(_p.a); \
-      _a.b=(_p.b); \
+  #define U128_MAX_SELF(__a, __p) \
+    if(((__a.b)<(__p.b))||(((__a.b)==(__p.b))&&((__a.a)<(__p.a)))){ \
+      __a.a=(__p.a); \
+      __a.b=(__p.b); \
     }
 
-  #define U128_MEAN_FLOOR(_a, _p, _q) \
+  #define U128_MEAN_FLOOR(__a, __p, __q) \
     do{ \
       u64 __r; \
       \
-      _a.a=((_p.a)>>1)+((_q.a)>>1); \
-      _a.b=((_p.b)>>1)+((_q.b)>>1); \
-      __r=(_p.b)<<63; \
-      _a.a+=__r; \
-      _a.b+=(_a.a<__r); \
-      __r=(_q.b)<<63; \
-      _a.a+=__r; \
-      _a.b+=(_a.a<__r); \
-      __r=1&(_p.a)&(_q.a); \
-      _a.a+=__r; \
-      _a.b+=(_a.a<__r); \
+      __a.a=((__p.a)>>1)+((__q.a)>>1); \
+      __a.b=((__p.b)>>1)+((__q.b)>>1); \
+      __r=(__p.b)<<63; \
+      __a.a+=__r; \
+      __a.b+=(__a.a<__r); \
+      __r=(__q.b)<<63; \
+      __a.a+=__r; \
+      __a.b+=(__a.a<__r); \
+      __r=1&(__p.a)&(__q.a); \
+      __a.a+=__r; \
+      __a.b+=(__a.a<__r); \
     }while(0)
 
-  #define U128_MIN(_a, _p, _q) \
-    _a.a=(_p.a); \
-    _a.b=(_p.b); \
-    if(((_q.b)<(_p.b))||(((_p.b)==(_q.b))&&((_q.a)<(_p.a)))){ \
-      _a.a=(_q.a); \
-      _a.b=(_q.b); \
+  #define U128_MIN(__a, __p, __q) \
+    __a.a=(__p.a); \
+    __a.b=(__p.b); \
+    if(((__q.b)<(__p.b))||(((__p.b)==(__q.b))&&((__q.a)<(__p.a)))){ \
+      __a.a=(__q.a); \
+      __a.b=(__q.b); \
     }
 
-  #define U128_MIN_SELF(_a, _p) \
-    if(((_a.b)<(_p.b))||(((_a.b)==(_p.b))&&((_a.a)<(_p.a)))){ \
-      _a.a=(_p.a); \
-      _a.b=(_p.b); \
+  #define U128_MIN_SELF(__a, __p) \
+    if(((__a.b)<(__p.b))||(((__a.b)==(__p.b))&&((__a.a)<(__p.a)))){ \
+      __a.a=(__p.a); \
+      __a.b=(__p.b); \
     }
 
-  #define U128_MSB_GET(_b, _p) \
-    _b=u128_msb_get(_p)
+  #define U128_MSB_GET(__b, __p) \
+    __b=u128_msb__get(__p)
 
-  #define U128_MULTIPLY_U64_SATURATE(_a, _p, _v, _z) \
-    _z=(u8)(_z|u128_multiply_u64_saturate(&_a, _p, _v))
+  #define U128_MULTIPLY_U64_SATURATE(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __p, __v))
 
-  #define U128_MULTIPLY_U64_SATURATE_SELF(_a, _v, _z) \
-    _z=(u8)(_z|u128_multiply_u64_saturate(&_a, _a, _v))
+  #define U128_MULTIPLY_U64_SATURATE_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __a, __v))
 
-  #define U128_NEGATE(_a, _p) \
-    _a.a=0U-(_p.a); \
-    _a.b=0U-(_p.b)-!!_a.a
+  #define U128_NEGATE(__a, __p) \
+    __a.a=0U-(__p.a); \
+    __a.b=0U-(__p.b)-!!__a.a
 
-  #define U128_NEGATE_SELF(_a) \
-    _a.a=0U-_a.a; \
-    _a.b=0U-_a.b-!!_a.a
+  #define U128_NEGATE_SELF(__a) \
+    __a.a=0U-__a.a; \
+    __a.b=0U-__a.b-!!__a.a
 
-  #define U128_NOT(_a, _p) \
-    _a.a=~(_p.a); \
-    _a.b=~(_p.b)
+  #define U128_NOT(__a, __p) \
+    __a.a=~(__p.a); \
+    __a.b=~(__p.b)
 
-  #define U128_NOT_SELF(_a) \
-    _a.a=~_a.a; \
-    _a.b=~_a.b
+  #define U128_NOT_SELF(__a) \
+    __a.a=~__a.a; \
+    __a.b=~__a.b
 
-  #define U128_SET_ONES(_a) \
-    _a.a=0; \
-    _a.a=~_a.a; \
-    _a.b=_a.a
+  #define U128_SET_ONES(__a) \
+    __a.a=0; \
+    __a.a=~__a.a; \
+    __a.b=__a.a
 
-  #define U128_SET_SPAN_HALF(_a) \
-    _a.a=0; \
-    _a.b=U64_SPAN_HALF
+  #define U128_SET_SPAN_HALF(__a) \
+    __a.a=0; \
+    __a.b=U64_SPAN_HALF
 
-  #define U128_SET_SPAN_HALF_MINUS_1(_a) \
-    _a.a=U64_MAX; \
-    _a.b=U64_SPAN_HALF-1
+  #define U128_SET_SPAN_HALF_MINUS_1(__a) \
+    __a.a=U64_MAX; \
+    __a.b=U64_SPAN_HALF-1
 
-  #define U128_SET_ULP(_a) \
-    _a.b=0; \
-    _a.a=_a.b+1
+  #define U128_SET_ULP(__a) \
+    __a.b=0; \
+    __a.a=__a.b+1
 
-  #define U128_SET_ZERO(_a) \
-    _a.a=0; \
-    _a.b=_a.a
+  #define U128_SET_ZERO(__a) \
+    __a.a=0; \
+    __a.b=__a.a
 
-  #define U128_SHIFT_LEFT(_a, _b, _p) \
-    if((_b)<=63){ \
-      _a.b=(_p.b)<<((_b)&63); \
-      if(((_b)&63)){ \
-        _a.b+=(_p.a)>>(u8)((64-(_b))&63); \
+  #define U128_SHIFT_LEFT(__a, __b, __p) \
+    if((__b)<=63){ \
+      __a.b=(__p.b)<<((__b)&63); \
+      if(((__b)&63)){ \
+        __a.b+=(__p.a)>>(u8)((64-(__b))&63); \
       } \
-      _a.a=(_p.a)<<((_b)&63); \
+      __a.a=(__p.a)<<((__b)&63); \
     }else{ \
-      _a.b=(_p.a)<<((_b)&63); \
-      _a.a=0; \
+      __a.b=(__p.a)<<((__b)&63); \
+      __a.a=0; \
     }
 
-  #define U128_SHIFT_LEFT_CHECK(_a, _b, _p, _z) \
-    if((_b)<=63){ \
-      _a.b=(_p.b)<<((_b)&63); \
-      if(((_b)&63)){ \
-        _a.b+=(_p.a)>>(u8)((64-(_b))&63); \
+  #define U128_SHIFT_LEFT_CHECK(__a, __b, __p, __z) \
+    if((__b)<=63){ \
+      __a.b=(__p.b)<<((__b)&63); \
+      if(((__b)&63)){ \
+        __a.b+=(__p.a)>>(u8)((64-(__b))&63); \
       } \
-      _a.a=(_p.a)<<((_b)&63); \
-      _z=(u8)(_z|((_a.b>>((_b)&63))!=(_p.b))); \
+      __a.a=(__p.a)<<((__b)&63); \
+      __z=(u8)(__z|((__a.b>>((__b)&63))!=(__p.b))); \
     }else{ \
-      (_a.b)=(_p.a)<<(u8)((_b)&63); \
-      (_a.a)=0; \
-      _z=(u8)(_z|((_p.b)||(((_a.b)>>(u8)((_b)&63))!=(_p.a)))); \
+      (__a.b)=(__p.a)<<(u8)((__b)&63); \
+      (__a.a)=0; \
+      __z=(u8)(__z|((__p.b)||(((__a.b)>>(u8)((__b)&63))!=(__p.a)))); \
     }
 
-  #define U128_SHIFT_LEFT_SELF(_a, _b) \
-    if((_b)<=63){ \
-      _a.b<<=(_b)&63; \
-      if(((_b)&63)){ \
-        _a.b+=_a.a>>(u8)((64-(_b))&63); \
+  #define U128_SHIFT_LEFT_SELF(__a, __b) \
+    if((__b)<=63){ \
+      __a.b<<=(__b)&63; \
+      if(((__b)&63)){ \
+        __a.b+=__a.a>>(u8)((64-(__b))&63); \
       } \
-      _a.a<<=(_b)&63; \
+      __a.a<<=(__b)&63; \
     }else{ \
-      _a.b=_a.a<<((_b)&63); \
-      _a.a=0; \
+      __a.b=__a.a<<((__b)&63); \
+      __a.a=0; \
     }
 
-  #define U128_SHIFT_LEFT_SELF_CHECK(_a, _b, _z) \
+  #define U128_SHIFT_LEFT_SELF_CHECK(__a, __b, __z) \
     do{ \
       u128 __p; \
       \
-      __p.a=_a.a; \
-      __p.b=_a.b; \
-      U128_SHIFT_LEFT_CHECK(_a, _b, __p, _z); \
+      __p.a=__a.a; \
+      __p.b=__a.b; \
+      U128_SHIFT_LEFT_CHECK(__a, __b, __p, __z); \
     }while(0)
 
-  #define U128_SHIFT_RIGHT(_a, _b, _p) \
-    if((_b)<=63){ \
-      _a.a=(_p.a)>>((_b)&63); \
-      if((_b)&63){ \
-        _a.a+=(_p.b)<<(u8)((64-(_b))&63); \
+  #define U128_SHIFT_RIGHT(__a, __b, __p) \
+    if((__b)<=63){ \
+      __a.a=(__p.a)>>((__b)&63); \
+      if((__b)&63){ \
+        __a.a+=(__p.b)<<(u8)((64-(__b))&63); \
       } \
-      _a.b=(_p.b)>>((_b)&63); \
+      __a.b=(__p.b)>>((__b)&63); \
     }else{ \
-      _a.a=(_p.b)>>(u8)((_b)&63); \
-      _a.b=0; \
+      __a.a=(__p.b)>>(u8)((__b)&63); \
+      __a.b=0; \
     }
 
-  #define U128_SHIFT_RIGHT_SELF(_a, _b) \
-    if((_b)<=63){ \
-      _a.a>>=(_b)&63; \
-      if((_b)&63){ \
-        _a.a+=_a.b<<(u8)((64-(_b))&63); \
+  #define U128_SHIFT_RIGHT_SELF(__a, __b) \
+    if((__b)<=63){ \
+      __a.a>>=(__b)&63; \
+      if((__b)&63){ \
+        __a.a+=__a.b<<(u8)((64-(__b))&63); \
       } \
-      _a.b>>=(_b)&63; \
+      __a.b>>=(__b)&63; \
     }else{ \
-      _a.a=_a.b>>(u8)((_b)&63); \
-      _a.b=0; \
+      __a.a=__a.b>>(u8)((__b)&63); \
+      __a.b=0; \
     }
 
-  #define U128_SHIFTED_TO_U64(_t, _b, _p) \
-    _t=((_p.a)>>(_b))|((_p.b)<<(64-(_b)))
+  #define U128_SHIFTED_TO_U64(__t, __b, __p) \
+    __t=((__p.a)>>(__b))|((__p.b)<<(64-(__b)))
 
-  #define U128_SUBTRACT_FROM_U128_SELF(_a, _p) \
-    _a.b=(_p.b)-_a.b-((_p.a)<_a.a); \
-    _a.a=(_p.a)-_a.a
+  #define U128_SUBTRACT_FROM_U128_SELF(__a, __p) \
+    __a.b=(__p.b)-__a.b-((__p.a)<__a.a); \
+    __a.a=(__p.a)-__a.a
 
-  #define U128_SUBTRACT_U128(_a, _p, _q) \
-    _a.b=(_p.b)-((_p.a)<(_q.a)); \
-    _a.a=(_p.a)-(_q.a); \
-    _a.b-=(_q.b)
+  #define U128_SUBTRACT_U128(__a, __p, __q) \
+    __a.b=(__p.b)-((__p.a)<(__q.a)); \
+    __a.a=(__p.a)-(__q.a); \
+    __a.b-=(__q.b)
 
-  #define U128_SUBTRACT_U128_SELF(_a, _p) \
-    _a.b-=(_p.b)+(_a.a<(_p.a)); \
-    _a.a-=(_p.a)
+  #define U128_SUBTRACT_U128_SELF(__a, __p) \
+    __a.b-=(__p.b)+(__a.a<(__p.a)); \
+    __a.a-=(__p.a)
 
-  #define U128_SUBTRACT_U64_HI(_a, _p, _v) \
-    _a.b=(_p.b)-(_v)
+  #define U128_SUBTRACT_U64_HI(__a, __p, __v) \
+    __a.b=(__p.b)-(__v)
 
-  #define U128_SUBTRACT_U64_HI_CHECK(_a, _p, _v, _z) \
-    _z=(u8)(_z|((_p.b)<(_v))); \
-    _a.b=(_p.b)-(_v)
+  #define U128_SUBTRACT_U64_HI_CHECK(__a, __p, __v, __z) \
+    __z=(u8)(__z|((__p.b)<(__v))); \
+    __a.b=(__p.b)-(__v)
 
-  #define U128_SUBTRACT_U64_HI_SELF(_a, _v) \
-    _a.b-=(_v)
+  #define U128_SUBTRACT_U64_HI_SELF(__a, __v) \
+    __a.b-=(__v)
 
-  #define U128_SUBTRACT_U64_HI_SELF_CHECK(_a, _v, _z) \
-    _z=(u8)(_z|(_a.b<(_v))); \
-    _a.b-=(_v)
+  #define U128_SUBTRACT_U64_HI_SELF_CHECK(__a, __v, __z) \
+    __z=(u8)(__z|(__a.b<(__v))); \
+    __a.b-=(__v)
 
-  #define U128_SUBTRACT_U64_LO_CHECK(_a, _p, _v, _z) \
-    _z=(u8)(_z|((!_p.b)&&((_p.a)<(_v)))); \
-    _a.b-=((_p.a)<(_v)); \
-    _a.a=(_p.a)-(_v)
+  #define U128_SUBTRACT_U64_LO(__a, __p, __v) \
+    __a.b-=((__p.a)<(__v)); \
+    __a.a=(__p.a)-(__v)
 
-  #define U128_SUBTRACT_U64_LO_SELF(_a, _v) \
-    _a.b-=((_a.a)<(_v)); \
-    _a.a-=(_v)
+  #define U128_SUBTRACT_U64_LO_CHECK(__a, __p, __v, __z) \
+    __z=(u8)(__z|((!__p.b)&&((__p.a)<(__v)))); \
+    __a.b-=((__p.a)<(__v)); \
+    __a.a=(__p.a)-(__v)
 
-  #define U128_SUBTRACT_U64_LO_SELF_CHECK(_a, _v, _z) \
-    _z=(u8)(_z|((!_a.b)&&((_a.a)<(_v)))); \
-    _a.b-=((_a.a)<(_v)); \
-    _a.a-=(_v)
+  #define U128_SUBTRACT_U64_LO_SELF(__a, __v) \
+    __a.b-=((__a.a)<(__v)); \
+    __a.a-=(__v)
 
-  #define U128_SUBTRACT_U64_SHIFTED(_a, _b, _p, _v) \
-    if(_b){ \
-      _a.b=(_p.b)-((_v)>>(64-(_b))); \
+  #define U128_SUBTRACT_U64_LO_SELF_CHECK(__a, __v, __z) \
+    __z=(u8)(__z|((!__a.b)&&((__a.a)<(__v)))); \
+    __a.b-=((__a.a)<(__v)); \
+    __a.a-=(__v)
+
+  #define U128_SUBTRACT_U64_SHIFTED(__a, __b, __p, __v) \
+    if(__b){ \
+      __a.b=(__p.b)-((__v)>>(64-(__b))); \
     } \
-    _a.a=(_p.a)-((_v)<<(_b)); \
-    _a.b-=((_p.a)<_a.a)
+    __a.a=(__p.a)-((__v)<<(__b)); \
+    __a.b-=((__p.a)<__a.a)
 
-  #define U128_SUBTRACT_U64_SHIFTED_SELF(_a, _b, _v) \
+  #define U128_SUBTRACT_U64_SHIFTED_SELF(__a, __b, __v) \
     do{ \
       u64 __w; \
       \
-      if(_b){ \
-        _a.b-=(_v)>>(64-(_b)); \
+      if(__b){ \
+        __a.b-=(__v)>>(64-(__b)); \
       } \
-      __w=_a.a; \
-      _a.a-=((_v)<<(_b)); \
-      _a.b-=(__w<_a.a); \
+      __w=__a.a; \
+      __a.a-=((__v)<<(__b)); \
+      __a.b-=(__w<__a.a); \
     }while(0)
 
-  #define U128_SWAP(_p, _q) \
-    (_p.a)^=(_q.a); \
-    (_p.b)^=(_q.b); \
-    (_q.a)^=(_p.a); \
-    (_q.b)^=(_p.b); \
-    (_p.a)^=(_q.a); \
-    (_p.b)^=(_q.b)
+  #define U128_SWAP(__p, __q) \
+    (__p.a)^=(__q.a); \
+    (__p.b)^=(__q.b); \
+    (__q.a)^=(__p.a); \
+    (__q.b)^=(__p.b); \
+    (__p.a)^=(__q.a); \
+    (__p.b)^=(__q.b)
 
-  #define U128_TO_U64_HI(_u, _p) \
-    _u=(_p.b)
+  #define U128_TO_U64_HI(__u, __p) \
+    __u=(__p.b)
 
-  #define U128_TO_U64_LO(_t, _p) \
-    _t=(_p.a)
+  #define U128_TO_U64_LO(__t, __p) \
+    __t=(__p.a)
 
-  #define U128_TO_U64_PAIR(_t, _u, _p) \
-    _t=(_p.a); \
-    _u=(_p.b)
+  #define U128_TO_U64_PAIR(__t, __u, __p) \
+    __t=(__p.a); \
+    __u=(__p.b)
 #endif
 
 #define FRU128_ADD_FRU128(_a, _p, _q, _z) \

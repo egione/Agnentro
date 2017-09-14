@@ -22,8 +22,12 @@ License version 3 along with the Agnentro Library (filename
 */
 TYPEDEF_START
   fru128 entropy;
+  fru128 haystack_implied_entropy;
+  fru128 haystack_shannon_entropy;
   fru128 *loggamma_list_base;
   fru128 mask_span_log;
+  fru128 needle_implied_entropy;
+  fru128 needle_shannon_entropy;
   fru128 normalizer;
   fru128 sum_quartics;
   fru128 sum_squares;
@@ -56,6 +60,7 @@ TYPEDEF_START
 TYPEDEF_END(agnentroprox_t)
 
 #define AGNENTROPROX_MODE_AGNENTROPY (1U<<0)
+#define AGNENTROPROX_MODE_COSHANNONISM (1U<<8)
 #define AGNENTROPROX_MODE_DIVENTROPY (1U<<1)
 #define AGNENTROPROX_MODE_EXOELASTICITY (1U<<2)
 #define AGNENTROPROX_MODE_EXOENTROPY (1U<<3)

@@ -1705,7 +1705,7 @@ Out:
   dividend=p;
   divisor=q;
   U128_TO_U64_HI(divisor_hi, divisor);
-  if(U128_IS_ZERO(divisor_hi)){
+  if(!divisor_hi){
     U128_TO_U64_LO(divisor_lo, divisor);
     U128_DIVIDE_U64_TO_U128_SATURATE(a, dividend, divisor_lo, status);
   }else if(U128_IS_LESS(divisor, dividend)){
@@ -1714,13 +1714,13 @@ Out:
       divisor_shift++;
       U128_SHIFT_RIGHT(divisor_shifted, divisor_shift, divisor);
       U128_TO_U64_HI(divisor_hi, divisor_shifted);
-    }while(U128_IS_NOT_ZERO(divisor_hi));
+    }while(!divisor_hi);
     U128_INCREMENT_SELF(divisor_shifted);
     dividend_shift=divisor_shift;
     U128_SHIFT_RIGHT(dividend_shifted, dividend_shift, dividend);
     U128_TO_U64_HI(dividend_hi, dividend_shifted);
     U128_TO_U64_LO(divisor_lo, divisor_shifted);
-    if(U128_IS_LESS_EQUAL(divisor_lo, dividend_hi)){
+    if(divisor_lo<=dividend_hi){
       U128_SHIFT_RIGHT_SELF(dividend_shifted, 1);
       dividend_shift++;
     }
