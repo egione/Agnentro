@@ -1745,10 +1745,10 @@ Out:
   ULONG haystack_freq;
   ULONG *haystack_freq_list_base;
   fru128 haystack_implied_entropy;
-  fru128 haystack_jsd_coeff;
   fru128 haystack_shannon_entropy;
   u8 ignored_status;
   fru128 jsd;
+  fru128 jsd_coeff;
   ULONG log_idx_max;
   ULONG log_idx_max_max;
   fru64 *log_list_base;
@@ -1764,7 +1764,6 @@ Out:
   ULONG needle_freq;
   ULONG *needle_freq_list_base;
   fru128 needle_implied_entropy;
-  fru128 needle_jsd_coeff;
   fru128 needle_shannon_entropy;
   u8 overflow_status;
 
@@ -1854,27 +1853,23 @@ Overflows are safe to ignore because by definition the return value is on [0.0, 
 */
   FRU128_SUBTRACT_FRU128(haystack_jsd, haystack_implied_entropy, haystack_shannon_entropy, ignored_status);
   U128_FROM_U64_PAIR(log2_recip_half, AGNENTROPROX_LOG2_RECIP_HALF_LO, AGNENTROPROX_LOG2_RECIP_HALF_HI);
-  FRU128_FROM_FTD128(haystack_jsd_coeff, log2_recip_half);
-  FRU128_DIVIDE_U64_SELF(haystack_jsd_coeff, (u64)(mask_count), ignored_status);
-  FRU128_MULTIPLY_FRU128_SELF(haystack_jsd, haystack_jsd_coeff);
+  FRU128_FROM_FTD128(jsd_coeff, log2_recip_half);
+  FRU128_DIVIDE_U64_SELF(jsd_coeff, (u64)(mask_count), ignored_status);
   FRU128_SUBTRACT_FRU128(needle_jsd, needle_implied_entropy, needle_shannon_entropy, ignored_status);
-  FRU128_FROM_FTD128(needle_jsd_coeff, log2_recip_half);
-  FRU128_DIVIDE_U64_SELF(needle_jsd_coeff, (u64)(mask_count), ignored_status);
-  FRU128_MULTIPLY_FRU128_SELF(needle_jsd, needle_jsd_coeff);
   FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, ignored_status);
+  FRU128_MULTIPLY_FRU128_SELF(jsd, jsd_coeff);
   FRU128_SHIFT_LEFT_SELF(jsd, U64_BITS+(U64_BITS-58), ignored_status);
   FRU128_NOT_SELF(jsd);
   agnentroprox_base->entropy=jsd;
   agnentroprox_base->haystack_implied_entropy=haystack_implied_entropy;
-  agnentroprox_base->haystack_jsd_coeff=haystack_jsd_coeff;
   agnentroprox_base->haystack_shannon_entropy=haystack_shannon_entropy;
 /*
 Write ignored_status to prevent the compiler from complaining about it not being used.
 */
   agnentroprox_base->ignored_status=ignored_status;
+  agnentroprox_base->jsd_coeff=jsd_coeff;
   agnentroprox_base->log_idx_max=log_idx_max;
   agnentroprox_base->needle_implied_entropy=needle_implied_entropy;
-  agnentroprox_base->needle_jsd_coeff=needle_jsd_coeff;
   agnentroprox_base->needle_shannon_entropy=needle_shannon_entropy;
   *overflow_status_base=overflow_status;
   return jsd;
@@ -1924,6 +1919,7 @@ Out:
   fru128 haystack_shannon_entropy;
   u8 ignored_status;
   fru128 jsd;
+  fru128 jsd_coeff;
   u128 jsd_mean;
   u128 jsd_threshold;
   fru64 log;
@@ -1948,7 +1944,6 @@ Out:
   fru128 needle_jsd;
   fru128 needle_shannon_entropy;
   u8 overflow_status;
-  u8 overflow_status_old;
   u8 overlap_status;
   ULONG sweep_mask_idx_max;
   ULONG u8_idx;
@@ -1959,7 +1954,14 @@ Out:
   overflow_status=*overflow_status_base;
   sweep_mask_idx_max=agnentroprox_base->mask_count0-1;
   ignored_status=0;
-  jsd=agnentroprox_jsd_get(agnentroprox_base, haystack_mask_list_base, &overflow_status);
+  agnentroprox_jsd_get(agnentroprox_base, haystack_mask_list_base, &overflow_status);
+  haystack_implied_entropy=agnentroprox_base->haystack_implied_entropy;
+  haystack_shannon_entropy=agnentroprox_base->haystack_shannon_entropy;
+  FRU128_SUBTRACT_FRU128(haystack_jsd, haystack_implied_entropy, haystack_shannon_entropy, ignored_status);
+  needle_implied_entropy=agnentroprox_base->needle_implied_entropy;
+  needle_shannon_entropy=agnentroprox_base->needle_shannon_entropy;
+  FRU128_SUBTRACT_FRU128(needle_jsd, needle_implied_entropy, needle_shannon_entropy, ignored_status);
+  FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, ignored_status);
   FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
   match_count=1;
   if(match_u8_idx_list_base){
@@ -1973,8 +1975,6 @@ Out:
   jsd=agnentroprox_base->entropy;
   granularity=agnentroprox_base->granularity;
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
-  haystack_implied_entropy=agnentroprox_base->haystack_implied_entropy;
-  haystack_shannon_entropy=agnentroprox_base->haystack_shannon_entropy;
   log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
   log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
   log_delta_list_base=agnentroprox_base->log_delta_list_base;
@@ -1982,8 +1982,6 @@ Out:
   log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
-  needle_implied_entropy=agnentroprox_base->needle_implied_entropy;
-  needle_shannon_entropy=agnentroprox_base->needle_shannon_entropy;
   overlap_status=agnentroprox_base->overlap_status;
   u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
   u8_idx=(sweep_mask_idx_max+1)*u8_idx_delta;
@@ -2117,17 +2115,13 @@ Compute C as given above.
 Overflows are safe to ignore because by definition the values at jsd_list_base are all on [0.0, 1.0], and result saturation does the right thing. Do a silly dance to get the compiler to think that we actually care.
 */
       haystack_freq++;
-      overflow_status_old=overflow_status;
       haystack_freq_list_base[mask]=haystack_freq;
-      FRU128_DIVIDE_FRU128(haystack_jsd, haystack_shannon_entropy, haystack_implied_entropy, overflow_status);
-      FRU128_SHIFT_RIGHT_SELF(haystack_jsd, 1);
-      FRU128_DIVIDE_FRU128(needle_jsd, needle_shannon_entropy, needle_implied_entropy, overflow_status);
-      FRU128_SHIFT_RIGHT_SELF(needle_jsd, 1);
-      FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, overflow_status);
-      overflow_status=overflow_status_old;
+      FRU128_SUBTRACT_FRU128(haystack_jsd, haystack_implied_entropy, haystack_shannon_entropy, ignored_status);
+      FRU128_SUBTRACT_FRU128(needle_jsd, needle_implied_entropy, needle_shannon_entropy, ignored_status);
+      FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, ignored_status);
       FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
     }
-    if(ascending_status){
+    if(!ascending_status){
       match_status_not=U128_IS_LESS(jsd_threshold, jsd_mean);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_ascending(jsd, &match_count, &match_idx, match_idx_max_max, jsd_list_base, &jsd_threshold);
@@ -2148,6 +2142,16 @@ Overflows are safe to ignore because by definition the values at jsd_list_base a
       match_u8_idx_list_base[match_idx]=u8_idx_old;
     }
   }
+  jsd_coeff=agnentroprox_base->jsd_coeff;
+  match_idx=0;
+  do{      
+    jsd=jsd_list_base[match_idx];
+    FRU128_MULTIPLY_FRU128_SELF(jsd, jsd_coeff);
+    FRU128_SHIFT_LEFT_SELF(jsd, U64_BITS+(U64_BITS-58), ignored_status);
+    FRU128_NOT_SELF(jsd);
+    jsd_list_base[match_idx]=jsd;
+    match_idx++;
+  }while(match_idx!=match_count);
 /*
 Write ignored_status to prevent the compiler from complaining about it not being used.
 */

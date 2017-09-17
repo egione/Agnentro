@@ -23,12 +23,11 @@ License version 3 along with the Agnentro Library (filename
 TYPEDEF_START
   fru128 entropy;
   fru128 haystack_implied_entropy;
-  fru128 haystack_jsd_coeff;
   fru128 haystack_shannon_entropy;
+  fru128 jsd_coeff;
   fru128 *loggamma_list_base;
   fru128 mask_span_log;
   fru128 needle_implied_entropy;
-  fru128 needle_jsd_coeff;
   fru128 needle_shannon_entropy;
   fru128 normalizer;
   fru128 sum_quartics;
