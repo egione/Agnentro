@@ -341,7 +341,7 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
     if((mode==AGNENTROFILE_MODE_ESTIMATE)||(mode==AGNENTROFILE_MODE_EXACT)||(mode==AGNENTROFILE_MODE_COMPRESS)||(mode==AGNENTROFILE_MODE_DECOMPRESS)){
       if(mode!=AGNENTROFILE_MODE_DECOMPRESS){
         if(mode==AGNENTROFILE_MODE_ESTIMATE){
-          agnentroprox_base=agnentroprox_init(2, 0, granularity, loggamma_base, mask_idx_max, mask_max, AGNENTROPROX_MODE_AGNENTROPY, 0, 0, mask_idx_max);
+          agnentroprox_base=agnentroprox_init(3, 2, granularity, loggamma_base, mask_idx_max, mask_max, AGNENTROPROX_MODE_AGNENTROPY, 0, mask_idx_max);
           if(!agnentroprox_base){
             agnentrofile_error_print("Agnentroprox initialization failed.\nTry reducing granularity or file size");
             break;

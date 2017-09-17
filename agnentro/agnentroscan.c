@@ -543,7 +543,7 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
     }
     mask_max=(u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1);
     status=1;
-    agnentroprox_base=agnentroprox_init(2, 0, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, 0, overlap_status, sweep_mask_idx_max_max);
+    agnentroprox_base=agnentroprox_init(3, 2, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, overlap_status, sweep_mask_idx_max_max);
     if(!agnentroprox_base){
       agnentroscan_out_of_memory_print();
       break;

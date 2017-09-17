@@ -1260,18 +1260,6 @@ TYPEDEF_END(fru128);
     _z=1; \
   }
 
-#define FRU128_FROM_FTD128(_a, _p) \
-  _a.a=(_p); \
-  _a.b=(_p)
-
-#define FRU128_FROM_FTD64_HI(_a, _w) \
-  U128_FROM_U64_HI(_a.a, _w); \
-  U128_FROM_U64_HI_SATURATE(_a.b, _w)
-
-#define FRU128_FROM_FTD64_LO(_a, _v) \
-  U128_FROM_U64_LO(_a.a, _v); \
-  U128_FROM_U64_LO(_a.b, _v)
-
 #define FRU128_FROM_FRU64_HI(_a, _v) \
   U128_FROM_U64_HI(_a.a, _v.a); \
   U128_FROM_U64_HI_SATURATE(_a.b, _v.b)
@@ -1296,6 +1284,18 @@ TYPEDEF_END(fru128);
   U128_INCREMENT_SELF(_a.b); \
   U128_SHIFT_LEFT_SELF(_a.b, _b); \
   U128_DECREMENT_SELF(_a.b)
+
+#define FRU128_FROM_FTD128(_a, _p) \
+  _a.a=(_p); \
+  _a.b=(_p)
+
+#define FRU128_FROM_FTD64_HI(_a, _w) \
+  U128_FROM_U64_HI(_a.a, _w); \
+  U128_FROM_U64_HI_SATURATE(_a.b, _w)
+
+#define FRU128_FROM_FTD64_LO(_a, _v) \
+  U128_FROM_U64_LO(_a.a, _v); \
+  U128_FROM_U64_LO(_a.b, _v)
 
 #define FRU128_FROM_U128_PAIR(_a, _p, _q) \
   _a.a=(_p); \
@@ -1396,19 +1396,15 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
   }while(0)
 
 #define FRU128_RATIO_U128_SATURATE(_a, _p, _q, _z) \
-  _z=(u8)(_z|fracteroid_u128_ratio_u128_saturate(&_a.a, _p, _q)); \
+  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a.a, _p, _q)); \
   _a.b=_a.a
 
 #define FRU128_RATIO_U128_SATURATE_SELF(_a, _p, _z) \
-  _z=(u8)(_z|fracteroid_u128_ratio_u128_saturate(&_a.a, _a.a, _p)); \
+  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a.a, _a.a, _p)); \
   _a.b=_a.a
 
 #define FRU128_RATIO_U64_SATURATE(_a, _v, _w, _z) \
   _z=(u8)(_z|fractoid_u128_ratio_u64_saturate(&_a.a, _v, _w)); \
-  _a.b=_a.a
-
-#define FRU128_RATIO_U64_SATURATE_SELF(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u64_saturate(&_a.a, _a.a, _v)); \
   _a.b=_a.a
 
 #define FRU128_RECIPROCAL_U128_SATURATE(_a, _p, _z) \
@@ -1421,10 +1417,6 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
 
 #define FRU128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
   _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a.a, _v)); \
-  _a.b=_a.a
-
-#define FRU128_RECIPROCAL_U64_SATURATE_SELF(_a, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a.a, _a.a)); \
   _a.b=_a.a
 
 #define FRU128_ROOT_FRACTOID_U128(_a, _p) \

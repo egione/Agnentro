@@ -97,430 +97,6 @@ Overflows are safe to ignore because by definition (div)compressivity is on [0.0
 }
 
 fru128
-agnentroprox_coshannonism_get(agnentroprox_t *agnentroprox_base, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, u8 *overflow_status_base){
-/*
-Compute the coshannonism between needle and haystack frequency lists. (It's commutative so the terms "needle" and "haystack" are only used for the sake of consistency with other functions in which direction matters.)
-
-In:
-
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
-
-  agnentroprox_base is the return value of agenentroprox_init().
-
-  haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
-
-  *haystack_mask_list_base is the haystack.
-
-  *overflow_status_base is the OR-cummulative fracterval overflow status.
-
-Out:
-
-  Returns the coshannonism between a needle and a haystack.
-
-  *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
-*/
-  fru128 coshannonism;
-  ULONG freq;
-  fru128 entropy_delta;
-  fru128 haystack_coshannonism;
-  ULONG haystack_freq;
-  ULONG *haystack_freq_list_base;
-  fru128 haystack_implied_entropy;
-  ULONG haystack_mask_count;
-  fru128 haystack_shannon_entropy;
-  fru64 log0;
-  fru64 log1;
-  ULONG log_idx_max;
-  ULONG log_idx_max_max;
-  fru64 *log_list_base;
-  u32 mask;
-  ULONG mask_count;
-  u32 mask_max;
-  fru128 needle_coshannonism;
-  ULONG needle_freq;
-  ULONG *needle_freq_list_base;
-  fru128 needle_implied_entropy;
-  ULONG needle_mask_count;
-  fru128 needle_shannon_entropy;
-  u8 overflow_status;
-  u8 overflow_status_old;
-
-  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
-  mask_max=agnentroprox_base->mask_max;
-  overflow_status=*overflow_status_base;
-  overflow_status_old=overflow_status;
-  agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
-  agnentroprox_base->mask_count1=0;
-  agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
-  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
-  haystack_mask_count=agnentroprox_base->mask_count1;
-  log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
-  log_list_base=agnentroprox_base->log_list_base;
-  needle_freq_list_base=agnentroprox_base->freq_list_base0;
-  needle_mask_count=agnentroprox_base->mask_count0;
-/*
-Compute the coshannonism, C:
-
-  C=(S0/I0)+(S1/I1)
-
-where
-
-  I0=(implied entropy of needle with respect to (haystack plus needle))
-  I1=(implied entropy of haystack with respect to (haystack plus needle))
-  S0=(Shannon entropy of needle)
-  S1=(Shannon entropy of haystack)
-
-where
-
-  I0=(Q0*log(Q0+Q1))-Σ(M=(0, Z-1), F0[M]*log(F0[M]+F1[M]))
-  I1=(Q1*log(Q0+Q1))-Σ(M=(0, Z-1), F1[M]*log(F0[M]+F1[M]))
-  S0=(Q0*log(Q0))-Σ(M=(0, Z-1), F0[M]*log(F0[M]))
-  S1=(Q1*log(Q1))-Σ(M=(0, Z-1), F1[M]*log(F1[M]))
-
-where:
-
-  Q0=(needle mask count)
-  Q1=(haystack mask count)
-  F0[M]=(needle frequency of mask M)
-  F1[M]=(haystack frequency of mask M)
-  Z=(mask span)
-*/
-  FRU128_SET_ZERO(coshannonism);
-  haystack_mask_count=haystack_mask_idx_max+1;
-  mask_count=haystack_mask_count+needle_mask_count;
-  FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count));
-  FRU128_FROM_FRU64_MULTIPLY_U64(needle_implied_entropy, log0, (u64)(needle_mask_count));
-  FRU128_FROM_FRU64_MULTIPLY_U64(haystack_implied_entropy, log0, (u64)(haystack_mask_count));
-  FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_mask_count));
-  FRU128_FROM_FRU64_MULTIPLY_U64(haystack_shannon_entropy, log0, (u64)(haystack_mask_count));
-  FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(needle_mask_count));
-  FRU128_FROM_FRU64_MULTIPLY_U64(needle_shannon_entropy, log0, (u64)(needle_mask_count));
-  mask=0;
-  do{
-    haystack_freq=haystack_freq_list_base[mask];
-    needle_freq=needle_freq_list_base[mask];
-    freq=haystack_freq+needle_freq;
-    if(1<freq){
-      FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
-      if(haystack_freq){
-        if(haystack_freq!=1){
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(haystack_freq));
-          FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(haystack_freq));
-          FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, overflow_status);
-        }else{
-          FRU128_SUBTRACT_FRU64_LO_SELF(haystack_implied_entropy, log0, overflow_status);
-        }
-      }
-      if(needle_freq){
-        if(needle_freq!=1){
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(needle_freq));
-          FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(needle_freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(needle_freq));
-          FRU128_SUBTRACT_FRU128_SELF(needle_shannon_entropy, entropy_delta, overflow_status);
-        }else{
-          FRU128_SUBTRACT_FRU64_LO_SELF(needle_implied_entropy, log0, overflow_status);
-        }
-      }
-    }
-  }while((mask++)!=mask_max);
-/*
-Compute C as given above.
-
-Overflows are safe to ignore because by definition coshannonism is on [0.0, 1.0], and result saturation does the right thing. Do a silly dance to get the compiler to think that we actually care.
-*/
-  overflow_status_old=overflow_status;
-  FRU128_DIVIDE_FRU128(haystack_coshannonism, haystack_shannon_entropy, haystack_implied_entropy, overflow_status);
-  FRU128_SHIFT_RIGHT_SELF(haystack_coshannonism, 1);
-  FRU128_DIVIDE_FRU128(needle_coshannonism, needle_shannon_entropy, needle_implied_entropy, overflow_status);
-  FRU128_SHIFT_RIGHT_SELF(needle_coshannonism, 1);
-  FRU128_ADD_FRU128(coshannonism, haystack_coshannonism, needle_coshannonism, overflow_status);
-  overflow_status=overflow_status_old;
-  agnentroprox_base->entropy=coshannonism;
-  agnentroprox_base->haystack_implied_entropy=haystack_implied_entropy;
-  agnentroprox_base->haystack_shannon_entropy=haystack_shannon_entropy;
-  agnentroprox_base->log_idx_max=log_idx_max;
-  agnentroprox_base->needle_implied_entropy=needle_implied_entropy;
-  agnentroprox_base->needle_shannon_entropy=needle_shannon_entropy;
-  *overflow_status_base=overflow_status;
-  return coshannonism;
-}
-
-ULONG
-agnentroprox_coshannonism_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, fru128 *coshannonism_list_base, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
-/*
-Compute the coshannonism transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
-
-In:
-
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
-
-  agnentroprox_base is the return value of agenentroprox_init().
-
-  ascending_status is one to sort results ascending by coshannonism, else zero to sort descending.
-
-  *coshannonism_list_base contains (match_idx_max_max+1) undefined items.
-
-  haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
-
-  *haystack_mask_list_base is the haystack.
-
-  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
-
-  *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
-
-  *overflow_status_base is the OR-cummulative fracterval overflow status.
-
-  sweep_mask_idx_max is one less than the number of masks in the sweep which, like haystack_mask_idx_max, must account for mask overlap if enabled.  On [0, haystack_mask_idx_max].
-
-Out:
-
-  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (haystack_mask_idx_max-sweep_mask_idx_max))+1).
-
-  *coshannonism_list_base contains (return value) items which represent the minimum or maximum coshannonisms discovered by the transform if ascending_status is one or zero, respectively.
-
-  *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
-*/
-  fru128 coshannonism;
-  u128 coshannonism_mean;
-  u128 coshannonism_threshold;
-  fru128 entropy_delta;
-  ULONG freq;
-  u8 granularity;
-  fru128 haystack_coshannonism;
-  ULONG haystack_freq;
-  ULONG *haystack_freq_list_base;
-  ULONG haystack_freq_old;
-  fru128 haystack_implied_entropy;
-  fru128 haystack_shannon_entropy;
-  fru64 log;
-  fru64 log_delta;
-  ULONG log_delta_idx_max;
-  ULONG log_delta_idx_max_max;
-  fru64 *log_delta_list_base;
-  ULONG log_idx_max;
-  ULONG log_idx_max_max;
-  fru64 *log_list_base;
-  u32 mask;
-  u32 mask_old;
-  u8 mask_u8;
-  ULONG match_count;
-  ULONG match_idx;
-  ULONG match_idx_min;
-  u8 match_status_not;
-  fru128 needle_coshannonism;
-  ULONG needle_freq;
-  ULONG *needle_freq_list_base;
-  ULONG needle_freq_old;
-  fru128 needle_implied_entropy;
-  fru128 needle_shannon_entropy;
-  u8 overflow_status;
-  u8 overflow_status_old;
-  u8 overlap_status;
-  ULONG u8_idx;
-  ULONG u8_idx_old;
-  ULONG u8_idx_delta;
-  ULONG u8_idx_max;
-
-  overflow_status=*overflow_status_base;
-  coshannonism=agnentroprox_coshannonism_get(agnentroprox_base, sweep_mask_idx_max, haystack_mask_list_base, &overflow_status);
-  FRU128_MEAN_TO_FTD128(coshannonism_mean, coshannonism);
-  match_count=1;
-  if(match_u8_idx_list_base){
-    match_u8_idx_list_base[0]=0;
-  }
-  coshannonism_list_base[0]=coshannonism;
-  U128_FROM_BOOL(coshannonism_threshold, ascending_status);
-  if(!match_idx_max_max){
-    coshannonism_threshold=coshannonism_mean;
-  }
-  coshannonism=agnentroprox_base->entropy;
-  granularity=agnentroprox_base->granularity;
-  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
-  haystack_implied_entropy=agnentroprox_base->haystack_implied_entropy;
-  haystack_shannon_entropy=agnentroprox_base->haystack_shannon_entropy;
-  log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
-  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
-  log_delta_list_base=agnentroprox_base->log_delta_list_base;
-  log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
-  log_list_base=agnentroprox_base->log_list_base;
-  needle_freq_list_base=agnentroprox_base->freq_list_base0;
-  needle_implied_entropy=agnentroprox_base->needle_implied_entropy;
-  needle_shannon_entropy=agnentroprox_base->needle_shannon_entropy;
-  overlap_status=agnentroprox_base->overlap_status;
-  u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
-  u8_idx=(sweep_mask_idx_max+1)*u8_idx_delta;
-  u8_idx_max=haystack_mask_idx_max*u8_idx_delta;
-  u8_idx_old=0;
-  while(u8_idx<=u8_idx_max){
-    mask=haystack_mask_list_base[u8_idx];
-    mask_old=haystack_mask_list_base[u8_idx_old];
-    if(granularity){
-      mask_u8=haystack_mask_list_base[u8_idx+U16_BYTE_MAX];
-      mask|=(u32)(mask_u8)<<U8_BITS;
-      mask_u8=haystack_mask_list_base[u8_idx_old+U16_BYTE_MAX];
-      mask_old|=(u32)(mask_u8)<<U8_BITS;
-      if(U16_BYTE_MAX<granularity){
-        mask_u8=haystack_mask_list_base[u8_idx+U24_BYTE_MAX];
-        mask|=(u32)(mask_u8)<<U16_BITS;
-        mask_u8=haystack_mask_list_base[u8_idx_old+U24_BYTE_MAX];
-        mask_old|=(u32)(mask_u8)<<U16_BITS;
-        if(U24_BYTE_MAX<granularity){
-          mask_u8=haystack_mask_list_base[u8_idx+U32_BYTE_MAX];
-          mask|=(u32)(mask_u8)<<U24_BITS;
-          mask_u8=haystack_mask_list_base[u8_idx_old+U32_BYTE_MAX];
-          mask_old|=(u32)(mask_u8)<<U24_BITS;
-        }
-      }
-    }
-/*
-Increment the u8 indexes now, so that if we get a match, u8_idx_old will be the first index of the new sweep, as opposed to the old one.
-*/
-    u8_idx+=u8_idx_delta;
-    u8_idx_old+=u8_idx_delta;
-    if(mask!=mask_old){
-/*
-Reevaluate the coshannonism in terms of the changes in I0, I1, S0, and S1 as defined in agnentroprox_coshannonism_get(). Given:
-
-  I0=(Q0*log(Q0+Q1))-Σ(M=(0, Z-1), F0[M]*log(F0[M]+F1[M]))
-  I1=(Q1*log(Q0+Q1))-Σ(M=(0, Z-1), F1[M]*log(F0[M]+F1[M]))
-  S0=(Q0*log(Q0))-Σ(M=(0, Z-1), F0[M]*log(F0[M]))
-  S1=(Q1*log(Q1))-Σ(M=(0, Z-1), F1[M]*log(F1[M]))
-
-where
-
-  F0[M]=(needle frequency of mask M)
-  F1[M]=(sweep frequency of mask M)
-  I0=(implied entropy of needle with respect to (needle plus sweep))
-  I1=(implied entropy of sweep with respect to (needle plus sweep))
-  Q0=(needle mask count)
-  Q1=(sweep mask count)
-  S0=(Shannon entropy of needle)
-  S1=(Shannon entropy of sweep)
-  Z=(mask span)
-
-then the deltas required to update coshannonism are:
-
-  dI0=+(F0[mask_old]*log(F0[mask_old]+F1[mask_old]))
-      -(F0[mask_old]*log(F0[mask_old]+F1[mask_old]-1))
-      +(F0[mask]*log(F0[mask]+F1[mask]))
-      -(F0[mask]*log(F0[mask]+F1[mask]+1))
-  dI0=+(F0[mask_old]*log_delta(F0[mask_old]+F1[mask_old]-1))
-      -(F0[mask]*log_delta(F0[mask]+F1[mask]))
-
-  dI1=+(F1[mask_old]*log(F0[mask_old]+F1[mask_old]))
-      -((F1[mask_old]-1)*log(F0[mask_old]+F1[mask_old]-1))
-      +(F1[mask]*log(F0[mask]+F1[mask]))
-      -((F1[mask]+1)*log(F0[mask]+F1[mask]+1))
-  dI1=+((F1[mask_old]-1)*log_delta(F0[mask_old]+F1[mask_old]-1))
-      +log(F0[mask_old]+F1[mask_old]))
-      -(F1[mask]*log_delta(F0[mask]+F1[mask]))
-      -log(F0[mask]+F1[mask]+1)
-
-  dS1=+(F1[mask_old]*log(F1[mask_old]))
-      -((F1[mask_old]-1)*log(F1[mask_old]-1))
-      +(F1[mask]*log(F1[mask]))
-      -((F1[mask]+1)*log(F1[mask]+1))
-    =+((F1[mask_old]-1)*log_delta(F1[mask_old]-1))
-      +log(F1[mask_old])
-      -(F1[mask]*log_delta(F1[mask]))
-      -log(F1[mask]+1))
-
-where the log of zero is taken to be zero. Note that S0 is constant because the needle is constant. So reevaluate the coshannonism as follows:
-
-  C=(S0/(I0+dI0))+((S1+dS1)/(I1+dI1))
-*/
-      haystack_freq_old=haystack_freq_list_base[mask_old];
-      needle_freq_old=needle_freq_list_base[mask_old];
-      freq=haystack_freq_old+needle_freq_old;
-      if(freq!=1){
-        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
-        FRU128_ADD_FRU64_LO_SELF(haystack_implied_entropy, log, overflow_status);
-        freq--;
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
-        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq_old));
-        FRU128_ADD_FRU128_SELF(needle_implied_entropy, entropy_delta, overflow_status);
-        freq=haystack_freq_old-1;
-        if(freq){
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
-          FRU128_ADD_FRU128_SELF(haystack_implied_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
-          FRU128_ADD_FRU128_SELF(haystack_shannon_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq_old));
-          FRU128_ADD_FRU64_LO_SELF(haystack_shannon_entropy, log, overflow_status);
-        }
-      }
-      haystack_freq=haystack_freq_list_base[mask];
-      needle_freq=needle_freq_list_base[mask];
-      freq=haystack_freq+needle_freq;
-      haystack_freq_old--;
-      haystack_freq_list_base[mask_old]=haystack_freq_old;
-      if(freq){
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
-        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq));
-        FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, overflow_status);
-        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
-        FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, overflow_status);
-        freq++;
-        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
-        FRU128_SUBTRACT_FRU64_LO_SELF(haystack_implied_entropy, log, overflow_status);
-        if(haystack_freq){
-          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(haystack_freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
-          FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, overflow_status);
-          freq=haystack_freq+1;
-          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
-          FRU128_SUBTRACT_FRU64_LO_SELF(haystack_shannon_entropy, log, overflow_status);
-        }
-      }
-/*
-Compute C as given above.
-
-Overflows are safe to ignore because by definition coshannonism is on [0.0, 1.0], and result saturation does the right thing. Do a silly dance to get the compiler to think that we actually care.
-*/
-      haystack_freq++;
-      overflow_status_old=overflow_status;
-      haystack_freq_list_base[mask]=haystack_freq;
-      FRU128_DIVIDE_FRU128(haystack_coshannonism, haystack_shannon_entropy, haystack_implied_entropy, overflow_status);
-      FRU128_SHIFT_RIGHT_SELF(haystack_coshannonism, 1);
-      FRU128_DIVIDE_FRU128(needle_coshannonism, needle_shannon_entropy, needle_implied_entropy, overflow_status);
-      FRU128_SHIFT_RIGHT_SELF(needle_coshannonism, 1);
-      FRU128_ADD_FRU128(coshannonism, haystack_coshannonism, needle_coshannonism, overflow_status);
-      overflow_status=overflow_status_old;
-      FRU128_MEAN_TO_FTD128(coshannonism_mean, coshannonism);
-    }
-    if(ascending_status){
-      match_status_not=U128_IS_LESS(coshannonism_threshold, coshannonism_mean);
-      if(!match_status_not){
-        match_status_not=fracterval_u128_rank_list_insert_ascending(coshannonism, &match_count, &match_idx, match_idx_max_max, coshannonism_list_base, &coshannonism_threshold);
-      }
-    }else{
-      match_status_not=U128_IS_LESS(coshannonism_mean, coshannonism_threshold);
-      if(!match_status_not){
-        match_status_not=fracterval_u128_rank_list_insert_descending(coshannonism, &match_count, &match_idx, match_idx_max_max, coshannonism_list_base, &coshannonism_threshold);
-      }
-    }
-    if((!match_status_not)&&match_u8_idx_list_base){
-      match_idx_min=match_idx;
-      match_idx=match_count-1;
-      while(match_idx!=match_idx_min){
-        match_u8_idx_list_base[match_idx]=match_u8_idx_list_base[match_idx-1];
-        match_idx--;
-      }
-      match_u8_idx_list_base[match_idx]=u8_idx_old;
-    }
-  }
-  agnentroprox_base->log_idx_max=log_idx_max;
-  *overflow_status_base=overflow_status;
-  return match_count;
-}
-
-fru128
 agnentroprox_diventropy_get(agnentroprox_t *agnentroprox_base, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, u8 *overflow_status_base){
 /*
 Compute the diventropy of a preloaded needle frequency list with respect to a haystack frequency list.
@@ -1914,6 +1490,7 @@ Out:
     fracterval_u64_free(agnentroprox_base->log_list_base);
     fracterval_u64_free(agnentroprox_base->log_delta_list_base);
     poissocache_free_all(agnentroprox_base->poissocache_base);
+    agnentroprox_free(agnentroprox_base->freq_list_base2);
     agnentroprox_free(agnentroprox_base->freq_list_base1);
     agnentroprox_free(agnentroprox_base->freq_list_base0);
     agnentroprox_base=agnentroprox_free(agnentroprox_base);
@@ -1922,7 +1499,7 @@ Out:
 }
 
 agnentroprox_t *
-agnentroprox_init(u32 build_break_count, u32 build_feature_count, u8 granularity, loggamma_t *loggamma_base, ULONG mask_idx_max_max, u32 mask_max, u16 mode_bitmap, ULONG needle_mask_idx_max_max, u8 overlap_status, ULONG sweep_mask_idx_max_max){
+agnentroprox_init(u32 build_break_count, u32 build_feature_count, u8 granularity, loggamma_t *loggamma_base, ULONG mask_idx_max_max, u32 mask_max, u16 mode_bitmap, u8 overlap_status, ULONG sweep_mask_idx_max_max){
 /*
 Verify that the source code is sufficiently updated and initialize private storage.
 
@@ -1942,8 +1519,6 @@ In:
 
   mode_bitmap is the OR of (AGNENTROPROX_MODE)s which express the caller's intended target services. If the caller breaks the promise, results will still be correct, but computed more slowly due to suboptimal math cache configuration.
 
-  needle_mask_idx_max_max is ignored for all modes except AGNENTROPROX_MODE_COSHANNONISM. In that case, it's the maximum possible number of masks that could possibly occur within a needle, less one. If overlap_status is set, then this value should be the maximum possible size of a needle (in bytes, not masks), less (granularity+1). See also agnentroprox_mask_idx_max_get().
-
   overlap_status is zero to load each mask separately, or one to load them overlapping at successive byte addresses. It should be zero if masks should be considered as purely probabilistic in origin, or one if they are contextually dependent in some Bayesian manner. Note that this value has no effect if granularity is zero. Must be zero if mode_bitmap has AGNENTROPROX_MODE_KURTOSIS or AGNENTROPROX_MODE_VARIANCE set, as overlap in those modes would be nonsensical due to masks having meaningful magnitudes.
 
   sweep_mask_idx_max_max is the maximum possible mask index of any transform sweep which the caller intends to invoke. If in doubt, set it equal to mask_idx_max_max. This value has no correctness consequences; it's merely a performance hint for the size optimization of the math caches. On [0, mask_idx_max_max].
@@ -1956,6 +1531,7 @@ Out:
   ULONG cache_idx_max_max;
   ULONG *freq_list_base0;
   ULONG *freq_list_base1;
+  ULONG *freq_list_base2;
   ULONG log_delta_idx_max_max;
   fru64 *log_delta_list_base;
   ULONG log_idx_max_max;
@@ -1990,11 +1566,11 @@ Out:
   mask_span=(u64)(mask_max)+1;
   mask_count_plus_span_max_max=(ULONG)(mask_count_max_max+mask_span);
   status=(u8)(status|(mask_count_plus_span_max_max<=mask_span));
-  if(mode_bitmap&AGNENTROPROX_MODE_COSHANNONISM){
+  if(mode_bitmap&AGNENTROPROX_MODE_JSD){
 /*
-In order to compute coshannonism, we need to compute the maximum possible sum of all frequencies, which is the maximum possible number of masks in the haystack, plus the maximum possible number of masks in the needle. We must then check for wrap.
+In order to compute JSD, we need to ensure that double the haystack mask count won't wrap.
 */
-    status=(u8)(status|((mask_count_max_max+needle_mask_idx_max_max+1)<=mask_count_max_max));
+    status=(u8)(status|((mask_count_max_max<<1)<mask_count_max_max));
   }
   status=(u8)(status|(U32_BYTE_MAX<granularity));
   granularity=(u8)(granularity&U32_BYTE_MAX);
@@ -2055,6 +1631,11 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
       freq_list_base1=agnentroprox_ulong_list_malloc((ULONG)(mask_max));
       status=(u8)(status|!freq_list_base1);
       agnentroprox_base->freq_list_base1=freq_list_base1;
+      if(mode_bitmap&AGNENTROPROX_MODE_JSD){
+        freq_list_base2=agnentroprox_ulong_list_malloc((ULONG)(mask_max));
+        status=(u8)(status|!freq_list_base2);
+        agnentroprox_base->freq_list_base2=freq_list_base2;
+      }
       poissocache_base=poissocache_init(0, 0, poissocache_item_idx_max);
       status=(u8)(status|!poissocache_base);
       agnentroprox_base->poissocache_base=poissocache_base;
@@ -2062,11 +1643,11 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
 /*
 Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the desired maximum value, then back off exponentially until we succeed.
 
-With the exception of coshannonism, exoentropy and exoelasticity computation, it will be rare that any operand to log, log delta, or loggamma exceeds (sweep_idx_max_max+1), so this should be the maximum index of the subset of those math caches which is required in light of the particular mode_bitmap. For exoentropy, this increases to (mask_idx_max_max+1).
+With the exception of JSD, exoentropy and exoelasticity computation, it will be rare that any operand to log, log delta, or loggamma exceeds (sweep_idx_max_max+1), so this should be the maximum index of the subset of those math caches which is required in light of the particular mode_bitmap. For exoentropy, this increases to (mask_idx_max_max+1).
 */
         cache_idx_max_max=sweep_mask_idx_max_max+1;
-        if(mode_bitmap&AGNENTROPROX_MODE_COSHANNONISM){
-          cache_idx_max_max=mask_count_max_max+needle_mask_idx_max_max;
+        if(mode_bitmap&AGNENTROPROX_MODE_JSD){
+          cache_idx_max_max=mask_count_max_max<<1;
         }else if(mode_bitmap&(AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY)){
           cache_idx_max_max=mask_idx_max_max+mask_max+1;
         }
@@ -2076,10 +1657,10 @@ Caches which are not required shall have single-item allocations just to satisfy
         log_idx_max_max=0;
         log_delta_idx_max_max=0;
         loggamma_idx_max_max=0;
-        if(mode_bitmap&(AGNENTROPROX_MODE_COSHANNONISM|AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_SHANNON)){
+        if(mode_bitmap&(AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_JSD|AGNENTROPROX_MODE_SHANNON)){
           log_delta_idx_max_max=cache_idx_max_max;
         }
-        if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_COSHANNONISM|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_LOGFREEDOM|AGNENTROPROX_MODE_SHANNON)){
+        if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_JSD|AGNENTROPROX_MODE_LOGFREEDOM|AGNENTROPROX_MODE_SHANNON)){
           log_idx_max_max=cache_idx_max_max;
         }
         if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_LOGFREEDOM)){
@@ -2135,6 +1716,445 @@ Shrink one of the caches by a factor of 2. The loggamma cache is least important
     }
   }
   return agnentroprox_base;
+}
+
+fru128
+agnentroprox_jsd_get(agnentroprox_t *agnentroprox_base, u8 *haystack_mask_list_base, u8 *overflow_status_base){
+/*
+Compute (1-(normalized Jensen-Shannon divergence)) between needle and haystack frequency lists. (It's commutative so the terms "needle" and "haystack" are only used for the sake of consistency with other functions in which direction matters.)
+
+In:
+
+  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  *haystack_mask_list_base is the haystack. It must contain the same number of masks as the needle. This can be assured by scaling the needle size via agnentroprox_needle_freq_list_equalize().
+
+  *overflow_status_base is the OR-cummulative fracterval overflow status.
+
+Out:
+
+  Returns (1-(normalized Jensen-Shannon divergence)) between a needle and a haystack.
+
+  *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
+*/
+  ULONG freq;
+  fru128 entropy_delta;
+  fru128 haystack_jsd;
+  ULONG haystack_freq;
+  ULONG *haystack_freq_list_base;
+  fru128 haystack_implied_entropy;
+  fru128 haystack_jsd_coeff;
+  fru128 haystack_shannon_entropy;
+  u8 ignored_status;
+  fru128 jsd;
+  ULONG log_idx_max;
+  ULONG log_idx_max_max;
+  fru64 *log_list_base;
+  fru64 log0;
+  fru64 log1;
+  u64 log2;
+  u128 log2_recip_half;
+  u32 mask;
+  ULONG mask_count;
+  ULONG mask_idx_max;
+  u32 mask_max;
+  fru128 needle_jsd;
+  ULONG needle_freq;
+  ULONG *needle_freq_list_base;
+  fru128 needle_implied_entropy;
+  fru128 needle_jsd_coeff;
+  fru128 needle_shannon_entropy;
+  u8 overflow_status;
+
+  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
+  mask_max=agnentroprox_base->mask_max;
+  overflow_status=*overflow_status_base;
+  ignored_status=0;
+  agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
+  mask_count=agnentroprox_base->mask_count0;
+  mask_idx_max=mask_count-1;
+  agnentroprox_base->mask_count1=0;
+  agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, haystack_mask_list_base);
+  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
+  log_idx_max=agnentroprox_base->log_idx_max;
+  log_idx_max_max=agnentroprox_base->log_idx_max_max;
+  log_list_base=agnentroprox_base->log_list_base;
+  needle_freq_list_base=agnentroprox_base->freq_list_base0;
+/*
+Compute D=(1-(normalized Jensen-Shannon divergence)):
+
+  D=1-(((I0-S0)+(I1-S1))/(2 ln 2))
+
+where
+
+  I0=(implied entropy of needle with respect to (haystack plus needle))
+  I1=(implied entropy of haystack with respect to (haystack plus needle))
+  S0=(Shannon entropy of needle)
+  S1=(Shannon entropy of haystack)
+
+where
+
+  I0=(Q*log(2Q))-Σ(M=(0, Z-1), F0[M]*log(F0[M]+F1[M]))
+  I1=(Q*log(2Q))-Σ(M=(0, Z-1), F1[M]*log(F0[M]+F1[M]))
+  S0=(Q*log(Q))-Σ(M=(0, Z-1), F0[M]*log(F0[M]))
+  S1=(Q*log(Q))-Σ(M=(0, Z-1), F1[M]*log(F1[M]))
+
+where:
+
+  Q=(needle mask count)=(haystack mask count)
+  F0[M]=(needle frequency of mask M)
+  F1[M]=(haystack frequency of mask M)
+  Z=(mask span)
+*/
+  FRU128_SET_ZERO(jsd);
+  FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count));
+  FRU128_FROM_FRU64_MULTIPLY_U64(haystack_shannon_entropy, log0, (u64)(mask_count));
+  needle_shannon_entropy=haystack_shannon_entropy;
+  log2=FRU128_LOG2_FLOOR_HI>>(U64_BITS-58);
+  FRU64_ADD_FTD64_SELF(log0, log2, overflow_status);
+  FRU128_FROM_FRU64_MULTIPLY_U64(haystack_implied_entropy, log0, (u64)(mask_count));
+  needle_implied_entropy=haystack_implied_entropy;
+  mask=0;
+  do{
+    haystack_freq=haystack_freq_list_base[mask];
+    needle_freq=needle_freq_list_base[mask];
+    freq=haystack_freq+needle_freq;
+    if(1<freq){
+      FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+      if(haystack_freq){
+        if(haystack_freq!=1){
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(haystack_freq));
+          FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, ignored_status);
+          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq));
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(haystack_freq));
+          FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, ignored_status);
+        }else{
+          FRU128_SUBTRACT_FRU64_LO_SELF(haystack_implied_entropy, log0, ignored_status);
+        }
+      }
+      if(needle_freq){
+        if(needle_freq!=1){
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(needle_freq));
+          FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, ignored_status);
+          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(needle_freq));
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(needle_freq));
+          FRU128_SUBTRACT_FRU128_SELF(needle_shannon_entropy, entropy_delta, ignored_status);
+        }else{
+          FRU128_SUBTRACT_FRU64_LO_SELF(needle_implied_entropy, log0, ignored_status);
+        }
+      }
+    }
+  }while((mask++)!=mask_max);
+/*
+Compute C as given above.
+
+Overflows are safe to ignore because by definition the return value is on [0.0, 1.0], and result saturation does the right thing. By the way, (64-58) in the shifts below reflect conversion from 6.58 to 6.64 fixed point.
+*/
+  FRU128_SUBTRACT_FRU128(haystack_jsd, haystack_implied_entropy, haystack_shannon_entropy, ignored_status);
+  U128_FROM_U64_PAIR(log2_recip_half, AGNENTROPROX_LOG2_RECIP_HALF_LO, AGNENTROPROX_LOG2_RECIP_HALF_HI);
+  FRU128_FROM_FTD128(haystack_jsd_coeff, log2_recip_half);
+  FRU128_DIVIDE_U64_SELF(haystack_jsd_coeff, (u64)(mask_count), ignored_status);
+  FRU128_MULTIPLY_FRU128_SELF(haystack_jsd, haystack_jsd_coeff);
+  FRU128_SUBTRACT_FRU128(needle_jsd, needle_implied_entropy, needle_shannon_entropy, ignored_status);
+  FRU128_FROM_FTD128(needle_jsd_coeff, log2_recip_half);
+  FRU128_DIVIDE_U64_SELF(needle_jsd_coeff, (u64)(mask_count), ignored_status);
+  FRU128_MULTIPLY_FRU128_SELF(needle_jsd, needle_jsd_coeff);
+  FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, ignored_status);
+  FRU128_SHIFT_LEFT_SELF(jsd, U64_BITS+(U64_BITS-58), ignored_status);
+  FRU128_NOT_SELF(jsd);
+  agnentroprox_base->entropy=jsd;
+  agnentroprox_base->haystack_implied_entropy=haystack_implied_entropy;
+  agnentroprox_base->haystack_jsd_coeff=haystack_jsd_coeff;
+  agnentroprox_base->haystack_shannon_entropy=haystack_shannon_entropy;
+/*
+Write ignored_status to prevent the compiler from complaining about it not being used.
+*/
+  agnentroprox_base->ignored_status=ignored_status;
+  agnentroprox_base->log_idx_max=log_idx_max;
+  agnentroprox_base->needle_implied_entropy=needle_implied_entropy;
+  agnentroprox_base->needle_jsd_coeff=needle_jsd_coeff;
+  agnentroprox_base->needle_shannon_entropy=needle_shannon_entropy;
+  *overflow_status_base=overflow_status;
+  return jsd;
+}
+
+ULONG
+agnentroprox_jsd_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *jsd_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base){
+/*
+Compute the (1-(normalized Jensen-Shannon divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
+
+In:
+
+  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations. The sweep is implied to equal the number of masks in the needle, which can be assured via agnentroprox_needle_freq_list_equalize().
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  ascending_status is one to sort results ascending, else zero to sort descending.
+
+  haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
+
+  *haystack_mask_list_base is the haystack.
+
+  *jsd_list_base contains (match_idx_max_max+1) undefined items.
+
+  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
+
+  *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
+
+  *overflow_status_base is the OR-cummulative fracterval overflow status.
+
+Out:
+
+  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (haystack_mask_idx_max-sweep_mask_idx_max))+1).
+
+  *jsd_list_base contains (return value) items which represent the minimum or maximum (1-(normalized Jensen-Shannon divergence)) discovered by the transform if ascending_status is one or zero, respectively.
+
+  *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
+*/
+  fru128 entropy_delta;
+  ULONG freq;
+  u8 granularity;
+  ULONG haystack_freq;
+  ULONG *haystack_freq_list_base;
+  ULONG haystack_freq_old;
+  fru128 haystack_implied_entropy;
+  fru128 haystack_jsd;
+  fru128 haystack_shannon_entropy;
+  u8 ignored_status;
+  fru128 jsd;
+  u128 jsd_mean;
+  u128 jsd_threshold;
+  fru64 log;
+  fru64 log_delta;
+  ULONG log_delta_idx_max;
+  ULONG log_delta_idx_max_max;
+  fru64 *log_delta_list_base;
+  ULONG log_idx_max;
+  ULONG log_idx_max_max;
+  fru64 *log_list_base;
+  u32 mask;
+  u32 mask_old;
+  u8 mask_u8;
+  ULONG match_count;
+  ULONG match_idx;
+  ULONG match_idx_min;
+  u8 match_status_not;
+  ULONG needle_freq;
+  ULONG *needle_freq_list_base;
+  ULONG needle_freq_old;
+  fru128 needle_implied_entropy;
+  fru128 needle_jsd;
+  fru128 needle_shannon_entropy;
+  u8 overflow_status;
+  u8 overflow_status_old;
+  u8 overlap_status;
+  ULONG sweep_mask_idx_max;
+  ULONG u8_idx;
+  ULONG u8_idx_old;
+  ULONG u8_idx_delta;
+  ULONG u8_idx_max;
+
+  overflow_status=*overflow_status_base;
+  sweep_mask_idx_max=agnentroprox_base->mask_count0-1;
+  ignored_status=0;
+  jsd=agnentroprox_jsd_get(agnentroprox_base, haystack_mask_list_base, &overflow_status);
+  FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
+  match_count=1;
+  if(match_u8_idx_list_base){
+    match_u8_idx_list_base[0]=0;
+  }
+  jsd_list_base[0]=jsd;
+  U128_FROM_BOOL(jsd_threshold, ascending_status);
+  if(!match_idx_max_max){
+    jsd_threshold=jsd_mean;
+  }
+  jsd=agnentroprox_base->entropy;
+  granularity=agnentroprox_base->granularity;
+  haystack_freq_list_base=agnentroprox_base->freq_list_base1;
+  haystack_implied_entropy=agnentroprox_base->haystack_implied_entropy;
+  haystack_shannon_entropy=agnentroprox_base->haystack_shannon_entropy;
+  log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
+  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
+  log_delta_list_base=agnentroprox_base->log_delta_list_base;
+  log_idx_max=agnentroprox_base->log_idx_max;
+  log_idx_max_max=agnentroprox_base->log_idx_max_max;
+  log_list_base=agnentroprox_base->log_list_base;
+  needle_freq_list_base=agnentroprox_base->freq_list_base0;
+  needle_implied_entropy=agnentroprox_base->needle_implied_entropy;
+  needle_shannon_entropy=agnentroprox_base->needle_shannon_entropy;
+  overlap_status=agnentroprox_base->overlap_status;
+  u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
+  u8_idx=(sweep_mask_idx_max+1)*u8_idx_delta;
+  u8_idx_max=haystack_mask_idx_max*u8_idx_delta;
+  u8_idx_old=0;
+  while(u8_idx<=u8_idx_max){
+    mask=haystack_mask_list_base[u8_idx];
+    mask_old=haystack_mask_list_base[u8_idx_old];
+    if(granularity){
+      mask_u8=haystack_mask_list_base[u8_idx+U16_BYTE_MAX];
+      mask|=(u32)(mask_u8)<<U8_BITS;
+      mask_u8=haystack_mask_list_base[u8_idx_old+U16_BYTE_MAX];
+      mask_old|=(u32)(mask_u8)<<U8_BITS;
+      if(U16_BYTE_MAX<granularity){
+        mask_u8=haystack_mask_list_base[u8_idx+U24_BYTE_MAX];
+        mask|=(u32)(mask_u8)<<U16_BITS;
+        mask_u8=haystack_mask_list_base[u8_idx_old+U24_BYTE_MAX];
+        mask_old|=(u32)(mask_u8)<<U16_BITS;
+        if(U24_BYTE_MAX<granularity){
+          mask_u8=haystack_mask_list_base[u8_idx+U32_BYTE_MAX];
+          mask|=(u32)(mask_u8)<<U24_BITS;
+          mask_u8=haystack_mask_list_base[u8_idx_old+U32_BYTE_MAX];
+          mask_old|=(u32)(mask_u8)<<U24_BITS;
+        }
+      }
+    }
+/*
+Increment the u8 indexes now, so that if we get a match, u8_idx_old will be the first index of the new sweep, as opposed to the old one.
+*/
+    u8_idx+=u8_idx_delta;
+    u8_idx_old+=u8_idx_delta;
+    if(mask!=mask_old){
+/*
+Reevaluate the D in terms of the changes in I0, I1, S0, and S1 as defined in agnentroprox_jsd_get(). Given:
+
+  I0=(Q0*log(Q0+Q1))-Σ(M=(0, Z-1), F0[M]*log(F0[M]+F1[M]))
+  I1=(Q1*log(Q0+Q1))-Σ(M=(0, Z-1), F1[M]*log(F0[M]+F1[M]))
+  S0=(Q0*log(Q0))-Σ(M=(0, Z-1), F0[M]*log(F0[M]))
+  S1=(Q1*log(Q1))-Σ(M=(0, Z-1), F1[M]*log(F1[M]))
+
+where
+
+  F0[M]=(needle frequency of mask M)
+  F1[M]=(sweep frequency of mask M)
+  I0=(implied entropy of needle with respect to (needle plus sweep))
+  I1=(implied entropy of sweep with respect to (needle plus sweep))
+  Q0=(needle mask count)
+  Q1=(sweep mask count)
+  S0=(Shannon entropy of needle)
+  S1=(Shannon entropy of sweep)
+  Z=(mask span)
+
+then the deltas required to update jsd are:
+
+  dI0=+(F0[mask_old]*log(F0[mask_old]+F1[mask_old]))
+      -(F0[mask_old]*log(F0[mask_old]+F1[mask_old]-1))
+      +(F0[mask]*log(F0[mask]+F1[mask]))
+      -(F0[mask]*log(F0[mask]+F1[mask]+1))
+  dI0=+(F0[mask_old]*log_delta(F0[mask_old]+F1[mask_old]-1))
+      -(F0[mask]*log_delta(F0[mask]+F1[mask]))
+
+  dI1=+(F1[mask_old]*log(F0[mask_old]+F1[mask_old]))
+      -((F1[mask_old]-1)*log(F0[mask_old]+F1[mask_old]-1))
+      +(F1[mask]*log(F0[mask]+F1[mask]))
+      -((F1[mask]+1)*log(F0[mask]+F1[mask]+1))
+  dI1=+((F1[mask_old]-1)*log_delta(F0[mask_old]+F1[mask_old]-1))
+      +log(F0[mask_old]+F1[mask_old]))
+      -(F1[mask]*log_delta(F0[mask]+F1[mask]))
+      -log(F0[mask]+F1[mask]+1)
+
+  dS1=+(F1[mask_old]*log(F1[mask_old]))
+      -((F1[mask_old]-1)*log(F1[mask_old]-1))
+      +(F1[mask]*log(F1[mask]))
+      -((F1[mask]+1)*log(F1[mask]+1))
+    =+((F1[mask_old]-1)*log_delta(F1[mask_old]-1))
+      +log(F1[mask_old])
+      -(F1[mask]*log_delta(F1[mask]))
+      -log(F1[mask]+1))
+
+where the log of zero is taken to be zero. Note that S0 is constant because the needle is constant. So reevaluate as follows:
+
+  D=1-(((I0+dI0-S0)+(I1+dI1-S1-dS1))/(2 ln 2))
+*/
+      haystack_freq_old=haystack_freq_list_base[mask_old];
+      needle_freq_old=needle_freq_list_base[mask_old];
+      freq=haystack_freq_old+needle_freq_old;
+      if(freq!=1){
+        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+        FRU128_ADD_FRU64_LO_SELF(haystack_implied_entropy, log, overflow_status);
+        freq--;
+        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq_old));
+        FRU128_ADD_FRU128_SELF(needle_implied_entropy, entropy_delta, overflow_status);
+        freq=haystack_freq_old-1;
+        if(freq){
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
+          FRU128_ADD_FRU128_SELF(haystack_implied_entropy, entropy_delta, overflow_status);
+          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
+          FRU128_ADD_FRU128_SELF(haystack_shannon_entropy, entropy_delta, overflow_status);
+          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq_old));
+          FRU128_ADD_FRU64_LO_SELF(haystack_shannon_entropy, log, overflow_status);
+        }
+      }
+      haystack_freq=haystack_freq_list_base[mask];
+      needle_freq=needle_freq_list_base[mask];
+      freq=haystack_freq+needle_freq;
+      haystack_freq_old--;
+      haystack_freq_list_base[mask_old]=haystack_freq_old;
+      if(freq){
+        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq));
+        FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, ignored_status);
+        FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
+        FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, ignored_status);
+        freq++;
+        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+        FRU128_SUBTRACT_FRU64_LO_SELF(haystack_implied_entropy, log, ignored_status);
+        if(haystack_freq){
+          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(haystack_freq));
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
+          FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, ignored_status);
+          freq=haystack_freq+1;
+          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+          FRU128_SUBTRACT_FRU64_LO_SELF(haystack_shannon_entropy, log, ignored_status);
+        }
+      }
+/*
+Compute C as given above.
+
+Overflows are safe to ignore because by definition the values at jsd_list_base are all on [0.0, 1.0], and result saturation does the right thing. Do a silly dance to get the compiler to think that we actually care.
+*/
+      haystack_freq++;
+      overflow_status_old=overflow_status;
+      haystack_freq_list_base[mask]=haystack_freq;
+      FRU128_DIVIDE_FRU128(haystack_jsd, haystack_shannon_entropy, haystack_implied_entropy, overflow_status);
+      FRU128_SHIFT_RIGHT_SELF(haystack_jsd, 1);
+      FRU128_DIVIDE_FRU128(needle_jsd, needle_shannon_entropy, needle_implied_entropy, overflow_status);
+      FRU128_SHIFT_RIGHT_SELF(needle_jsd, 1);
+      FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, overflow_status);
+      overflow_status=overflow_status_old;
+      FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
+    }
+    if(ascending_status){
+      match_status_not=U128_IS_LESS(jsd_threshold, jsd_mean);
+      if(!match_status_not){
+        match_status_not=fracterval_u128_rank_list_insert_ascending(jsd, &match_count, &match_idx, match_idx_max_max, jsd_list_base, &jsd_threshold);
+      }
+    }else{
+      match_status_not=U128_IS_LESS(jsd_mean, jsd_threshold);
+      if(!match_status_not){
+        match_status_not=fracterval_u128_rank_list_insert_descending(jsd, &match_count, &match_idx, match_idx_max_max, jsd_list_base, &jsd_threshold);
+      }
+    }
+    if((!match_status_not)&&match_u8_idx_list_base){
+      match_idx_min=match_idx;
+      match_idx=match_count-1;
+      while(match_idx!=match_idx_min){
+        match_u8_idx_list_base[match_idx]=match_u8_idx_list_base[match_idx-1];
+        match_idx--;
+      }
+      match_u8_idx_list_base[match_idx]=u8_idx_old;
+    }
+  }
+/*
+Write ignored_status to prevent the compiler from complaining about it not being used.
+*/
+  agnentroprox_base->ignored_status=ignored_status;
+  agnentroprox_base->log_idx_max=log_idx_max;
+  *overflow_status_base=overflow_status;
+  return match_count;
 }
 
 ULONG
@@ -2769,6 +2789,103 @@ Out:
 }
 
 void
+agnentroprox_needle_freq_list_copy(agnentroprox_t *agnentroprox_base, u8 restore_status){
+/*
+Back up or restore the needle frequency list.
+
+In
+
+  agnentroprox_init():In:mode_bitmap must have had AGNENTROPROX_MODE_JSD set. Otherwise the backup frequency list will not have been allocated.
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  restore_status is zero to back up the needle frequency list, else one to restore it.
+
+Out
+
+  The needle frequency list has been backed up or restored, as applicable.  
+*/
+  ULONG *freq_list_base0;
+  ULONG *freq_list_base1;
+  u32 mask_max;
+
+  if(!restore_status){
+    agnentroprox_base->mask_count2=agnentroprox_base->mask_count0;
+    freq_list_base0=agnentroprox_base->freq_list_base0;
+    freq_list_base1=agnentroprox_base->freq_list_base2;
+  }else{
+    agnentroprox_base->mask_count0=agnentroprox_base->mask_count2;
+    freq_list_base0=agnentroprox_base->freq_list_base2;
+    freq_list_base1=agnentroprox_base->freq_list_base0;
+  }
+  mask_max=agnentroprox_base->mask_max;
+  agnentroprox_ulong_list_copy((ULONG)(mask_max), freq_list_base0, freq_list_base1);
+  return;
+}
+
+void
+agnentroprox_needle_freq_list_equalize(agnentroprox_t *agnentroprox_base, ULONG haystack_mask_idx_max){
+/*
+Alter the frequencies in the needle frequency list so that they sum to the same mask count as the haystack frequency list. We do this so that the haystack and/or sweep can remain fixed in size throughout a transform; we need only account for the change in needle size. If we didn't do this, the Jensen-Shannon divergence would explode in computational cost due to cache inefficiency, for example.
+
+In
+
+  agnentroprox_needle_mask_list_load() must have been called, so that the needle frequency list has already been loaded.
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  haystack_mask_idx_max is one less than the number of masks in the haystack mask list, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
+
+Out:
+
+  The needle frequency list has been altered such that the sum of its frequencies is (haystack_mask_idx_max+1), and such that all frequencies are at most one more or less than their fair value (which is rational, and not in general whole, hence the requirement for error dispersion). It's possible that some masks which are present in the needle will now have frequency zero.
+
+  Because the change is irreversible, you may need to back up and restore the needle frequency list using agnentroprox_needle_freq_list_copy().
+*/
+  u128 freq_product;
+  u128 freq_product_min;
+  u64 freq_remainder;
+  u64 freq_remainder_sum;
+  u128 freq_remainder_u128;
+  u64 freq_u64;
+  u8 ignored_status;
+  ULONG haystack_mask_count;
+  u32 mask;
+  u32 mask_max;
+  ULONG *needle_freq_list_base;
+  ULONG needle_mask_count;
+
+  mask_max=agnentroprox_base->mask_max;
+  needle_freq_list_base=agnentroprox_base->freq_list_base0;
+  needle_mask_count=agnentroprox_base->mask_count0;
+  haystack_mask_count=haystack_mask_idx_max+1;
+  freq_remainder_sum=0;
+  ignored_status=0;
+  mask=0;
+  do{
+    freq_u64=needle_freq_list_base[mask];
+    if(freq_u64){
+      U128_FROM_U64_PRODUCT(freq_product, freq_u64, (u64)(haystack_mask_count));
+/*
+Dividing by needle_mask_count won't result in a quotient that won't fit into freq_u64, so ignore the return status.
+*/
+      U128_DIVIDE_U64_TO_U64_SATURATE(freq_u64, freq_product, (u64)(needle_mask_count), ignored_status);
+      U128_FROM_U64_PRODUCT(freq_product_min, freq_u64, (u64)(needle_mask_count));
+      U128_SUBTRACT_U128(freq_remainder_u128, freq_product, freq_product_min);
+      U128_TO_U64_LO(freq_remainder, freq_remainder_u128);
+      freq_remainder_sum+=freq_remainder;
+      if(needle_mask_count<=freq_remainder_sum){
+        freq_remainder_sum-=needle_mask_count;
+        freq_u64++;
+      }
+      needle_freq_list_base[mask]=(ULONG)(freq_u64);
+    }
+  }while((mask++)!=mask_max);
+  agnentroprox_base->mask_count0=haystack_mask_count;
+  return;
+}
+
+void
 agnentroprox_needle_mask_list_load(agnentroprox_t *agnentroprox_base, ULONG mask_idx_max, u8 *mask_list_base){
 /*
 Copy the frequencies of masks in a needle to an internal frequency list, in preparation for a series of bivalent entropy transforms.
@@ -3034,5 +3151,29 @@ Out:
 
   list_size=(u64_idx_max+1)<<U64_SIZE_LOG2;
   memset(u64_list_base, 0, (size_t)(list_size));
+  return;
+}
+
+void
+agnentroprox_ulong_list_copy(ULONG ulong_idx_max, ULONG *ulong_list_base0, ULONG *ulong_list_base1){
+/*
+Copy a list of (ULONG)s to another one of at least the same size.
+
+In:
+
+  ulong_idx_max is the number of (ULONG)s to zero, less one.
+
+  ulong_list_base0 is the base of the list to copy.
+
+  ulong_list_base1 is the base of the undefined region to hold a copy of *ulong_list_base0.
+
+Out:
+
+  *ulong_list_base1 is identical to *ulong_list_base0 for the first (ulong_idx_max+1) (ULONG)s.
+*/
+  ULONG list_size;
+
+  list_size=(ulong_idx_max+1)<<ULONG_SIZE_LOG2;
+  memcpy(ulong_list_base1, ulong_list_base0, (size_t)(list_size));
   return;
 }
