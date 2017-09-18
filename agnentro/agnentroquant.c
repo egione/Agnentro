@@ -42,6 +42,17 @@ Mask Quantization Utility
 #include "fracterval_u64.h"
 #include "fracterval_u64_xtrn.h"
 
+#define AGNENTROQUANT_MODE_BIAS (1U<<AGNENTROQUANT_MODE_BIAS_BIT_IDX)
+#define AGNENTROQUANT_MODE_BIAS_BIT_IDX 7U
+#define AGNENTROQUANT_MODE_CHANNELIZE (1U<<AGNENTROQUANT_MODE_CHANNELIZE_BIT_IDX)
+#define AGNENTROQUANT_MODE_CHANNELIZE_BIT_IDX 6U
+#define AGNENTROQUANT_MODE_DELTAS (3U<<AGNENTROQUANT_MODE_DELTAS_BIT_IDX)
+#define AGNENTROQUANT_MODE_DELTAS_BIT_IDX 4U
+#define AGNENTROQUANT_MODE_LOGLINEAR (1U<<AGNENTROQUANT_MODE_LOGLINEAR_BIT_IDX)
+#define AGNENTROQUANT_MODE_LOGLINEAR_BIT_IDX 1U
+#define AGNENTROQUANT_MODE_NORMALIZE (1U<<AGNENTROQUANT_MODE_LOGLINEAR_BIT_IDX)
+#define AGNENTROQUANT_MODE_NORMALIZE_BIT_IDX 0U
+
 void
 agnentroquant_error_print(char *char_list_base){
   DEBUG_PRINT("ERROR: ");
@@ -68,6 +79,10 @@ int
 main(int argc, char *argv[]){
   ULONG arg_idx;
   u8 ascii;
+  u8 bias_status;
+  u8 channel_status;
+  u8 delta_count;
+  u8 delta_idx;
   u8 file_status;
   u8 filesys_status;
   ULONG in_file_count;
@@ -89,14 +104,19 @@ main(int argc, char *argv[]){
   u8 mask_bit_count_delta;
   u8 mask_bit_count_in;
   u8 mask_bit_count_out;
-  u64 mask_count_in;
-  u64 mask_count_out;
-  u8 mask_count_power_of_2_status;
+  u8 mask_bit_idx;
   u8 mask_size_in;
   u8 mask_size_out;
+  u64 mask_span_in;
+  u64 mask_span_out;
+  u8 mask_span_power_of_2_status;
   u64 mask_u64;
   u64 mask_u64_max;
   u64 mask_u64_min;
+  u64 mask_u64_new;
+  u64 mask_u64_old;
+  u8 mask_u8;
+  u8 mask_u8_idx;
   u128 mask_u128;
   u8 normalize_status;
   char *out_filename_base;
@@ -124,7 +144,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("Mask list quantization utility.\n\n");
       DEBUG_PRINT("Syntax:\n\n");
       DEBUG_PRINT("agnentroquant mode granularity mask_max input output\n\n");
-      DEBUG_PRINT("(mode) controls behavior:\n\n  bit 0: (normalize) converts the minimum and maximum input masks to zero and\n         mask_max, respectively. This is as opposed to assuming that all input\n         masks allowed by (granularity) may actually occur.\n\n");
+      DEBUG_PRINT("(mode) controls behavior:\n\n  bit 0: (normalize) converts the minimum and maximum input masks to zero and\n  mask_max, respectively. This is as opposed to assuming that all input masks\n  allowed by (granularity) may actually occur. Normalization occurs after all\n  other transformations.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes. In any event, it\n  force the granularity to be subsequently treated as 0.\n\n  bit 7:(bias) Add (2^(granularity*8)+7) to each sample after deltafication\n  but before normalization. This helps to reduce the mask span, and thus aids\n  normalization, because (-1) no longer translates to the maximum mask value.\n\n");
       DEBUG_PRINT("(granularity) is one less than the number of bytes per input mask, on [0, 7].\n\n");
       DEBUG_PRINT("(mask_max) is a nonzero hex value up to 32 bits wide which is the maximum\nallowed mask.\n\n");
       DEBUG_PRINT("(input) is the file or folder from which to read multiples of (granularity+1)\nbytes.\n\n");
@@ -142,12 +162,15 @@ main(int argc, char *argv[]){
     if(status){
       break;
     }
-    status=ascii_hex_to_u64_convert(argv[1], &parameter, 1);
-    if(status){
+    status=ascii_hex_to_u64_convert(argv[1], &parameter, U8_MAX);
+    if(status|(parameter&(~(AGNENTROQUANT_MODE_BIAS|AGNENTROQUANT_MODE_CHANNELIZE|AGNENTROQUANT_MODE_DELTAS|AGNENTROQUANT_MODE_LOGLINEAR|AGNENTROQUANT_MODE_NORMALIZE)))){
       agnentroquant_parameter_error_print("mode");
       break;
     }
-    normalize_status=(u8)(parameter);
+    bias_status=(u8)((parameter>>AGNENTROQUANT_MODE_BIAS_BIT_IDX)&1);
+    channel_status=(u8)((parameter>>AGNENTROQUANT_MODE_CHANNELIZE_BIT_IDX)&1);
+    delta_count=(u8)((parameter>>AGNENTROQUANT_MODE_DELTAS_BIT_IDX)&3);
+    normalize_status=(u8)((parameter>>AGNENTROQUANT_MODE_NORMALIZE_BIT_IDX)&1);
     status=ascii_hex_to_u64_convert(argv[2], &parameter, U64_BYTE_MAX);
     if(status){
       agnentroquant_parameter_error_print("granularity");
@@ -160,7 +183,7 @@ main(int argc, char *argv[]){
       agnentroquant_parameter_error_print("mask_max");
       break;
     }
-    mask_count_out=parameter+1;
+    mask_span_out=parameter+1;
     mask_size_out=U8_SIZE;
     if(parameter>>U8_BITS){
       mask_size_out++;
@@ -178,7 +201,7 @@ main(int argc, char *argv[]){
     }
     mask_bit_count_in=(u8)(mask_size_in<<U8_BITS_LOG2);
     mask_bit_count_out=0;
-    mask_count_power_of_2_status=!(mask_count_out&parameter);
+    mask_span_power_of_2_status=!(mask_span_out&parameter);
     do{
       parameter>>=1;
       mask_bit_count_out++;
@@ -211,7 +234,7 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
     in_file_size_max=0;
     in_file_count=0;
     in_filename_size=U16_MAX;
-    mask_count_in=0;
+    mask_span_in=0;
     status=1;
     do{
       in_filename_char_idx_max=in_filename_size-1;
@@ -255,9 +278,55 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
       }
       status=!!filesys_status;
       if(!status){
-        in_u8_idx=0;
         in_u8_idx_max=(ULONG)(in_file_size-1);
+        if(delta_count){
+          delta_idx=0;
+          do{
+            in_u8_idx=0;
+            mask_u64_old=0;
+            if(!channel_status){
+              do{
+                mask_u64=0;
+                memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+                mask_u64_new=mask_u64-mask_u64_old;
+                mask_u64_old=mask_u64;
+                memcpy(&in_u8_list_base[in_u8_idx], &mask_u64_new, (size_t)(mask_size_in));
+                in_u8_idx+=mask_size_in;
+              }while(in_u8_idx<=in_u8_idx_max);
+            }else{
+              do{
+                mask_u64=0;
+                memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+                mask_bit_idx=0;
+                mask_u64_new=0;
+                mask_u8_idx=0;
+                do{
+                  mask_u8=(u8)(mask_u64>>mask_bit_idx);
+                  mask_u8=(u8)(mask_u8-(mask_u64_old>>mask_bit_idx));
+                  mask_u64_new|=(u64)(mask_u8)<<mask_bit_idx;
+                  mask_u8_idx++;
+                }while(mask_u8_idx!=mask_size_in);
+                mask_u64_old=mask_u64;
+                memcpy(&in_u8_list_base[in_u8_idx], &mask_u64_new, (size_t)(mask_size_in));
+                in_u8_idx+=mask_size_in;
+              }while(in_u8_idx<=in_u8_idx_max);
+            }
+            delta_idx++;
+          }while(delta_idx!=delta_count);
+        }
+        if(channel_status){
+          mask_size_in=1;
+        }
+        if(bias_status){
+          in_u8_idx=0;
+          do{
+            in_u8_list_base[in_u8_idx+mask_size_in-1]^=U8_SPAN_HALF;
+            in_u8_idx+=mask_size_in;
+          }while(in_u8_idx<=in_u8_idx_max);
+          mask_span_in=mask_u64_max-mask_u64_min+1;
+        }
         if(normalize_status){
+          in_u8_idx=0;
           mask_u64_max=0;
           mask_u64_min=~mask_u64_max;
           do{
@@ -267,30 +336,30 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
             mask_u64_max=MAX(mask_u64, mask_u64_max);
             mask_u64_min=MIN(mask_u64, mask_u64_min);
           }while(in_u8_idx<=in_u8_idx_max);
-          in_u8_idx=0;
-          mask_count_in=mask_u64_max-mask_u64_min+1;
+          mask_span_in=mask_u64_max-mask_u64_min+1;
         }
+        in_u8_idx=0;
         out_u8_idx=0;
         do{
           mask_u64=0;
           memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
           in_u8_idx+=mask_size_in;
           if(normalize_status){
-            if(mask_count_in){
+            if(mask_span_in){
               mask_u64-=mask_u64_min;
-              FTD64_RATIO_U64_SATURATE_SELF(mask_u64, mask_count_in, overflow_status);
+              FTD64_RATIO_U64_SATURATE_SELF(mask_u64, mask_span_in, overflow_status);
             }
-            if(mask_count_power_of_2_status){
+            if(mask_span_power_of_2_status){
               mask_u64>>=mask_bit_count_delta;
             }else{
-              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_count_out);
+              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_span_out);
               U128_TO_U64_HI(mask_u64, mask_u128);
             }
           }else{
-            if(mask_count_power_of_2_status){
+            if(mask_span_power_of_2_status){
               mask_u64>>=mask_bit_count_delta;
             }else{
-              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_count_out);
+              U128_FROM_U64_PRODUCT(mask_u128, mask_u64, mask_span_out);
               U128_SHIFT_RIGHT_SELF(mask_u128, mask_bit_count_in);
               U128_TO_U64_LO(mask_u64, mask_u128);
             }
