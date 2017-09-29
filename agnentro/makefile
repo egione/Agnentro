@@ -1,26 +1,26 @@
 BASICFLAGS=-D_FILE_OFFSET_BITS=64 -fno-stack-protector -mtune=native
 BITS=32
 CC=cc
+ifeq (,$(findstring which:,$(shell which gcc)))
+	CC=gcc
+endif
 DELTEMP=rm tmp$(SLASH)*
 EXE=
 NASM=
 OBJ=.o
 OPTIMIZEFLAGS=-O3
 SLASH=/
-TARGET=$(shell cc -dumpmachine)
+TARGET=$(shell $(CC) -dumpmachine)
 WARNFLAGS=-Wall -Wextra -Wconversion
-ifneq (,$(findstring 64,$(TARGET)))
-	BITS=64
-	WARNFLAGS+= -Wint-conversion
-endif
 ifneq (,$(findstring mingw,$(TARGET)))
-ifneq (,$(findstring mingw32,$(TARGET)))
-	BITS=32
-endif
 	DELTEMP=@echo clean does not work due to idiotic problems with MAKE under MSYS, but deleting everything in the tmp subfolder accomplishes the same thing.
 	EXE=.exe
 	OBJ=.obj
 	SLASH=\\
+endif
+ifneq (,$(findstring 64,$(TARGET)))
+	BITS=64
+	WARNFLAGS+= -Wint-conversion
 endif
 ifneq (,$(findstring darwin,$(TARGET)))
 	WARNFLAGS+= -Wconstant-conversion
@@ -49,7 +49,7 @@ agnentrofile:
 	make loggamma
 	make poissocache
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentrocodec$(OBJ) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentrofile$(EXE) agnentrofile.c
-	@echo You can now run \"tmp$(SLASH)agnentrofile\".
+	@echo You can now run tmp$(SLASH)agnentrofile .
 
 agnentrofind:
 	make ascii
@@ -63,15 +63,15 @@ agnentrofind:
 	make loggamma
 	make poissocache
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentrofind$(EXE) agnentrofind.c
-	@echo You can now run \"tmp$(SLASH)agnentrofind\".
+	@echo You can now run tmp$(SLASH)agnentrofind .
 
 agnentrolog:
 	make ascii
 	make bitscan
 	make debug
 	make filesys
-	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) -otmp$(SLASH)agnentolog$(EXE) agnentrolog.c
-	@echo You can now run \"tmp$(SLASH)agnentrolog\".
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) -otmp$(SLASH)agnentrolog$(EXE) agnentrolog.c
+	@echo You can now run tmp$(SLASH)agnentrolog .
 
 agnentroprox:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)agnentroprox$(OBJ) agnentroprox.c
@@ -87,7 +87,7 @@ agnentroquant:
 	make fracterval_u128
 	make fracterval_u64
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) -otmp$(SLASH)agnentroquant$(EXE) agnentroquant.c
-	@echo You can now run \"tmp$(SLASH)agnentroquant\".
+	@echo You can now run tmp$(SLASH)agnentroquant .
 
 agnentroscan:
 	make ascii
@@ -101,7 +101,7 @@ agnentroscan:
 	make loggamma
 	make poissocache
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentroscan$(EXE) agnentroscan.c
-	@echo You can now run \"tmp$(SLASH)agnentroscan\".
+	@echo You can now run tmp$(SLASH)agnentroscan .
 
 ascii:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)ascii$(OBJ) ascii.c
@@ -166,4 +166,4 @@ setidemo:
 	make loggamma
 	make poissocache
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)setidemo$(EXE) setidemo.c
-	@echo You can now run \"tmp$(SLASH)setidemo\".
+	@echo You can now run tmp$(SLASH)setidemo .

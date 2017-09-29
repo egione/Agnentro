@@ -33,7 +33,14 @@ License version 3 along with the Filesys Library (filename
 #ifdef WINDOWS
   #define FILESYS_FSEEKO fseeko64
   #define FILESYS_FTELLO ftello64
-  #define FILESYS_PATH_SEPARATOR 0x5CU
+  #ifdef __MINGW32__
+    #include <_mingw.h>
+    #ifdef __MINGW64_VERSION_MAJOR
+      #define FILESYS_PATH_SEPARATOR 0x2FU
+    #else
+      #define FILESYS_PATH_SEPARATOR 0x5CU
+    #endif
+  #endif
 #else
   #define FILESYS_FSEEKO fseeko
   #define FILESYS_FTELLO ftello

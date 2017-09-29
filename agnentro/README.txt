@@ -30,7 +30,7 @@ Whitepapers explaining the theory upon which this library is built are available
 
 SYSTEM REQUIREMENTS
 
-Access to a command line in Linus, MacOS, or Windows. For Linux, you will need GCC, which is usually already present. For MacOS, you'll need clang. For Windows, you'll need MinGW, which is awkward but can be made to work reliably.
+Access to a command line in Linus, MacOS, or Windows. For Linux, you will need GCC, which is usually already present. For MacOS, you'll need clang. For Windows, you'll need Mingw-w64, which is awkward but can be made to work reliably.
 
 APPS
 

@@ -190,7 +190,7 @@ Convert D from 6.58 to 6.64 fixed point.
 }
 
 ULONG
-agnentroprox_diventropy_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, fru128 *diventropy_list_base, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
+agnentroprox_diventropy_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, fru128 *diventropy_list_base, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
 /*
 Compute the diventropy transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
 
@@ -200,7 +200,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  ascending_status is one to sort results ascending by diventropy, else zero to sort descending.
+  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
 
   *diventropy_list_base contains (match_idx_max_max+1) undefined items.
 
@@ -208,7 +208,7 @@ In:
 
   *haystack_mask_list_base is the haystack.
 
-  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
+  match_idx_max_max is one less than the maximum number of matches to report.
 
   *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
 
@@ -218,9 +218,9 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (haystack_mask_idx_max-sweep_mask_idx_max))+1).
+  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max).
 
-  *diventropy_list_base contains (return value) items which represent the minimum or maximum diventropies discovered by the transform if ascending_status is one or zero, respectively.
+  *diventropy_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 
   *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
 */
@@ -262,7 +262,7 @@ Out:
     match_u8_idx_list_base[0]=0;
   }
   diventropy_list_base[0]=diventropy;
-  U128_FROM_BOOL(diventropy_threshold, ascending_status);
+  U128_FROM_BOOL(diventropy_threshold, append_mode);
   if(!match_idx_max_max){
     diventropy_threshold=diventropy_mean;
   }
@@ -337,15 +337,23 @@ By the way, (64-58) in the shifts below reflect conversion from 6.58 to 6.64 fix
       FRU128_SUBTRACT_FRU128_SELF(diventropy, diventropy_delta, overflow_status);
       FRU128_MEAN_TO_FTD128(diventropy_mean, diventropy);
     }
-    if(ascending_status){
+    if(!append_mode){
+      match_status_not=U128_IS_LESS(diventropy_mean, diventropy_threshold);
+      if(!match_status_not){
+        match_status_not=fracterval_u128_rank_list_insert_descending(diventropy, &match_count, &match_idx, match_idx_max_max, diventropy_list_base, &diventropy_threshold);
+      }
+    }else if(append_mode==1){
       match_status_not=U128_IS_LESS(diventropy_threshold, diventropy_mean);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_ascending(diventropy, &match_count, &match_idx, match_idx_max_max, diventropy_list_base, &diventropy_threshold);
       }
     }else{
-      match_status_not=U128_IS_LESS(diventropy_mean, diventropy_threshold);
-      if(!match_status_not){
-        match_status_not=fracterval_u128_rank_list_insert_descending(diventropy, &match_count, &match_idx, match_idx_max_max, diventropy_list_base, &diventropy_threshold);
+      match_idx=match_count;
+      match_status_not=1;
+      if(match_count<=match_idx_max_max){
+        match_status_not=0;
+        diventropy_list_base[match_count]=diventropy;
+        match_count++;
       }
     }
     if((!match_status_not)&&match_u8_idx_list_base){
@@ -743,7 +751,7 @@ Out:
 }
 
 ULONG
-agnentroprox_entropy_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, fru128 *entropy_list_base, ULONG mask_idx_max, u8 *mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u16 mode, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
+agnentroprox_entropy_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, fru128 *entropy_list_base, ULONG mask_idx_max, u8 *mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u16 mode, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
 /*
 Compute a particular type of entropy transform of a mask list, given a particular sweep.
 
@@ -751,7 +759,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  ascending_status is one to sort results ascending by entropy, else zero to sort descending.
+  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
 
   *entropy_list_base contains (match_idx_max_max+1) undefined items.
     
@@ -759,7 +767,7 @@ In:
 
   *mask_list_base is the mask list.
 
-  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
+  match_idx_max_max is one less than the maximum number of matches to report.
 
   *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
 
@@ -771,9 +779,9 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (mask_idx_max-sweep_mask_idx_max))+1).
+  Returns the number of matches found, which is simply (MIN((mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max).
 
-  *entropy_list_base contains (return value) items which represent the minimum or maximum entropies discovered by the transform if ascending_status is one or zero, respectively.
+  *entropy_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 
   *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
 */
@@ -893,7 +901,7 @@ where:
     match_u8_idx_list_base[0]=0;
   }
   entropy_list_base[0]=entropy;
-  U128_FROM_BOOL(entropy_threshold, ascending_status);
+  U128_FROM_BOOL(entropy_threshold, append_mode);
   if(!match_idx_max_max){
     entropy_threshold=entropy_mean;
   }
@@ -1164,15 +1172,23 @@ This is done in a manner analagous to the variance and kurtosis bits of agnentro
       }
       FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
     }
-    if(ascending_status){
+    if(!append_mode){
+      match_status_not=U128_IS_LESS(entropy_mean, entropy_threshold);
+      if(!match_status_not){
+        match_status_not=fracterval_u128_rank_list_insert_descending(entropy, &match_count, &match_idx, match_idx_max_max, entropy_list_base, &entropy_threshold);
+      }
+    }else if(append_mode==1){
       match_status_not=U128_IS_LESS(entropy_threshold, entropy_mean);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_ascending(entropy, &match_count, &match_idx, match_idx_max_max, entropy_list_base, &entropy_threshold);
       }
     }else{
-      match_status_not=U128_IS_LESS(entropy_mean, entropy_threshold);
-      if(!match_status_not){
-        match_status_not=fracterval_u128_rank_list_insert_descending(entropy, &match_count, &match_idx, match_idx_max_max, entropy_list_base, &entropy_threshold);
+      match_idx=match_count;
+      match_status_not=1;
+      if(match_count<=match_idx_max_max){
+        match_status_not=0;
+        entropy_list_base[match_count]=entropy;
+        match_count++;
       }
     }
     if((!match_status_not)&&match_u8_idx_list_base){
@@ -1192,7 +1208,7 @@ This is done in a manner analagous to the variance and kurtosis bits of agnentro
 }
 
 ULONG
-agnentroprox_exoelasticity_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, fru128 *exoelasticity_list_base, ULONG mask_idx_max, u8 *mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
+agnentroprox_exoelasticity_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, fru128 *exoelasticity_list_base, ULONG mask_idx_max, u8 *mask_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base, ULONG sweep_mask_idx_max){
 /*
 Compute an exoelasticity transform of a mask list, given a particular sweep.
 
@@ -1200,7 +1216,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  ascending_status is one to sort results ascending by entropy, else zero to sort descending.
+  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
 
   *exoelasticity_list_base contains (match_idx_max_max+1) undefined items.
     
@@ -1208,7 +1224,7 @@ In:
 
   *mask_list_base is the mask list.
 
-  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
+  match_idx_max_max is one less than the maximum number of matches to report.
 
   *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
 
@@ -1218,9 +1234,9 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (mask_idx_max-sweep_mask_idx_max))+1).
+  Returns the number of matches found, which is simply (MIN((mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max).
 
-  *entropy_list_base contains (return value) items which represent the minimum or maximum exoelasticities discovered by the transform if ascending_status is one or zero, respectively.
+  *entropy_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 
   *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
 */
@@ -1318,7 +1334,7 @@ where:
     match_u8_idx_list_base[0]=0;
   }
   exoelasticity_list_base[0]=exoelasticity;
-  U128_FROM_BOOL(exoelasticity_threshold, ascending_status);
+  U128_FROM_BOOL(exoelasticity_threshold, append_mode);
   if(!match_idx_max_max){
     exoelasticity_threshold=exoelasticity_mean;
   }
@@ -1424,15 +1440,23 @@ where any log(0) or log_delta(0) is treated as though it equals zero.
       FRU128_DIVIDE_FRU128(exoelasticity, shannon_entropy, exoentropy, overflow_status);
       FRU128_MEAN_TO_FTD128(exoelasticity_mean, exoelasticity);
     }
-    if(ascending_status){
+    if(!append_mode){
+      match_status_not=U128_IS_LESS(exoelasticity_mean, exoelasticity_threshold);
+      if(!match_status_not){
+        match_status_not=fracterval_u128_rank_list_insert_descending(exoelasticity, &match_count, &match_idx, match_idx_max_max, exoelasticity_list_base, &exoelasticity_threshold);
+      }
+    }else if(append_mode==1){
       match_status_not=U128_IS_LESS(exoelasticity_threshold, exoelasticity_mean);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_ascending(exoelasticity, &match_count, &match_idx, match_idx_max_max, exoelasticity_list_base, &exoelasticity_threshold);
       }
     }else{
-      match_status_not=U128_IS_LESS(exoelasticity_mean, exoelasticity_threshold);
-      if(!match_status_not){
-        match_status_not=fracterval_u128_rank_list_insert_descending(exoelasticity, &match_count, &match_idx, match_idx_max_max, exoelasticity_list_base, &exoelasticity_threshold);
+      match_idx=match_count;
+      match_status_not=1;
+      if(match_count<=match_idx_max_max){
+        match_status_not=0;
+        exoelasticity_list_base[match_count]=exoelasticity;
+        match_count++;
       }
     }
     if((!match_status_not)&&match_u8_idx_list_base){
@@ -1876,7 +1900,7 @@ Write ignored_status to prevent the compiler from complaining about it not being
 }
 
 ULONG
-agnentroprox_jsd_transform(agnentroprox_t *agnentroprox_base, u8 ascending_status, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *jsd_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base){
+agnentroprox_jsd_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *jsd_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, u8 *overflow_status_base){
 /*
 Compute the (1-(normalized Jensen-Shannon divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
 
@@ -1886,7 +1910,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  ascending_status is one to sort results ascending, else zero to sort descending.
+  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
@@ -1894,7 +1918,7 @@ In:
 
   *jsd_list_base contains (match_idx_max_max+1) undefined items.
 
-  match_idx_max_max is one less than the maximum number of matches to report. (A "match" is a minimum or maximum value when ascending_status is one or zero, respectively).
+  match_idx_max_max is one less than the maximum number of matches to report.
 
   *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
 
@@ -1902,9 +1926,9 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN(match_idx_max_max, (haystack_mask_idx_max-sweep_mask_idx_max))+1).
+  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max), where sweep_mask_idx_max is just agnentroprox_needle_mask_list_load():In:mask_idx_max.
 
-  *jsd_list_base contains (return value) items which represent the minimum or maximum (1-(normalized Jensen-Shannon divergence)) discovered by the transform if ascending_status is one or zero, respectively.
+  *jsd_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 
   *overflow_status_base is one if a fracterval overflow occurred, else unchanged.
 */
@@ -1968,7 +1992,7 @@ Out:
     match_u8_idx_list_base[0]=0;
   }
   jsd_list_base[0]=jsd;
-  U128_FROM_BOOL(jsd_threshold, ascending_status);
+  U128_FROM_BOOL(jsd_threshold, append_mode);
   if(!match_idx_max_max){
     jsd_threshold=jsd_mean;
   }
@@ -2121,15 +2145,23 @@ Overflows are safe to ignore because by definition the values at jsd_list_base a
       FRU128_ADD_FRU128(jsd, haystack_jsd, needle_jsd, ignored_status);
       FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
     }
-    if(!ascending_status){
+    if(!append_mode){
       match_status_not=U128_IS_LESS(jsd_threshold, jsd_mean);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_ascending(jsd, &match_count, &match_idx, match_idx_max_max, jsd_list_base, &jsd_threshold);
       }
-    }else{
+    }else if(append_mode==1){
       match_status_not=U128_IS_LESS(jsd_mean, jsd_threshold);
       if(!match_status_not){
         match_status_not=fracterval_u128_rank_list_insert_descending(jsd, &match_count, &match_idx, match_idx_max_max, jsd_list_base, &jsd_threshold);
+      }
+    }else{
+      match_idx=match_count;
+      match_status_not=1;
+      if(match_count<=match_idx_max_max){
+        match_status_not=0;
+        jsd_list_base[match_count]=jsd;
+        match_count++;
       }
     }
     if((!match_status_not)&&match_u8_idx_list_base){
@@ -2271,7 +2303,7 @@ Out:
   return;
 }
 
-u8
+void
 agnentroprox_mask_list_deltafy(u8 channel_status, u8 delta_status, u8 granularity, ULONG mask_idx_max, u8 *mask_list_base){
 /*
 Perform reversible sample (un)differencing on a mask list in order to enhance signal detection or comparison.
@@ -2282,7 +2314,7 @@ In:
 
   delta_status is one if and only if *mask_list_base should be the first delta of its original state. If the latter is {A, B, C...}, then its first delta is {A, (B-A), (C-B)...}, ANDed with ((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1). Otherwise zero to reverse the process.
 
-  granularity is the agnentroprox_init():In:granularity, or will be if agnentroprox_init() has not yet been called.
+  granularity is the agnentroprox_init():In:granularity, or will be if agnentroprox_init() has not yet been called. On [0, U32_BYTE_MAX].
 
   mask_idx_max is one less than the number of masks of size (granularity+1) at *mask_list_base, regardless of agnentroprox_init():In:overlap_status.
 
@@ -2290,75 +2322,71 @@ In:
 
 Out:
 
-  Returns one if granularity exceeded what this version can safely handle.
+  *mask_list_base is as described in In:delta_status.
 */
   u32 mask;
   u32 mask_max;
   u32 mask_old;
   u8 mask_u8;
-  u8 status;
   ULONG u8_idx;
   u32 u8_idx_delta;
   ULONG u8_idx_max;
 
-  status=(U32_BYTE_MAX<granularity);
-  if(!status){
-    mask_max=(1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1;
-    mask_old=0;
-    u8_idx=0;
-    u8_idx_delta=(u8)(granularity+1);
-    u8_idx_max=mask_idx_max*u8_idx_delta;
-    do{
-      mask=mask_list_base[u8_idx];
-      if(granularity){
-        mask_u8=mask_list_base[u8_idx+U16_BYTE_MAX];
-        mask|=(u32)(mask_u8)<<U8_BITS;
-        if(U16_BYTE_MAX<granularity){
-          mask_u8=mask_list_base[u8_idx+U24_BYTE_MAX];
-          mask|=(u32)(mask_u8)<<U16_BITS;
-          if(U24_BYTE_MAX<granularity){
-            mask_u8=mask_list_base[u8_idx+U32_BYTE_MAX];
-            mask|=(u32)(mask_u8)<<U24_BITS;
-          }
+  mask_max=(1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1;
+  mask_old=0;
+  u8_idx=0;
+  u8_idx_delta=(u8)(granularity+1);
+  u8_idx_max=mask_idx_max*u8_idx_delta;
+  do{
+    mask=mask_list_base[u8_idx];
+    if(granularity){
+      mask_u8=mask_list_base[u8_idx+U16_BYTE_MAX];
+      mask|=(u32)(mask_u8)<<U8_BITS;
+      if(U16_BYTE_MAX<granularity){
+        mask_u8=mask_list_base[u8_idx+U24_BYTE_MAX];
+        mask|=(u32)(mask_u8)<<U16_BITS;
+        if(U24_BYTE_MAX<granularity){
+          mask_u8=mask_list_base[u8_idx+U32_BYTE_MAX];
+          mask|=(u32)(mask_u8)<<U24_BITS;
         }
       }
-      if(delta_status){
-        if(!channel_status){
-          mask-=mask_old;
-          mask_old+=mask;
-          mask&=mask_max;
-        }else{
-          mask=(((mask>>U24_BITS)-(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)-(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)-(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask-mask_old);
-          mask_old=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
-        }
+    }
+    if(delta_status){
+      if(!channel_status){
+        mask-=mask_old;
+        mask_old+=mask;
+        mask&=mask_max;
       }else{
-        if(!channel_status){
-          mask+=mask_old;
-          mask_old=mask;
-          mask&=mask_max;
-        }else{
-          mask=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
-          mask_old=mask;
+        mask=(((mask>>U24_BITS)-(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)-(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)-(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask-mask_old);
+        mask_old=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
+      }
+    }else{
+      if(!channel_status){
+        mask+=mask_old;
+        mask_old=mask;
+        mask&=mask_max;
+      }else{
+        mask=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
+        mask_old=mask;
+      }
+    }
+    mask_u8=(u8)(mask);
+    mask_list_base[u8_idx]=mask_u8;
+    if(granularity){
+      mask_u8=(u8)(mask>>U8_BITS);
+      mask_list_base[u8_idx+U16_BYTE_MAX]=mask_u8;
+      if(U16_BYTE_MAX<granularity){
+        mask_u8=(u8)(mask>>U16_BITS);
+        mask_list_base[u8_idx+U24_BYTE_MAX]=mask_u8;
+        if(U24_BYTE_MAX<granularity){
+          mask_u8=(u8)(mask>>U24_BITS);
+          mask_list_base[u8_idx+U32_BYTE_MAX]=mask_u8;
         }
       }
-      mask_u8=(u8)(mask);
-      mask_list_base[u8_idx]=mask_u8;
-      if(granularity){
-        mask_u8=(u8)(mask>>U8_BITS);
-        mask_list_base[u8_idx+U16_BYTE_MAX]=mask_u8;
-        if(U16_BYTE_MAX<granularity){
-          mask_u8=(u8)(mask>>U16_BITS);
-          mask_list_base[u8_idx+U24_BYTE_MAX]=mask_u8;
-          if(U24_BYTE_MAX<granularity){
-            mask_u8=(u8)(mask>>U24_BITS);
-            mask_list_base[u8_idx+U32_BYTE_MAX]=mask_u8;
-          }
-        }
-      }
-      u8_idx+=u8_idx_delta;
-    }while(u8_idx<=u8_idx_max);
-  }
-  return status;
+    }
+    u8_idx+=u8_idx_delta;
+  }while(u8_idx<=u8_idx_max);
+  return;
 }
 
 u8 *

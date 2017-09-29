@@ -48,11 +48,11 @@ Mask Quantization Utility
 #define AGNENTROQUANT_MODE_CHANNELIZE_BIT_IDX 6U
 #define AGNENTROQUANT_MODE_DELTAS (3U<<AGNENTROQUANT_MODE_DELTAS_BIT_IDX)
 #define AGNENTROQUANT_MODE_DELTAS_BIT_IDX 4U
-#define AGNENTROQUANT_MODE_SATURATE (3U<<AGNENTROQUANT_MODE_SATURATE_BIT_IDX)
-#define AGNENTROQUANT_MODE_SATURATE_BIT_IDX 2U
 #define AGNENTROQUANT_MODE_NORMALIZE (1U<<AGNENTROQUANT_MODE_NORMALIZE_BIT_IDX)
 #define AGNENTROQUANT_MODE_NORMALIZE_BIT_IDX 0U
-#define AGNENTROQUANT_SATURATE_BIASED 3U
+#define AGNENTROQUANT_MODE_SATURATE (3U<<AGNENTROQUANT_MODE_SATURATE_BIT_IDX)
+#define AGNENTROQUANT_MODE_SATURATE_BIT_IDX 2U
+#define AGNENTROQUANT_SATURATE_MODULO 3U
 #define AGNENTROQUANT_SATURATE_OFF 0U
 #define AGNENTROQUANT_SATURATE_SIGNED 2U
 #define AGNENTROQUANT_SATURATE_UNSIGNED 1U
@@ -82,7 +82,6 @@ agnentroquant_parameter_error_print(char *char_list_base){
 int
 main(int argc, char *argv[]){
   ULONG arg_idx;
-  u8 ascii;
   u8 bias_status;
   u8 channel_status;
   u8 delta_count;
@@ -94,14 +93,12 @@ main(int argc, char *argv[]){
   ULONG in_file_size;
   ULONG in_file_size_max;
   char *in_filename_base;
-  ULONG in_filename_char_idx;
-  ULONG in_filename_char_idx_max;
-  ULONG in_filename_char_idx_new;
-  ULONG in_filename_idx;
-  ULONG in_filename_idx_max;
-  ULONG in_filename_size;
-  ULONG in_filename_size_new;
-  char *in_name_base;
+  char *in_filename_list_base;
+  ULONG in_filename_list_char_idx;
+  ULONG in_filename_list_char_idx_max;
+  ULONG in_filename_list_char_idx_new;
+  ULONG in_filename_list_size;
+  ULONG in_filename_list_size_new;
   ULONG in_u8_idx;
   ULONG in_u8_idx_max;
   u8 *in_u8_list_base;
@@ -114,32 +111,38 @@ main(int argc, char *argv[]){
   u8 mask_size_out;
   u64 mask_span_in;
   u64 mask_span_out;
+  u8 mask_span_out_u8;
   u8 mask_span_out_power_of_2_status;
   u64 mask_u64;
-  u64 mask_u64_bias_mask;
+  u64 mask_u64_bias;
+  u64 mask_u64_mask;
   u64 mask_u64_max;
   u64 mask_u64_min;
   u64 mask_u64_new;
   u64 mask_u64_old;
-  u64 mask_u64_sign_mask;
+  u64 mask_u64_sign;
   u8 mask_u8;
   u8 mask_u8_idx;
   u128 mask_u128;
   u8 normalize_status;
   char *out_filename_base;
-  ULONG out_filename_size;
+  ULONG out_filename_char_idx;
+  ULONG out_filename_char_idx_max;
+  ULONG out_filename_char_idx_new;
+  char *out_filename_list_base;
+  ULONG out_filename_list_size;
   ULONG out_u8_idx;
   u8 overflow_status;
   u64 parameter;
   u8 saturate_mode;
   u8 status;
 
-  out_filename_base=NULL;
   overflow_status=0;
   status=ascii_init(0, 0);
   status=(u8)(status|filesys_init(0, 0));
-  in_filename_base=NULL;
+  in_filename_list_base=NULL;
   in_u8_list_base=NULL;
+  out_filename_list_base=NULL;
   do{
     if(status){
       agnentroquant_error_print("Outdated source code");
@@ -152,7 +155,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("Mask list quantization utility.\n\n");
       DEBUG_PRINT("Syntax:\n\n");
       DEBUG_PRINT("agnentroquant mode granularity mask_max input output\n\n");
-      DEBUG_PRINT("(mode) controls behavior:\n\n  bit 0: (normalize) converts the minimum and maximum input masks to zero and\n  mask_max, respectively. This is as opposed to assuming that all input masks\n  allowed by (granularity) may actually occur. Normalization occurs after all\n  other transformations.\n\n  bit 2-3: (saturation) controls how masks are clipped after deltafication and\n  biasing, but prior to normalization:\n\n    00: No saturation. Scale the full range of values allowed by (granularity)\n    to output masks on [0, mask_max].\n\n    01: Positive saturation: All input masks greater than mask_max will be set\n    to mask_max. No scaling will occur unless normalization is enabled.\n\n    10: Signed saturation: All input masks greater than (mask_max>>1) or less\n    than (-((mask_max>>1)+(mask_max&1))) will be set to those respective values.\n    For example, if mask_max is 0xCE, then the minimum and maximum would be 0x99\n    and 0x67, respectively, interpreted as signed bytes. Or if mask_max is 0x15,\n    then the minimum and maximum would be 0xF5 and 0x0A, respectively. No\n    scaling will occur unless normalization is enabled.\n\n    11: Biased saturation: Subtract (2^(granularity*8)+7) from the input mask,\n    then do the same thing as with signed saturation. No scaling will occur\n    unless normalization is enabled.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes. In any event, it\n  force the granularity to be subsequently treated as 0.\n\n  bit 7:(bias) Add (2^(granularity*8)+7) to each sample after deltafication\n  but before normalization. This helps to reduce the mask span, and thus aids\n  normalization, because (-1) no longer translates to the maximum mask value.\n\n");
+      DEBUG_PRINT("(mode) controls behavior:\n\n  bit 0: (normalize) converts the minimum and maximum input masks to zero and\n  mask_max, respectively. This is as opposed to assuming that all input masks\n  allowed by (granularity) may actually occur. Normalization occurs after all\n  other transformations.\n\n  bit 2-3: (saturation) controls how masks are clipped after deltafication but\n  but prior to biasing and normalization:\n\n    00: No saturation. Scale the full range of values allowed by (granularity)\n    to output masks on [0, mask_max].\n\n    01: Positive saturation: All input masks greater than mask_max will be set\n    to mask_max. No scaling will occur unless normalization is enabled.\n\n    10: Signed saturation: All input masks greater than (mask_max>>1) or less\n    than (-((mask_max>>1)+(mask_max&1))) will be set to those respective values.\n    For example, if mask_max is 0xCE, then the minimum and maximum would be 0x99\n    and 0x67, respectively, interpreted as signed bytes. Or if mask_max is 0x15,\n    then the minimum and maximum would be 0xF5 and 0x0A, respectively. No\n    scaling will occur unless normalization is enabled.\n\n    11: Modulo saturation: Replace the mask (or its delta) with itself modulo\n    (mask_max+1). No scaling will occur unless normalization is enabled.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes. In any event, it\n  force the granularity to be subsequently treated as 0.\n\n  bit 7:(bias) Add ((mask_max>>1)+(mask_max&1)), and then wrap to mask_max,\n  after quantization has been done. This will reduce the mask span in cases\n  where the quantized masks would otherwise be signed.\n\n");
       DEBUG_PRINT("(granularity) is one less than the number of bytes per input mask, on [0, 7].\n\n");
       DEBUG_PRINT("(mask_max) is a nonzero hex value up to 32 bits wide which is the maximum\nallowed mask.\n\n");
       DEBUG_PRINT("(input) is the file or folder from which to read multiples of (granularity+1)\nbytes.\n\n");
@@ -220,49 +223,31 @@ main(int argc, char *argv[]){
     if(normalize_status){
       mask_bit_count_delta=U64_BITS;
     }
-    mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
-    out_filename_size=(ULONG)(strlen(argv[5]));
-/*
-Allocate enough space for the maximum path size that filesys_filename_list_get may append, plus one for a path separator, plus one for a terminating null.
-*/
-    out_filename_size+=U16_MAX+2;
-    out_filename_base=filesys_char_list_malloc(out_filename_size);
-    out_filename_size-=U16_MAX+2;
-    status=!out_filename_base;
-    if(status){
-      agnentroquant_out_of_memory_print();
-      break;
-    }
-    memcpy(out_filename_base, argv[5], (size_t)(out_filename_size));
-    if(out_filename_size&&!file_status){
-      if(out_filename_base[out_filename_size-1]!=FILESYS_PATH_SEPARATOR){
-        out_filename_base[out_filename_size]=FILESYS_PATH_SEPARATOR;
-        out_filename_size++;
-      }
-    }
-    in_name_base=argv[4];
+    in_filename_base=argv[4];
+    out_filename_base=argv[5];
     in_file_size_max=0;
     in_file_count=0;
-    in_filename_size=U16_MAX;
+    in_filename_list_size=U16_MAX;
+    mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
     mask_span_in=0;
     status=1;
     do{
-      in_filename_char_idx_max=in_filename_size-1;
-      in_filename_base=filesys_char_list_malloc(in_filename_char_idx_max);
-      if(!in_filename_base){
+      in_filename_list_char_idx_max=in_filename_list_size-1;
+      in_filename_list_base=filesys_char_list_malloc(in_filename_list_char_idx_max);
+      if(!in_filename_list_base){
         agnentroquant_out_of_memory_print();
         break;
       }
-      in_filename_size_new=in_filename_size;
-      in_file_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_base, &in_filename_size_new, in_name_base);
+      in_filename_list_size_new=in_filename_list_size;
+      in_file_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
       if(!in_file_count){
         agnentroquant_error_print("(textpath) not found or inaccessible");
         break;
       }
       status=0;
-      if(in_filename_size<in_filename_size_new){
-        in_filename_base=filesys_free(in_filename_base);
-        in_filename_size=in_filename_size_new;
+      if(in_filename_list_size<in_filename_list_size_new){
+        in_filename_list_base=filesys_free(in_filename_list_base);
+        in_filename_list_size=in_filename_list_size_new;
         status=1;
       }
     }while(status);
@@ -271,18 +256,24 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
     }
     in_u8_list_base=(u8 *)(DEBUG_MALLOC_PARANOID(in_file_size_max));
     status=!in_u8_list_base;
+    out_filename_list_size=filesys_filename_list_morph_size_get(in_file_count, in_filename_base, in_filename_list_base, out_filename_base);
+    out_filename_char_idx_max=out_filename_list_size-1;
+    out_filename_list_base=filesys_char_list_malloc(out_filename_char_idx_max);
+    status=(u8)(status|!out_filename_list_base);
     if(status){
       agnentroquant_out_of_memory_print();
       break;
     }
-    in_filename_char_idx=0;
+    filesys_filename_list_morph(in_file_count, in_filename_base, in_filename_list_base, out_filename_base, out_filename_list_base);
+    in_filename_list_char_idx=0;
     in_file_idx=0;
     mask_u64_max=0;
     mask_u64_min=0;
+    out_filename_char_idx=0;
     do{
       in_file_size=in_file_size_max;
-      in_filename_char_idx_new=in_filename_char_idx;
-      filesys_status=filesys_file_read_next(&in_file_size, &in_filename_char_idx_new, in_filename_base, in_u8_list_base);
+      in_filename_list_char_idx_new=in_filename_list_char_idx;
+      filesys_status=filesys_file_read_next(&in_file_size, &in_filename_list_char_idx_new, in_filename_list_base, in_u8_list_base);
       if((!in_file_size)||(in_file_size%mask_size_in)){
         filesys_status=FILESYS_STATUS_CALLER_CUSTOM;
       }
@@ -327,13 +318,6 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
         if(channel_status){
           mask_size_in=1;
         }
-        if(bias_status){
-          in_u8_idx=0;
-          do{
-            in_u8_list_base[in_u8_idx+mask_size_in-1]^=U8_SPAN_HALF;
-            in_u8_idx+=mask_size_in;
-          }while(in_u8_idx<=in_u8_idx_max);
-        }
         in_u8_idx=0;
         switch(saturate_mode){
         case AGNENTROQUANT_SATURATE_UNSIGNED:
@@ -348,30 +332,48 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
           }while(in_u8_idx<=in_u8_idx_max);
           break;
         case AGNENTROQUANT_SATURATE_SIGNED:
-        case AGNENTROQUANT_SATURATE_BIASED:
-          mask_u64_bias_mask=0;
-          mask_u64_max=mask_max>>1;
-          mask_u64_sign_mask=1ULL<<((mask_size_in<<U8_BITS_LOG2)-1);
-          mask_u64_min=(mask_u64_sign_mask<<1)-(mask_max>>1)+(mask_max&1);
-          if(saturate_mode==AGNENTROQUANT_SATURATE_BIASED){
-            mask_u64_bias_mask=mask_u64_sign_mask;
-          }
+          mask_u64_sign=1ULL<<((mask_size_in<<U8_BITS_LOG2)-1);
+          mask_u64_max=mask_u64_sign+(mask_max>>1);
+          mask_u64_min=mask_u64_sign-(mask_max>>1)-(mask_max&1);
           in_u8_idx=0;
           do{
             mask_u64=0;
             memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
-            mask_u64^=mask_u64_bias_mask;
-            if(!(mask_u64&mask_u64_sign_mask)){
-              if(mask_u64_max<mask_u64){
-                memcpy(&in_u8_list_base[in_u8_idx], &mask_u64_max, (size_t)(mask_size_in));
-              }
-            }else{
-              if(mask_u64<mask_u64_min){
-                memcpy(&in_u8_list_base[in_u8_idx], &mask_u64_min, (size_t)(mask_size_in));
-              }
-            }
+            mask_u64^=mask_u64_sign;
+            mask_u64=MIN(mask_u64, mask_u64_max);
+            mask_u64=MAX(mask_u64, mask_u64_min);
+            mask_u64^=mask_u64_sign;
+            memcpy(&in_u8_list_base[in_u8_idx], &mask_u64, (size_t)(mask_size_in));
             in_u8_idx+=mask_size_in;
           }while(in_u8_idx<=in_u8_idx_max);
+          break;
+        case AGNENTROQUANT_SATURATE_MODULO:
+          if(mask_span_out_power_of_2_status){
+            do{
+              mask_u64=0;
+              memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+              mask_u64&=mask_max;
+              memcpy(&in_u8_list_base[in_u8_idx], &mask_u64, (size_t)(mask_size_in));
+              in_u8_idx+=mask_size_in;
+            }while(in_u8_idx<=in_u8_idx_max);
+          }else if(mask_span_out==(u8)(mask_span_out)){
+            mask_span_out_u8=(u8)(mask_span_out);
+            do{
+              mask_u64=0;
+              memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+              mask_u64%=mask_span_out_u8;
+              memcpy(&in_u8_list_base[in_u8_idx], &mask_u64, (size_t)(mask_size_in));
+              in_u8_idx+=mask_size_in;
+            }while(in_u8_idx<=in_u8_idx_max);
+          }else{
+            do{
+              mask_u64=0;
+              memcpy(&mask_u64, &in_u8_list_base[in_u8_idx], (size_t)(mask_size_in));
+              mask_u64%=mask_span_out;
+              memcpy(&in_u8_list_base[in_u8_idx], &mask_u64, (size_t)(mask_size_in));
+              in_u8_idx+=mask_size_in;
+            }while(in_u8_idx<=in_u8_idx_max);
+          }
           break;
         default:
           break;
@@ -389,6 +391,8 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
           }while(in_u8_idx<=in_u8_idx_max);
           mask_span_in=mask_u64_max-mask_u64_min+1;
         }
+        mask_u64_bias=(mask_max>>1)+(mask_max&1);
+        mask_u64_mask=((1ULL<<((mask_size_out<<U8_BITS_LOG2)-1))<<1)-1;
         in_u8_idx=0;
         out_u8_idx=0;
         do{
@@ -417,29 +421,26 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
               }
             }
           }
+          if(bias_status){
+            mask_u64&=mask_u64_mask;
+            mask_u64+=mask_u64_bias;
+            if(mask_max<mask_u64){
+              mask_u64-=mask_max;
+              mask_u64--;
+            }
+          }
           memcpy(&in_u8_list_base[out_u8_idx], &mask_u64, (size_t)(mask_size_out));
           out_u8_idx+=mask_size_out;
         }while(in_u8_idx<=in_u8_idx_max);
-        in_filename_idx_max=(ULONG)(strlen(&in_filename_base[in_filename_char_idx]));
-        in_filename_idx_max+=in_filename_char_idx;
-        in_filename_idx=in_filename_idx_max;
-        while(in_filename_idx){
-          ascii=(u8)(in_filename_base[in_filename_idx-1]);
-          if(ascii==FILESYS_PATH_SEPARATOR){
-            break;
-          }
-          in_filename_idx--;
-        }
-        in_filename_size=in_filename_idx_max-in_filename_idx+1;
-        memcpy(&out_filename_base[out_filename_size], &in_filename_base[in_filename_idx], (size_t)(in_filename_size));
-        filesys_status=filesys_file_write(out_u8_idx, out_filename_base, in_u8_list_base);
+        out_filename_char_idx_new=out_filename_char_idx;
+        filesys_status=filesys_file_write_next_obnoxious(out_u8_idx, &out_filename_char_idx_new, out_filename_list_base, in_u8_list_base);
         status=!!filesys_status;
       }
       if(status){
         if(filesys_status!=FILESYS_STATUS_WRITE_FAIL){
-          DEBUG_PRINT(&in_filename_base[in_filename_char_idx]);
+          DEBUG_PRINT(&in_filename_list_base[in_filename_list_char_idx]);
         }else{
-          DEBUG_PRINT(out_filename_base);
+          DEBUG_PRINT(&out_filename_list_base[out_filename_char_idx]);
         }
         DEBUG_PRINT("\n");
         switch(filesys_status){
@@ -465,14 +466,15 @@ Allocate enough space for the maximum path size that filesys_filename_list_get m
           agnentroquant_error_print("Internal error. Please report");
         }
       }
-      in_filename_char_idx=in_filename_char_idx_new;
+      in_filename_list_char_idx=in_filename_list_char_idx_new;
       in_file_idx++;
+      out_filename_char_idx=out_filename_char_idx_new;
       status=0;
     }while(in_file_idx!=in_file_count);
   }while(0);
+  filesys_free(out_filename_list_base);
   DEBUG_FREE_PARANOID(in_u8_list_base);
-  filesys_free(in_filename_base);
-  filesys_free(out_filename_base);
+  filesys_free(in_filename_list_base);
   DEBUG_ALLOCATION_CHECK();
   return status;
 }

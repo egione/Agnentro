@@ -281,11 +281,7 @@ It's safe to ignore the status return from agnentroprox_mask_idx_max_get() when 
     }
     if(delta_status){
       DEBUG_PRINT("Computing first delta of samples...\n");
-      status=agnentroprox_mask_list_deltafy(0, 1, U8_BYTE_MAX, file_mask_idx_max, file_mask_list_base);
-      if(status){
-        setidemo_error_print("Deltafication failed. Please report");
-        break;
-      }
+      agnentroprox_mask_list_deltafy(0, 1, U8_BYTE_MAX, file_mask_idx_max, file_mask_list_base);
     }
     DEBUG_PRINT("Computing mean of ");
     if(delta_status){

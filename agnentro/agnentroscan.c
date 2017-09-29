@@ -146,16 +146,18 @@ agnentroscan_warning_print(char *char_list_base){
 int
 main(int argc, char *argv[]){
   agnentroprox_t *agnentroprox_base;
+  u8 append_mode;
   ULONG arg_idx;
-  u8 ascending_status;
   u8 cavalier_status;
   u8 channel_status;
+  u8 clip_mode;
   u8 delete_status;
   u8 delta_count;
   u8 delta_idx;
   ULONG deltafy_mask_idx_max;
   u8 digit;
   u8 digit_shift;
+  u8 direction_status;
   char *dump_u8_list_base;
   ULONG dump_delta;
   u8 dump_delta_sign;
@@ -173,6 +175,7 @@ main(int argc, char *argv[]){
   fru128 entropy;
   fru128 *entropy_list_base0;
   fru128 *entropy_list_base1;
+  ULONG entropy_list_size;
   u128 entropy_mean;
   fru128 entropy_raw;
   u128 entropy_threshold;
@@ -183,18 +186,18 @@ main(int argc, char *argv[]){
   ULONG haystack_file_size;
   ULONG haystack_file_size_max;
   char *haystack_filename_base;
-  ULONG haystack_filename_char_idx;
-  ULONG haystack_filename_char_idx_max;
-  ULONG haystack_filename_char_idx_new;
   ULONG haystack_filename_count;
   ULONG haystack_filename_idx;
   ULONG *haystack_filename_idx_list_base;
-  ULONG haystack_filename_size;
-  ULONG haystack_filename_size_new;
+  char *haystack_filename_list_base;
+  ULONG haystack_filename_list_char_idx;
+  ULONG haystack_filename_list_char_idx_max;
+  ULONG haystack_filename_list_char_idx_new;
+  ULONG haystack_filename_list_size;
+  ULONG haystack_filename_list_size_new;
   ULONG haystack_mask_idx_max;
   ULONG haystack_mask_idx_max_max;
   u8 *haystack_mask_list_base;
-  char *haystack_name_base;
   loggamma_t *loggamma_base;
   u32 mask_max;
   u8 mask_size;
@@ -215,6 +218,13 @@ main(int argc, char *argv[]){
   u8 mode;
   char *mode_text_base;
   u8 normalized_status;
+  char *out_filename_base;
+  char *out_filename_list_base;
+  ULONG out_filename_list_char_idx;
+  ULONG out_filename_list_char_idx_max;
+  ULONG out_filename_list_char_idx_new;
+  ULONG out_filename_list_size;
+  ULONG out_filename_size;
   u8 overflow_status;
   u8 overlap_status;
   u64 parameter;
@@ -226,6 +236,8 @@ main(int argc, char *argv[]){
   ULONG rank_idx_min;
   fru128 *rank_list_base;
   u64 score;
+  ULONG score_idx;
+  fru128 score_packed;
   u8 sign_status;
   u8 status;
   ULONG sweep_mask_idx_max;
@@ -237,7 +249,7 @@ main(int argc, char *argv[]){
 
   overflow_status=0;
   status=ascii_init(0, 0);
-  status=(u8)(status|filesys_init(0, 0));
+  status=(u8)(status|filesys_init(0, 2));
   status=(u8)(status|fracterval_u128_init(1, 0));
   loggamma_base=loggamma_init(1, 0);
   status=(u8)(status|!loggamma_base);
@@ -255,16 +267,17 @@ main(int argc, char *argv[]){
   FRU128_SET_ZERO(entropy);
   entropy_list_base0=NULL;
   entropy_list_base1=NULL;
+  entropy_list_size=0;
   FRU128_SET_ZERO(entropy_raw);
   haystack_filename_idx_list_base=NULL;
-  haystack_filename_base=NULL;
+  haystack_filename_list_base=NULL;
   haystack_mask_list_base=NULL;
   match_u8_idx_list_base=NULL;
   U128_SET_ZERO(mean_f128);
   mode=0;
   normalized_status=0;
+  out_filename_list_base=NULL;
   sign_status=0;
-  sweep_size=0;
   do{
     if(status){
       agnentroscan_error_print("Outdated source code");
@@ -282,8 +295,8 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("(mode) is the type of entropy to compute in nats (bits times log(2)): \"A\" for\nagnentropy, \"E\" for exoentropy, \"L\" for logfreedom, or \"S\" for Shannon entropy.\nLowercase letters will compute the corresponding inverse normalized quantity,\ni.e. a 64-bit fraction on [0, 1] where greater values correspond to less\nentropy: \"a\" for compressivity, \"e\" for exocompressivity, \"l\" for\ndyspoissonism, or \"s\" for shannonism. Use \"x\" for exoelasticity, which is\ninherently normalized.\n\n");
       DEBUG_PRINT("(haystack) is the file or folder to analyze. In the latter case, all symlinks\nwill be ignored so that no subfolder will be processed more than once.\n\n");
       DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols.\n\n");
-      DEBUG_PRINT("(sweep) is the nonzero number of masks in the sliding haystack window, except\nthat \"h\" means that the window size will equal the haystack size, in which\ncase no sliding can occur. For example, 5 means: a 5-byte window if\n(granularity)=0, a 10-byte window if (granularity)=1 and (overlap)=0, or a\n7-byte window if (granularity)=2 and (overlap)=1.\n\n");
-      DEBUG_PRINT("(ranks) is the nonzero number of slots in the list of (best) matches. Matches\nwill be reported as 0-based file offsets or filenames when haystack is a file\nor folder, respectively. In either case, results will be sorted in the order\nimplied by granularity, such that lesser offsets and files encountered earlier\nwill prevail in case of a tie.\n\n");
+      DEBUG_PRINT("(sweep) is the nonzero number of masks in the sliding haystack window, except\nthat \"h\" means that the window size will equal the haystack size, in which\ncase no sliding can occur. For example, 5 means: a 5-byte window if\n(granularity)=0, a 10-byte window if (granularity)=1 and (overlap)=0, or a\n7-byte window if (granularity)=2 and (overlap)=1. Prefix with \"+\" to treat the\nfirst (sweep) bytes of the file as the entire haystack or \"-\" for the same with\n the last (sweep) masks.\n\n");
+      DEBUG_PRINT("(ranks) is the nonzero number of slots in the list of (best) matches. Matches\nwill be reported as 0-based file offsets or filenames when haystack is a file\nor folder, respectively. In either case, results will be sorted in the order\nimplied by granularity, such that lesser offsets and files encountered earlier\nwill prevail in case of a tie. If (ranks) is prefixed with \"@\", then results\nwill be delivered to the folder or file following that symbol. In this case\nthey will be sorted by sweep window base offset, and not by entropy. Each\nresult will be an 8-byte fracterval mean (center) if (precise) is 0, else a\npair of 16-byte fracterval low and high values if (precise) is 1. In this way,\nit's possible to dump the results of an entire entropy transform. If (haystack)\nis a file in this case, then (ranks) will be treated as a file; otherwise it\nwill be treated as a folder.\n\n");
       DEBUG_PRINT("(format) is a hex bitmap which controls output formatting:\n\n  bit 0: (merge) Prevent the reporting of more than 1 match per sweep. This is\n  useful for filtering because usually many matches occur within the same\n  sweep. In either case, a sweep with global minimum or maximum score will be\n  reported at rank 0. Ignored when (haystack) is a folder.\n\n  bit 1: (ascending) Display results with the lowest scores (entropies) first.\n  Either way, ties will be resolved in favor of lower sweep offsets.\n\n  bit 2: (cavalier) Do not report errors encountered after commencing analysis.\n\n  bit 3: (progress) Make verbose comments about compute progress.\n\n  bit 4: (precise) Set to display entropy values as 64.64 fixed-point hex\n  fractervals. Fractervals are displayed as {(A.B), (C.D)} where (A.B) is the\n  lower bound and (C.D) is (1/(2^64)) less than the upper bound.\n\n");
       DEBUG_PRINT("The following options are only valid when haystack is a file:\n\n");
       DEBUG_PRINT("(dump_delta) is the number of bytes after the base of a match at which to start\ndumping, such that 0 means to start at the match itself. Prefix with \"-\" to\nindicate a negative value. Reported match offsets will be adjusted accordingly,\nsaturating to [0, (haystack size)-1].\n\n");
@@ -303,6 +316,17 @@ main(int argc, char *argv[]){
       break;
     }
     sweep_text_base=argv[4];
+    sweep_status=(u8)(sweep_text_base[0]);
+    clip_mode=0;
+    status=1;
+    if(sweep_status=='+'){
+      clip_mode=1;
+    }else if(sweep_status=='-'){
+      clip_mode=2;
+    }
+    if(clip_mode){
+      sweep_text_base[0]='0';
+    }
     status=ascii_decimal_to_u64_convert(sweep_text_base, &parameter, ULONG_MAX);
     sweep_mask_idx_max_max=0;
     sweep_status=AGNENTROSCAN_SWEEP_STATUS_CUSTOM;
@@ -324,14 +348,29 @@ main(int argc, char *argv[]){
       agnentroscan_parameter_error_print("sweep");
       break;
     }
+    if(clip_mode){
+      sweep_status=AGNENTROSCAN_SWEEP_STATUS_HAYSTACK;
+    }
+    out_filename_base=argv[5];
+    out_filename_size=(ULONG)(strlen(out_filename_base));
+    append_mode=0;
+    if((1<out_filename_size)&&(out_filename_base[0]=='@')){
+      if(out_filename_base[1]=='~'){
+        agnentroscan_error_print("Path after \"@\" cannot begin with \"~\"; use /home/username/... instead");
+        status=1;
+        break;
+      }
+      append_mode=2;
+    }else{
 /*
 Don't accept ranks larger than we can fit in the address space, considering that it will be used to allocate *entropy_list_base0, which consists of u128 fractervals.
 */
-    status=ascii_decimal_to_u64_convert(argv[5], &parameter, ULONG_MAX>>(U128_SIZE_LOG2+1));
-    status=(u8)(status|!parameter);
-    if(status){
-      agnentroscan_parameter_error_print("ranks");
-      break;
+      status=ascii_decimal_to_u64_convert(argv[5], &parameter, ULONG_MAX>>(U128_SIZE_LOG2+1));
+      status=(u8)(status|!parameter);
+      if(status){
+        agnentroscan_parameter_error_print("ranks");
+        break;
+      }
     }
     rank_idx_max_max=(ULONG)(parameter-1);
     status=ascii_hex_to_u64_convert(argv[3], &parameter, U8_MAX);
@@ -389,7 +428,6 @@ Verify that the user understands that exoelasticity is normalized, but then set 
       agnentroscan_error_print("By definition, exocompressivity in haystack mode is always (1/2)");
       break;
     }
-    ascending_status=0;
     cavalier_status=0;
     merge_status=0;
     precise_status=0;
@@ -401,7 +439,9 @@ Verify that the user understands that exoelasticity is normalized, but then set 
         agnentroscan_parameter_error_print("format");
         break;
       }
-      ascending_status=(u8)((parameter>>AGNENTROSCAN_FORMAT_ASCENDING_BIT_IDX)&1);
+      if(!append_mode){
+        append_mode=(u8)((parameter>>AGNENTROSCAN_FORMAT_ASCENDING_BIT_IDX)&1);
+      }
       cavalier_status=(u8)((parameter>>AGNENTROSCAN_FORMAT_CAVALIER_BIT_IDX)&1);
       merge_status=(u8)((parameter>>AGNENTROSCAN_FORMAT_MERGE_BIT_IDX)&1);
       precise_status=(u8)((parameter>>AGNENTROSCAN_FORMAT_PRECISE_BIT_IDX)&1);
@@ -451,35 +491,44 @@ We need to allocate space for the full dump filename, which will contain the exi
         }
       }
     }
-    mask_size=(u8)(granularity+1);
-    haystack_name_base=argv[2];
+    if((append_mode==2)&&(dump_status|merge_status)){
+      status=1;
+      agnentroscan_error_print("Dumping or merging is not allowed when (ranks) is prefixed with \"@\"");
+      break;
+    }
+    haystack_filename_base=argv[2];
     haystack_file_size_max=0;
     haystack_filename_count=0;
-    haystack_filename_size=U16_MAX;
+    haystack_filename_list_size=U16_MAX;
     status=1;
+    sweep_size=(sweep_mask_idx_max_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
     do{
-      haystack_filename_char_idx_max=haystack_filename_size-1;
-      haystack_filename_base=filesys_char_list_malloc(haystack_filename_char_idx_max);
-      if(!haystack_filename_base){
+      haystack_filename_list_char_idx_max=haystack_filename_list_size-1;
+      haystack_filename_list_base=filesys_char_list_malloc(haystack_filename_list_char_idx_max);
+      if(!haystack_filename_list_base){
         agnentroscan_out_of_memory_print();
         break;
       }
-      haystack_filename_size_new=haystack_filename_size;
-      haystack_filename_count=filesys_filename_list_get(&haystack_file_size_max, &file_status, haystack_filename_base, &haystack_filename_size_new, haystack_name_base);
+      haystack_filename_list_size_new=haystack_filename_list_size;
+      haystack_filename_count=filesys_filename_list_get(&haystack_file_size_max, &file_status, haystack_filename_list_base, &haystack_filename_list_size_new, haystack_filename_base);
       if(!haystack_filename_count){
         agnentroscan_error_print("(haystack) not found or inaccessible");
         break;
       }
       status=0;
-      if(haystack_filename_size<haystack_filename_size_new){
-        haystack_filename_base=filesys_free(haystack_filename_base);
-        haystack_filename_size=haystack_filename_size_new;
+      if(clip_mode){
+        haystack_file_size_max=sweep_size;
+      }
+      if(haystack_filename_list_size<haystack_filename_list_size_new){
+        haystack_filename_list_base=filesys_free(haystack_filename_list_base);
+        haystack_filename_list_size=haystack_filename_list_size_new;
         status=1;
       }
     }while(status);
     if(status){
       break;
     }
+    mask_size=(u8)(granularity+1);
     status=1;
     if(haystack_file_size_max<mask_size){
       agnentroscan_error_print("All haystack files are smaller than a single (granularity+1)-sized mask");
@@ -497,15 +546,29 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
     if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
       sweep_mask_idx_max_max=haystack_mask_idx_max_max;
     }
+    if(append_mode==2){
+      out_filename_list_size=filesys_filename_list_morph_size_get(haystack_filename_count, haystack_filename_base, haystack_filename_list_base, &out_filename_base[1]);
+      out_filename_list_char_idx_max=out_filename_list_size-1;
+      out_filename_list_base=filesys_char_list_malloc(out_filename_list_char_idx_max);
+      status=!out_filename_list_base;
+      if(status){
+        agnentroscan_out_of_memory_print();
+        break;
+      }
+      filesys_filename_list_morph(haystack_filename_count, haystack_filename_base, haystack_filename_list_base, &out_filename_base[1], out_filename_list_base);
+      rank_idx_max_max=haystack_mask_idx_max_max-sweep_mask_idx_max_max;
+    }
+    match_idx_max_max=rank_idx_max_max;
     if(!file_status){
-      match_idx_max_max=0;
       if(dump_status|merge_status){
-        agnentroscan_error_print("Dumping or merging is not available if (haystack) is a folder");
+        agnentroscan_error_print("Dumping or merging is not allowed if (haystack) is a folder");
         status=1;
         break;
       }
+      if(append_mode<=1){
+        match_idx_max_max=0;
+      }
     }else{
-      match_idx_max_max=rank_idx_max_max;
       if(dump_status==2){
         dump_size_max=dump_size;
         if(!dump_size){
@@ -543,16 +606,18 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
     }
     mask_max=(u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1);
     status=1;
-    agnentroprox_base=agnentroprox_init(3, 2, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, overlap_status, sweep_mask_idx_max_max);
+    agnentroprox_base=agnentroprox_init(3, 4, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, overlap_status, sweep_mask_idx_max_max);
     if(!agnentroprox_base){
       agnentroscan_out_of_memory_print();
       break;
     }
     U128_SET_ZERO(entropy_mean);
-    U128_FROM_BOOL(entropy_threshold, ascending_status);
-    haystack_filename_char_idx=0;
+    U128_FROM_BOOL(entropy_threshold, append_mode);
+    haystack_filename_list_char_idx=0;
     haystack_filename_idx=0;
     match_count=0;
+    out_filename_list_char_idx=0;
+    out_filename_list_char_idx_new=0;
     rank_count=0;
     rank_idx=0;
     do{
@@ -560,12 +625,21 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
       granularity_status=0;
       if(progress_status){
         DEBUG_PRINT("Analyzing ");
-        DEBUG_PRINT(&haystack_filename_base[haystack_filename_char_idx]);
+        DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_list_char_idx]);
         DEBUG_PRINT("...\n");
       }
       haystack_file_size=haystack_file_size_max;
-      haystack_filename_char_idx_new=haystack_filename_char_idx;
-      filesys_status=filesys_file_read_next(&haystack_file_size, &haystack_filename_char_idx_new, haystack_filename_base, haystack_mask_list_base);
+      haystack_filename_list_char_idx_new=haystack_filename_list_char_idx;
+      if(clip_mode){
+        direction_status=(u8)(clip_mode-1);
+/*
+Assume that the haystack is large enough to contain at least one sweep. If not, then filesys_status will come back as nonzero.
+*/
+        haystack_file_size=sweep_size;
+        filesys_status=filesys_subfile_read_next(direction_status, &haystack_filename_list_char_idx_new, haystack_filename_list_base, haystack_file_size, 0, haystack_mask_list_base);
+      }else{
+        filesys_status=filesys_file_read_next(&haystack_file_size, &haystack_filename_list_char_idx_new, haystack_filename_list_base, haystack_mask_list_base);
+      }
       status=1;
       if(!filesys_status){
         haystack_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, overlap_status);
@@ -581,7 +655,6 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
             filesys_status=FILESYS_STATUS_CALLER_CUSTOM2;
             status=1;
           }
-          sweep_size=(sweep_mask_idx_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
           if(!status){
             if(delta_count){
               if(progress_status){
@@ -605,7 +678,7 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
               }
               delta_idx=0;
               do{
-                status=agnentroprox_mask_list_deltafy(channel_status, 1, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
+                agnentroprox_mask_list_deltafy(channel_status, 1, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
               }while((delta_idx++)!=delta_count);
             }
             if((mode==AGNENTROPROX_MODE_KURTOSIS)||(mode==AGNENTROPROX_MODE_VARIANCE)){
@@ -642,22 +715,26 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
               DEBUG_PRINT(" mask overlap...\n");
             }
             rank_list_base=entropy_list_base0;
-            if(!file_status){
-              rank_list_base=entropy_list_base1;
+            if(append_mode<=1){
+              append_mode^=normalized_status;
+              if(!file_status){
+                rank_list_base=entropy_list_base1;
+              }
             }
-            ascending_status^=normalized_status;
             if(mode!=AGNENTROPROX_MODE_EXOELASTICITY){
-              match_count=agnentroprox_entropy_transform(agnentroprox_base, ascending_status, rank_list_base, haystack_mask_idx_max, haystack_mask_list_base, match_idx_max_max, match_u8_idx_list_base, mode, &overflow_status, sweep_mask_idx_max);
+              match_count=agnentroprox_entropy_transform(agnentroprox_base, append_mode, rank_list_base, haystack_mask_idx_max, haystack_mask_list_base, match_idx_max_max, match_u8_idx_list_base, mode, &overflow_status, sweep_mask_idx_max);
             }else{
-              match_count=agnentroprox_exoelasticity_transform(agnentroprox_base, ascending_status, rank_list_base, haystack_mask_idx_max, haystack_mask_list_base, match_idx_max_max, match_u8_idx_list_base, &overflow_status, sweep_mask_idx_max);
+              match_count=agnentroprox_exoelasticity_transform(agnentroprox_base, append_mode, rank_list_base, haystack_mask_idx_max, haystack_mask_list_base, match_idx_max_max, match_u8_idx_list_base, &overflow_status, sweep_mask_idx_max);
             }
             if(normalized_status){
-              ascending_status^=normalized_status;
+              if(append_mode<=1){
+                append_mode^=normalized_status;
+              }
+/*
+Normalize all the matches.
+*/
               entropy_raw=agnentroprox_entropy_raw_get(agnentroprox_base, sweep_mask_idx_max, &overflow_status);
               match_idx=match_count-1;
-/*
-We're guaranteed at least one match, so go ahead and normalize it.
-*/
               do{
                 entropy=rank_list_base[match_idx];
                 if((mode==AGNENTROPROX_MODE_LOGFREEDOM)||(mode==AGNENTROPROX_MODE_SHANNON)){
@@ -668,29 +745,75 @@ We're guaranteed at least one match, so go ahead and normalize it.
                 rank_list_base[match_idx]=entropy;
               }while(match_idx--);
             }
-            entropy=rank_list_base[0];
-            FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
-            if(!file_status){
-              status=1;
-              if(ascending_status){
-                if(U128_IS_LESS_EQUAL(entropy_mean, entropy_threshold)){
+            if(append_mode==2){
+              entropy_list_size=match_count<<(U128_SIZE_LOG2+1);
+              if(!precise_status){
+                entropy_list_size>>=2;
+                match_idx=0;
+                score_idx=0;
+                do{
+                  entropy=rank_list_base[match_idx];
+                  FRU128_SET_ZERO(score_packed);
+                  FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+                  U128_TO_U64_HI(score, entropy_mean);
+                  U128_FROM_U64_LO(score_packed.a, score);
+                  match_idx++;
+                  if(match_idx==match_count){
+                    break;
+                  }
+                  entropy=rank_list_base[match_idx];
+                  FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+                  U128_TO_U64_HI(score, entropy_mean);
+                  U128_ADD_U64_HI_SELF(score_packed.a, score);
+                  match_idx++;
+                  if(match_idx==match_count){
+                    break;
+                  }
+                  entropy=rank_list_base[match_idx];
+                  FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+                  U128_TO_U64_HI(score, entropy_mean);
+                  U128_FROM_U64_LO(score_packed.b, score);
+                  match_idx++;
+                  if(match_idx==match_count){
+                    break;
+                  }
+                  entropy=rank_list_base[match_idx];
+                  FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+                  U128_TO_U64_HI(score, entropy_mean);
+                  U128_ADD_U64_HI_SELF(score_packed.b, score);
+                  match_idx++;
+                  if(match_idx==match_count){
+                    break;
+                  }
+                  rank_list_base[score_idx]=score_packed;
+                  score_idx++;
+                }while(1);
+                rank_list_base[score_idx]=score_packed;
+              }
+              out_filename_list_char_idx_new=out_filename_list_char_idx;
+              filesys_status=filesys_file_write_next_obnoxious(entropy_list_size, &out_filename_list_char_idx_new, out_filename_list_base, rank_list_base);
+              status=!!filesys_status;
+            }else{
+              entropy=rank_list_base[0];
+              FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+              if(!file_status){
+                status=1;
+                if((!append_mode)&&U128_IS_LESS_EQUAL(entropy_threshold, entropy_mean)){
+                  status=fracterval_u128_rank_list_insert_descending(entropy, &rank_count, &rank_idx, rank_idx_max_max, entropy_list_base0, &entropy_threshold);
+                }else if((append_mode==1)&&U128_IS_LESS_EQUAL(entropy_mean, entropy_threshold)){
                   status=fracterval_u128_rank_list_insert_ascending(entropy, &rank_count, &rank_idx, rank_idx_max_max, entropy_list_base0, &entropy_threshold);
                 }
-              }else{
-                if(U128_IS_LESS_EQUAL(entropy_threshold, entropy_mean)){
-                  status=fracterval_u128_rank_list_insert_descending(entropy, &rank_count, &rank_idx, rank_idx_max_max, entropy_list_base0, &entropy_threshold);
+                if(!status){
+                  rank_idx_min=rank_idx;
+                  rank_idx=rank_count-1;
+                  while(rank_idx!=rank_idx_min){
+                    haystack_filename_idx_list_base[rank_idx]=haystack_filename_idx_list_base[rank_idx-1];
+                    rank_idx--;
+                  }
+                  haystack_filename_idx_list_base[rank_idx]=haystack_filename_list_char_idx;
                 }
+                status=0;
               }
-              if(!status){
-                rank_idx_min=rank_idx;
-                rank_idx=rank_count-1;
-                while(rank_idx!=rank_idx_min){
-                  haystack_filename_idx_list_base[rank_idx]=haystack_filename_idx_list_base[rank_idx-1];
-                  rank_idx--;
-                }
-                haystack_filename_idx_list_base[rank_idx]=haystack_filename_char_idx;
-              }
-              status=0;
             }
           }
         }else{
@@ -701,7 +824,11 @@ We're guaranteed at least one match, so go ahead and normalize it.
       if(((!cavalier_status)&(granularity_status|status))|(progress_status&!status)){
         if(!cavalier_status){
           if((!progress_status)&(granularity_status|status)){
-            DEBUG_PRINT(&haystack_filename_base[haystack_filename_char_idx]);
+            if(filesys_status!=FILESYS_STATUS_WRITE_FAIL){
+              DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_list_char_idx]);
+            }else{
+              DEBUG_PRINT(&out_filename_list_base[out_filename_list_char_idx]);
+            }
             DEBUG_PRINT("\n");
           }
 /*
@@ -713,11 +840,11 @@ Don't warn about incompatible granularity if we have some other error which woul
         }
         switch(filesys_status){
         case 0:
-          if(match_count&&progress_status){
+          if((append_mode<=1)&&match_count&&progress_status){
             if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
               DEBUG_PRINT("(haystack) ");
             }else{
-              if(!ascending_status){
+              if(!append_mode){
                 DEBUG_PRINT("Max ");
               }else{
                 DEBUG_PRINT("Min ");
@@ -750,6 +877,9 @@ Don't warn about incompatible granularity if we have some other error which woul
         case FILESYS_STATUS_SIZE_CHANGED:
           agnentroscan_error_print("File size changed during read");
           break;
+        case FILESYS_STATUS_WRITE_FAIL:
+          agnentroscan_error_print("Write failed");
+          break;
         case FILESYS_STATUS_CALLER_CUSTOM:
           agnentroscan_error_print("Size is less than (granularity+1) bytes");
           break;
@@ -760,124 +890,37 @@ Don't warn about incompatible granularity if we have some other error which woul
           agnentroscan_error_print("Internal error. Please report");
         }
       }
-      haystack_filename_char_idx=haystack_filename_char_idx_new;
+      haystack_filename_list_char_idx=haystack_filename_list_char_idx_new;
       haystack_filename_idx++;
+      out_filename_list_char_idx=out_filename_list_char_idx_new;
       status=0;
     }while(haystack_filename_idx!=haystack_filename_count);
-    if(progress_status){
-      if(match_count|rank_count){
-        DEBUG_PRINT("Here are the results ranked ");
-        if(ascending_status){
-          DEBUG_PRINT("as");
-        }else{
-          DEBUG_PRINT("des");
-        }
-        DEBUG_PRINT("ending by ");
-        agnentroscan_mode_text_print(mode, normalized_status);
-        DEBUG_PRINT(":\n");
-      }else{
-        DEBUG_PRINT("No matches found!\n");
-      }
-    }
-    if(!file_status){
-      rank_idx=0;
-      while(rank_idx<rank_count){
-        entropy=entropy_list_base0[rank_idx];
-        if(!precise_status){
-          FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
-          U128_TO_U64_HI(score, entropy_mean);
-          DEBUG_U64("", score);
-        }else{
-          DEBUG_F128_PAIR("", entropy.a, entropy.b);
-        }
-        DEBUG_PRINT(" ");
-        DEBUG_PRINT(&haystack_filename_base[haystack_filename_idx_list_base[rank_idx]]);
-        DEBUG_PRINT("\n");
-        rank_idx++;
-      }
-    }else{
-      if(match_count){
-        if(merge_status){
+    if(sweep_status!=AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
 /*
-Get rid of overlapping sweep regions, prioritizing those of inferior rank for removal.
+Don't attempt to merge ranking sweeps in haystack mode, as there's only one entropy value.
 */
-          match_idx=match_count-1;
-          while(match_idx){
-            match_u8_idx=match_u8_idx_list_base[match_idx];
-            match_idx_nested=0;
-            do{
-              match_u8_idx_nested=match_u8_idx_list_base[match_idx_nested];
-              delete_status=0;
-              if(match_u8_idx<match_u8_idx_nested){
-                if((match_u8_idx_nested-match_u8_idx)<sweep_size){
-                  delete_status=1;
-                  break;
-                }
-              }else if(match_u8_idx_nested<match_u8_idx){
-                if((match_u8_idx-match_u8_idx_nested)<sweep_size){
-                  delete_status=1;
-                  break;
-                }
-              }
-              match_idx_nested++;
-            }while(match_idx_nested!=match_count);
-            if(delete_status){
-              match_idx_nested=match_idx;
-              while((++match_idx_nested)!=match_count){
-                match_u8_idx_list_base[match_idx_nested-1]=match_u8_idx_list_base[match_idx_nested];
-                entropy_list_base0[match_idx_nested-1]=entropy_list_base0[match_idx_nested];
-              }
-              match_count--;
-            }
-            match_idx--;
+       sweep_size=0;
+    }
+    if(append_mode<=1){
+      if(progress_status){
+        if(match_count|rank_count){
+          DEBUG_PRINT("Here are the results ranked ");
+          if(append_mode){
+            DEBUG_PRINT("as");
+          }else{
+            DEBUG_PRINT("des");
           }
+          DEBUG_PRINT("cending by ");
+          agnentroscan_mode_text_print(mode, normalized_status);
+          DEBUG_PRINT(":\n");
+        }else{
+          DEBUG_PRINT("No matches found!\n");
         }
-        if(dump_status){
-          if(delta_count){
-            if(progress_status){
-              DEBUG_PRINT("Undoing deltafication...\n");
-            }
-            delta_idx=0;
-            do{
-              status=agnentroprox_mask_list_deltafy(channel_status, 0, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
-            }while((delta_idx++)!=delta_count);
-          }
-          if(progress_status){
-            DEBUG_PRINT("Dumping requested data...\n");
-          }
-          match_idx=0;
-          match_idx_old=0;
-          match_u8_idx=ULONG_MAX;
-          do{
-            match_u8_idx_old=match_u8_idx;
-            match_u8_idx=match_u8_idx_list_base[match_idx_old];
-            match_idx_old++;
-            if(dump_delta_sign){
-              if(match_u8_idx<=dump_delta){
-                match_u8_idx=0;
-                if(!match_u8_idx_old){
-                  match_idx--;
-                }
-              }else{
-                match_u8_idx-=dump_delta;
-              }
-            }else{
-              match_u8_idx+=dump_delta;
-              if((match_u8_idx<dump_delta)||(haystack_file_size<=match_u8_idx)){
-                match_u8_idx=haystack_file_size-1;
-                if(match_u8_idx==match_u8_idx_old){
-                  break;
-                }
-              }
-            }
-            match_u8_idx_list_base[match_idx]=match_u8_idx;
-            match_idx++;
-          }while(match_idx_old!=match_count);
-          match_count=match_idx;
-        }
-        match_idx=0;
-        do{
-          entropy=entropy_list_base0[match_idx];
+      }
+      if(!file_status){
+        rank_idx=0;
+        while(rank_idx<rank_count){
+          entropy=entropy_list_base0[rank_idx];
           if(!precise_status){
             FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
             U128_TO_U64_HI(score, entropy_mean);
@@ -886,60 +929,156 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
             DEBUG_F128_PAIR("", entropy.a, entropy.b);
           }
           DEBUG_PRINT(" ");
-          match_u8_idx=match_u8_idx_list_base[match_idx];
-          DEBUG_U64("", match_u8_idx);
+          DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_idx_list_base[rank_idx]]);
           DEBUG_PRINT("\n");
-          if(dump_status){
-            match_u8_idx_post=match_u8_idx+dump_size;
-            if((match_u8_idx_post<dump_size)||(haystack_file_size<match_u8_idx_post)){
-              match_u8_idx_post=haystack_file_size;
-            }
-            dump_size_clipped=match_u8_idx_post-match_u8_idx;
-            switch(dump_status){
-            case 1:
-              DEBUG_LIST("", dump_size_clipped, (u8 *)(&haystack_mask_list_base[match_u8_idx]), 0);
-              break;
-            case 2:
-              match_u8_idx_max=match_u8_idx_post-1;
-              dump_size_clipped=ascii_utf8_sanitize(1, dump_u8_list_base, match_u8_idx_max, match_u8_idx, (char *)(haystack_mask_list_base), &utf8_idx_max);
-              DEBUG_PRINT("  {");
-              DEBUG_PRINT(dump_u8_list_base);
-              DEBUG_PRINT("}\n");
-              break;
-            case 3:
-              digit_shift=(u8)(U64_BITS-4);
-              dump_filename_char_idx=dump_filename_replacement_char_idx;
-              match_u8_idx_u64=match_u8_idx;
+          rank_idx++;
+        }
+      }else{
+        if(match_count){
+          if(merge_status){
+/*
+Get rid of overlapping sweep regions, prioritizing those of inferior rank for removal.
+*/
+            match_idx=match_count-1;
+            while(match_idx){
+              match_u8_idx=match_u8_idx_list_base[match_idx];
+              match_idx_nested=0;
               do{
-                digit=(u8)((match_u8_idx_u64>>digit_shift)&0xF);
-                digit_shift=(u8)(digit_shift-4);
-                if(digit<=9){
-                  digit=(u8)(digit+'0');
-                }else{
-                  digit=(u8)(digit+'A'-0xA);
+                match_u8_idx_nested=match_u8_idx_list_base[match_idx_nested];
+                delete_status=0;
+                if(match_u8_idx<match_u8_idx_nested){
+                  if((match_u8_idx_nested-match_u8_idx)<sweep_size){
+                    delete_status=1;
+                    break;
+                  }
+                }else if(match_u8_idx_nested<match_u8_idx){
+                  if((match_u8_idx-match_u8_idx_nested)<sweep_size){
+                    delete_status=1;
+                    break;
+                  }
                 }
-                dump_filename_base[dump_filename_char_idx]=(char)(digit);
-                dump_filename_char_idx++;
-              }while(digit_shift<=U64_BIT_MAX);
-              status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
-              if(((!cavalier_status)&status)|progress_status){
-                DEBUG_PRINT("  Saving to ");
-                DEBUG_PRINT(dump_filename_base);
-                DEBUG_PRINT("... ");
-                if((!cavalier_status)&status){
-                  DEBUG_PRINT("failed.\n");
+                match_idx_nested++;
+              }while(match_idx_nested!=match_count);
+              if(delete_status){
+                match_idx_nested=match_idx;
+                while((++match_idx_nested)!=match_count){
+                  match_u8_idx_list_base[match_idx_nested-1]=match_u8_idx_list_base[match_idx_nested];
+                  entropy_list_base0[match_idx_nested-1]=entropy_list_base0[match_idx_nested];
+                }
+                match_count--;
+              }
+              match_idx--;
+            }
+          }
+          if(dump_status){
+            if(delta_count){
+              if(progress_status){
+                DEBUG_PRINT("Undoing deltafication...\n");
+              }
+              delta_idx=0;
+              do{
+                agnentroprox_mask_list_deltafy(channel_status, 0, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
+              }while((delta_idx++)!=delta_count);
+            }
+            if(progress_status){
+              DEBUG_PRINT("Dumping requested data...\n");
+            }
+            match_idx=0;
+            match_idx_old=0;
+            match_u8_idx=ULONG_MAX;
+            do{
+              match_u8_idx_old=match_u8_idx;
+              match_u8_idx=match_u8_idx_list_base[match_idx_old];
+              match_idx_old++;
+              if(dump_delta_sign){
+                if(match_u8_idx<=dump_delta){
+                  match_u8_idx=0;
+                  if(!match_u8_idx_old){
+                    match_idx--;
+                  }
                 }else{
+                  match_u8_idx-=dump_delta;
+                }
+              }else{
+                match_u8_idx+=dump_delta;
+                if((match_u8_idx<dump_delta)||(haystack_file_size<=match_u8_idx)){
+                  match_u8_idx=haystack_file_size-1;
+                  if(match_u8_idx==match_u8_idx_old){
+                    break;
+                  }
+                }
+              }
+              match_u8_idx_list_base[match_idx]=match_u8_idx;
+              match_idx++;
+            }while(match_idx_old!=match_count);
+            match_count=match_idx;
+          }
+          match_idx=0;
+          do{
+            entropy=entropy_list_base0[match_idx];
+            if(!precise_status){
+               FRU128_MEAN_TO_FTD128(entropy_mean, entropy);
+              U128_TO_U64_HI(score, entropy_mean);
+              DEBUG_U64("", score);
+            }else{
+              DEBUG_F128_PAIR("", entropy.a, entropy.b);
+            }
+            DEBUG_PRINT(" ");
+            match_u8_idx=match_u8_idx_list_base[match_idx];
+            DEBUG_U64("", match_u8_idx);
+            DEBUG_PRINT("\n");
+            if(dump_status){
+              match_u8_idx_post=match_u8_idx+dump_size;
+              if((match_u8_idx_post<dump_size)||(haystack_file_size<match_u8_idx_post)){
+                match_u8_idx_post=haystack_file_size;
+              }
+              dump_size_clipped=match_u8_idx_post-match_u8_idx;
+              switch(dump_status){
+              case 1:
+                DEBUG_LIST("", dump_size_clipped, (u8 *)(&haystack_mask_list_base[match_u8_idx]), 0);
+                break;
+              case 2:
+                match_u8_idx_max=match_u8_idx_post-1;
+                dump_size_clipped=ascii_utf8_sanitize(1, dump_u8_list_base, match_u8_idx_max, match_u8_idx, (char *)(haystack_mask_list_base), &utf8_idx_max);
+                DEBUG_PRINT("  {");
+                DEBUG_PRINT(dump_u8_list_base);
+                DEBUG_PRINT("}\n");
+                break;
+              case 3:
+                digit_shift=(u8)(U64_BITS-4);
+                dump_filename_char_idx=dump_filename_replacement_char_idx;
+                match_u8_idx_u64=match_u8_idx;
+                do{
+                  digit=(u8)((match_u8_idx_u64>>digit_shift)&0xF);
+                  digit_shift=(u8)(digit_shift-4);
+                  if(digit<=9){
+                    digit=(u8)(digit+'0');
+                  }else{
+                    digit=(u8)(digit+'A'-0xA);
+                  }
+                  dump_filename_base[dump_filename_char_idx]=(char)(digit);
+                  dump_filename_char_idx++;
+                }while(digit_shift<=U64_BIT_MAX);
+                status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
+                if(((!cavalier_status)&status)|progress_status){
+                  DEBUG_PRINT("  Saving to ");
+                  DEBUG_PRINT(dump_filename_base);
+                  DEBUG_PRINT("... ");
+                  if((!cavalier_status)&status){
+                    DEBUG_PRINT("failed.\n");
+                  }else{
 /*
 If (cavalier_status==status==1), we shouldn't report the error because we've been told not to, which is probably because the user expects a predictable output format for subsequent parsing. So don't report it.
 */
-                  DEBUG_PRINT("done.\n");
+                    DEBUG_PRINT("done.\n");
+                  }
                 }
+                break;
               }
-              break;
             }
-          }
-          match_idx++;
-        }while(match_idx!=match_count);
+            match_idx++;
+          }while(match_idx!=match_count);
+        }
       }
     }
     status=1;
@@ -959,7 +1098,8 @@ If (cavalier_status==status==1), we shouldn't report the error because we've bee
   fracterval_u128_free(entropy_list_base0);
   filesys_free(dump_filename_base);
   ascii_free(dump_u8_list_base);
-  filesys_free(haystack_filename_base);
+  filesys_free(out_filename_list_base);
+  filesys_free(haystack_filename_list_base);
   loggamma_free_all(loggamma_base);
   DEBUG_ALLOCATION_CHECK();
   return status;
