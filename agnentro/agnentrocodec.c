@@ -114,14 +114,14 @@ which we can compute safely using fractervals and fracterval_u128_nats_to_bits()
   loggamma_parameter+=mask_idx_max_max;
   status=(u8)(status|(loggamma_parameter<mask_idx_max_max));
   if(!status){
-    LOGGAMMA_FROM_U64(loggamma, loggamma_base, loggamma_parameter, status);
+    LOGGAMMA_U64(loggamma, loggamma_base, loggamma_parameter, status);
     loggamma_parameter-=mask_idx_max_max;
     loggamma_parameter--;
     nat_count=loggamma;
 /*
-Ignore the status output from LOGGAMMA_FROM_U64() because we already tried a greater input value above.
+Ignore the status output from LOGGAMMA_U64() because we already tried a greater input value above.
 */
-    LOGGAMMA_FROM_U64(loggamma, loggamma_base, loggamma_parameter, ignored_status);
+    LOGGAMMA_U64(loggamma, loggamma_base, loggamma_parameter, ignored_status);
 /*
 Subtract the lesser loggamma from the greater one. Due to numerical error, the lower bound of the result could theoretically be negative. However, we don't care about the lower bound, only the upper bound, because this function is concerned with maximum possible memory footprint. For its part, the upper bound is guaranteed valid. So ignore the returned status.
 */

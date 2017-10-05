@@ -22,6 +22,16 @@ License version 3 along with the Loggamma Library (filename
 /*
 Macro naming and variable naming conventions are as described in fracterval_u128.h.
 */
+TYPEDEF_START
+  ULONG *chunk_idx_max_list_base;
+  ULONG **coeff_base_list_base;
+  ULONG *temp_chunk_list_base0;
+  ULONG *temp_chunk_list_base1;
+  ULONG *temp_chunk_list_base2;
+  ULONG *temp_chunk_list_base3;
+  ULONG *temp_chunk_list_base4;
+TYPEDEF_END(loggamma_t)
+
 #define LOGGAMMA_03_HI 0x00U
 #define LOGGAMMA_03_LO 0xB17217F7D1CF79ABULL
 #define LOGGAMMA_04_HI 0x01U
@@ -81,36 +91,23 @@ Macro naming and variable naming conventions are as described in fracterval_u128
 #define LOGGAMMA_1F_HI 0x4AU
 #define LOGGAMMA_1F_LO 0xA8822D674395C25AULL
 #define LOGGAMMA_COEFF_IDX_MAX 26
-
-#define LOGGAMMA_FROM_U64(_a, _m, _v, _z) \
-  _z=(u8)(_z|loggamma_from_u64(&_a, _m, _v));
-
-#define LOGGAMMA_FROM_U64_CACHED(_a, _m, _l0, _l1, _k, _v, _z) \
-  _z=(u8)(_z|loggamma_from_u64_cached(&_a, _m, &_l0, _l1, _k, _v))
-
-#define LOGGAMMA_FROM_U64_CACHED_UNSAFE(_a, _m, _l0, _l1, _k, _v) \
-  do{ \
-    u8 _s; \
-    \
-    _s=1; \
-    if((_v)<=(_l0)){ \
-      _a=(_k)[_v]; \
-      _s=U128_IS_ONES(_a0); \
-    } \
-    if(_s){ \
-      loggamma_from_u64_cached(&_a, _m, &_l0, _l1, _k, _v); \
-    } \
-  }while(0)
-
 #define LOGGAMMA_LOG_2PI_HALF 0xEB3F8E4325F5A534ULL
 #define LOGGAMMA_PARAMETER_MAX 0x64BF406864B4305ULL
 
-TYPEDEF_START
-  ULONG *chunk_idx_max_list_base;
-  ULONG **coeff_base_list_base;
-  ULONG *temp_chunk_list_base0;
-  ULONG *temp_chunk_list_base1;
-  ULONG *temp_chunk_list_base2;
-  ULONG *temp_chunk_list_base3;
-  ULONG *temp_chunk_list_base4;
-TYPEDEF_END(loggamma_t)
+#define LOGGAMMA_U64(_a, _m, _v, _z) \
+  _z=(u8)(_z|loggamma_u64(&_a, _m, _v));
+
+#define LOGGAMMA_U64_CACHED(_a, _m0, _l, _m1, _m2, _v, _z) \
+  _z=(u8)(_z|loggamma_u64_cached(&_a, _m0, _l, _m1, _m2, _v))
+
+#define LOGGAMMA_U64_IN_DOMAIN_CACHED(_a, _m0, _l, _m1, _m2, _v) \
+  do{ \
+    ULONG _i; \
+    \
+    _i=(_l)&(ULONG)(_v); \
+    if((_m2)[_i]==(_v)){ \
+      _a=(_m1)[_i]; \
+    }else{ \
+      loggamma_u64(&_a, _m0, _v); \
+    } \
+  }while(0)

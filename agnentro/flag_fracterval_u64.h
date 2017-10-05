@@ -25,7 +25,7 @@ Fracterval U64 Version Info
 /*
 BUILD_BREAK_COUNT increases each time either: (1) a change is made which is not backward compatible, (2) a bug is fixed which corrects a potential security vulnerability or behavioral error other than user interface aesthetics or slow performance, or (3) critical documentation or comment updates have been made without which the foregoing would not be evident to the user. If this library depends on other libraries, then it should be expressed as the sum of the local break count plus the break counts of the dependencies, and in any event must increase monotonically even if some of the latter are removed. Initialization code receiving a _different_ expected value from the caller must fail.
 */
-#define FRU64_BUILD_BREAK_COUNT 0
+#define FRU64_BUILD_BREAK_COUNT 1
 /*
 BUILD_FEATURE_COUNT increases each time a feature is added for which callers should be able to query via initialization code. This could even include performance enhancements without which a caller might opt to require the user to upgrade. If this library depends on other libraries, then it should be expressed as the sum of the local feature count plus the feature counts of the dependencies, and in any event must increase monotonically even if some of the latter are removed. Initialization code receiving a _greater_ expected value from the caller must fail.
 */

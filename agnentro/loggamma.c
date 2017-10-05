@@ -134,22 +134,108 @@ Free all coefficient numerators and denominators.
   return NULL;
 }
 
-u8
-loggamma_from_u64(fru128 *a_base, loggamma_t *loggamma_base, u64 v){
+loggamma_t *
+loggamma_init(u32 build_break_count, u32 build_feature_count){
 /*
-Use LOGGAMMA_FROM_U64() instead of calling here directly.
+Verify that the source code is sufficiently updated.
+
+In:
+
+  build_break_count is the caller's most recent knowledge of LOGGAMMA_BUILD_BREAK_COUNT, which will fail if the caller is unaware of all critical updates.
+
+  build_feature_count is the caller's most recent knowledge of LOGGAMMA_BUILD_FEATURE_COUNT, which will fail if this library is not up to date with the caller's expectations.
+
+Out:
+
+  Returns NULL if (build_break_count!=LOGGAMMA_BUILD_BREAK_COUNT) or (build_feature_count>LOGGAMMA_BUILD_FEATURE_COUNT) or if we're out of memory. Otherwise, returns the base of a loggamma_t for use with other functions in this library and which must ultimately be freed via loggamma_free_all().
+*/
+  ULONG *chunk_idx_max_list_base;
+  ULONG chunk_idx_max;
+  ULONG chunk_idx_max_max;
+  ULONG *chunk_list_base;
+  ULONG **coeff_base_list_base;
+  ULONG coeff_idx;
+  ULONG digit_count;
+  loggamma_t *loggamma_base;
+  u8 status;
+  ULONG *temp_chunk_list_base0;
+  ULONG *temp_chunk_list_base1;
+  ULONG *temp_chunk_list_base2;
+  ULONG *temp_chunk_list_base3;
+
+  loggamma_base=NULL;
+  status=(u8)(build_break_count!=LOGGAMMA_BUILD_BREAK_COUNT);
+  status=(u8)(status|(LOGGAMMA_BUILD_FEATURE_COUNT<build_feature_count));
+  status=(u8)(status|biguint_init(0, 0));
+  status=(u8)(status|fracterval_u128_init(1, 0));
+  if(!status){
+    loggamma_base=(loggamma_t *)(DEBUG_CALLOC_PARANOID(sizeof(loggamma_t)));
+    if(loggamma_base){
+      chunk_idx_max_list_base=biguint_malloc((LOGGAMMA_COEFF_IDX_MAX<<1)+1);
+      loggamma_base->chunk_idx_max_list_base=chunk_idx_max_list_base;
+      coeff_base_list_base=(ULONG **)(DEBUG_CALLOC_PARANOID((size_t)(((LOGGAMMA_COEFF_IDX_MAX+1)<<1)*sizeof(ULONG *))));
+      loggamma_base->coeff_base_list_base=coeff_base_list_base;
+      if(chunk_idx_max_list_base&&coeff_base_list_base){
+        chunk_idx_max_max=0;
+        coeff_idx=0;
+        do{
+          digit_count=(ULONG)(strlen(loggamma_hex_base_list_base[coeff_idx]));
+          chunk_idx_max=(digit_count-1)>>(ULONG_SIZE_LOG2+1);
+          chunk_idx_max_list_base[coeff_idx]=chunk_idx_max;
+          chunk_list_base=biguint_malloc(chunk_idx_max);
+          status=(u8)(status|!chunk_list_base);
+          coeff_base_list_base[coeff_idx]=chunk_list_base;
+          if(!status){
+            status=biguint_from_ascii_hex(&chunk_idx_max, chunk_idx_max, chunk_list_base, loggamma_hex_base_list_base[coeff_idx]);
+            chunk_idx_max_max=MAX(chunk_idx_max, chunk_idx_max_max);
+          }
+        }while((coeff_idx++)!=((LOGGAMMA_COEFF_IDX_MAX<<1)+1));
+        if(!status){
+/*
+Allocate enough temporary space to store the largest coefficient plus 64 bits of fractoid plus (LOGGAMMA_COEFF_IDX_MAX+1) extra (u64)s to compute the Pochhammer product in the denominator. We need 4 of these, one each for the numerator, denominator, Pochhammer product, and lower fracterval bound.
+*/
+          chunk_idx_max_max+=(U64_BITS>>ULONG_BITS_LOG2)+(((LOGGAMMA_COEFF_IDX_MAX+1)<<U64_SIZE_LOG2)>>ULONG_SIZE_LOG2);
+          temp_chunk_list_base0=biguint_malloc(chunk_idx_max_max);
+          loggamma_base->temp_chunk_list_base0=temp_chunk_list_base0;
+          temp_chunk_list_base1=biguint_malloc(chunk_idx_max_max);
+          loggamma_base->temp_chunk_list_base1=temp_chunk_list_base1;
+          temp_chunk_list_base2=biguint_malloc(chunk_idx_max_max);
+          loggamma_base->temp_chunk_list_base2=temp_chunk_list_base2;
+          temp_chunk_list_base3=biguint_malloc(chunk_idx_max_max);
+          loggamma_base->temp_chunk_list_base3=temp_chunk_list_base3;
+          status=!(temp_chunk_list_base0&&temp_chunk_list_base1&&temp_chunk_list_base2&&temp_chunk_list_base3);
+        }
+      }else{
+        status=1;
+      }
+      if(status){
+        loggamma_base=loggamma_free_all(loggamma_base);
+      }
+    }
+  }
+  return loggamma_base;
+}
+
+u8
+loggamma_u64(fru128 *a_base, loggamma_t *loggamma_base, u64 v){
+/*
+Use LOGGAMMA_U64() instead of calling here directly.
 
 Compute the loggamma of a u64 as a 64.64 fracterval, according to the method described in (http://vixra.org/abs/1609.0210) with precomputed results for values up to 0x1F.
 
 In:
 
+  *a_base is undefined.
+
+  loggamma_base is the return value of loggamma_init().
+
   v is the u64 whose loggamma to compute, on [1, LOGGAMMA_PARAMETER_MAX]. The idea is that the loggamma is only computed on allocated ULONG counts, which are at most (1ULL<<(U64_BITS-U64_BITS_LOG2)) because they are required by biguint_malloc() to be bitwise addressable with a u64 index. LOGGAMMA_PARAMETER_MAX is greater than this value, so this function is meaningful and safe for all such counts.
 
 Out:
 
-  Returns zero if v was is in the required domain, else one. 
+  Returns zero if v was is in the required domain, else one.
 
-  *a_base is a fracterval for loggamma(v) if v is in the required domain, or the ambiguous fracterval otherwise. Values of v on [0, 0x1F] are precomputed as fractoids (with an implicit error of one ULP). This provides some acceleration because the loggamma actually takes a lot longer for these small values.
+  *a_base is a fracterval for loggamma(v) if v is in the required domain, the one fracterval if v was zero, or the ambiguous fracterval otherwise. Values of v on [0, 0x1F] are precomputed as fractoids (with an implicit error of one ULP). This provides some acceleration because the loggamma actually takes a lot longer for these small values.
 */
   ULONG *chunk_idx_max_list_base;
   ULONG **coeff_base_list_base;
@@ -221,6 +307,10 @@ The last term registed as zero, meaning that it's something less than one ULP. P
 Load a precomputed result. You can expand this switch statement to include more values, but do not reduce it below (v==0x1F). Otherwise the loop above will walk off the end of its memory allocation!
 */
     switch(v){
+    case 0:
+      U128_SET_ONES(loggamma.a);
+      status=1;
+      break;
     case 1:
     case 2:
       U128_SET_ZERO(loggamma.a);
@@ -324,172 +414,83 @@ Load a precomputed result. You can expand this switch statement to include more 
   return status;
 }
 
-fru128 *
-loggamma_from_u64_cache_init(ULONG loggamma_idx_max_max){
+u64 *
+loggamma_u64_cache_init(ULONG loggamma_idx_max, fru128 **loggamma_list_base_base){
 /*
-Allocate a cache for saving previous loggamma_from_u64() results.
+Allocate a cache for saving previous loggamma_u64() results.
 
 In:
 
-  loggamma_idx_max_max is one less than the number of items to allocate in the cache.
+  loggamma_idx_max is one less than the number of items to allocate in the cache. It must be one less than a power of 2.
 
 Out:
 
-  Returns NULL on failure, else the base of a list containing loggamma_idx_max_max undefined 128-bit fractervals, except for the first one, which is set to ones in order to force a cache miss because it's an error case, whereas cache hits must be associated with good status. It must be freed via loggamma_free().
+  Returns NULL on failure, else the base of (loggamma_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined.
+
+  *loggamma_list_base_base is the base of a list containing (loggamma_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the loggamma of zero, and is therefore saturated to one. The list must be freed via loggamma_free().
 */
   fru128 *loggamma_list_base;
-  u128 ones;
+  u64 *loggamma_parameter_list_base;
+  fru128 one;
 
-  loggamma_list_base=fracterval_u128_list_malloc(loggamma_idx_max_max);
-  if(loggamma_list_base){
-    U128_SET_ONES(ones);
-    loggamma_list_base[0].a=ones;
-    loggamma_list_base[0].b=ones;
+  loggamma_list_base=fracterval_u128_list_malloc(loggamma_idx_max);
+  loggamma_parameter_list_base=fracterval_u128_u64_list_malloc(loggamma_idx_max);
+  if(UINT_IS_POWER_OF_2_MINUS_1(loggamma_idx_max)&&loggamma_list_base&&loggamma_parameter_list_base){
+    fracterval_u128_u64_list_zero(loggamma_idx_max, loggamma_parameter_list_base);
+    FRU128_SET_ONES(one);
+    loggamma_list_base[0]=one;
+    *loggamma_list_base_base=loggamma_list_base;
+  }else{
+    loggamma_parameter_list_base=fracterval_u128_free(loggamma_parameter_list_base);
+    fracterval_u128_free(loggamma_list_base);
   }
-  return loggamma_list_base;
+  return loggamma_parameter_list_base;
 }
 
 u8
-loggamma_from_u64_cached(fru128 *a_base, loggamma_t *loggamma_base, ULONG *loggamma_idx_max_base, ULONG loggamma_idx_max_max, fru128 *loggamma_list_base, u64 v){
+loggamma_u64_cached(fru128 *a_base, loggamma_t *loggamma_base, ULONG loggamma_idx_max, fru128 *loggamma_list_base, u64 *loggamma_parameter_list_base, u64 v){
 /*
-Use FRU128_LOG_DELTA_U64_CACHED() instead of calling here directly.
+Use FRU128_LOGGAMMA_U64_CACHED(), or FRU128_LOGGAMMA_U64_IN_DOMAIN_CACHED() if v is guaranteed to be on [1, LOGGAMMA_PARAMETER_MAX], instead of calling here directly.
 
-Deliver cached results from fracterval_u128_loggamma_u64().
+Deliver cached results from loggamma_u64().
 
 In:
 
   *a_base is undefined.
 
-  *loggamma_idx_max_base is initially zero, and fed back thereafter. It defines the maximum index at which the cache is defined.
+  loggamma_base is the return value of loggamma_init().
 
-  loggamma_idx_max_max is fracterval_u128_loggamma_u64_cache_init():In:loggamma_idx_max_max.
+  loggamma_idx_max is loggamma_u64_cache_init():In:loggamma_idx_max.
 
-  loggamma_list_base is the return value of fracterval_u128_loggamma_u64_cache_init().
+  loggamma_list_base is loggamma_u64_cache_init():Out:*loggamma_list_base_base.
 
-  v is as defined in fracterval_u128_loggamma_u64().
+  loggamma_parameter_list_base is the return value of loggamma_u64_cache_init().
+
+  v is as defined in loggamma_u64().
 
 Out:
 
-  Returns as defined for fracterval_u128_loggamma_u64(a, v).
+  Returns as defined for loggamma_u64(a_base, v).
 
-  *a_base is as defined in fracterval_u128_loggamma_u64().
+  *a_base is as defined in loggamma_u64().
 
-  *loggamma_idx_max_base is updated.
+  *loggamma_list_base contains *a_base at index (loggamma_idx_max&v).
 
-  *loggamma_list_base is consistent through index *loggamma_idx_max_base.
+  *loggamma_parameter_list_base contains v at index (loggamma_idx_max&v).
 */
   fru128 a;
-  ULONG loggamma_idx;
-  ULONG loggamma_idx_max;
-  u128 ones;
+  ULONG idx;
   u8 status;
 
-  loggamma_idx_max=*loggamma_idx_max_base;
-  loggamma_idx=(ULONG)(v);
-  U128_SET_ONES(ones);
-  status=1;
-  if(loggamma_idx<=loggamma_idx_max){
-    a=loggamma_list_base[loggamma_idx];
-    status=U128_IS_EQUAL(a.a, ones);
-  }
-  if(status){
-    status=loggamma_from_u64(&a, loggamma_base, v);
-/*
-Only cache results which can fit in the cache and returned good status because good status is always returned on cache hits.
-*/
-    if((loggamma_idx<=loggamma_idx_max_max)&&(!status)){
-      if(loggamma_idx_max<loggamma_idx){
-        while(loggamma_idx!=(++loggamma_idx_max)){
-          loggamma_list_base[loggamma_idx_max].a=ones;
-          loggamma_list_base[loggamma_idx_max].b=ones;
-        }
-        *loggamma_idx_max_base=loggamma_idx;
-      }
-      loggamma_list_base[loggamma_idx]=a;
-    }
+  idx=loggamma_idx_max&(ULONG)(v);
+  if(loggamma_parameter_list_base[idx]==v){
+    a=loggamma_list_base[idx];
+    status=(LOGGAMMA_PARAMETER_MAX<=(v-1U));
+  }else{
+    loggamma_parameter_list_base[idx]=v;
+    status=loggamma_u64(&a, loggamma_base, v);
+    loggamma_list_base[idx]=a;
   }
   *a_base=a;
   return status;
-}
-
-loggamma_t *
-loggamma_init(u32 build_break_count, u32 build_feature_count){
-/*
-Verify that the source code is sufficiently updated.
-
-In:
-
-  build_break_count is the caller's most recent knowledge of LOGGAMMA_U64_BUILD_BREAK_COUNT, which will fail if the caller is unaware of all critical updates.
-
-  build_feature_count is the caller's most recent knowledge of LOGGAMMA_U64_BUILD_FEATURE_COUNT, which will fail if this library is not up to date with the caller's expectations.
-
-Out:
-
-  Returns NULL if (build_break_count!=LOGGAMMA_BUILD_BREAK_COUNT) or (build_feature_count>LOGGAMMA_BUILD_FEATURE_COUNT) or if we're out of memory. Otherwise, returns the base of a loggamma_t for use with other functions in this library and which must ultimately be freed via loggamma_free().
-*/
-  ULONG *chunk_idx_max_list_base;
-  ULONG chunk_idx_max;
-  ULONG chunk_idx_max_max;
-  ULONG *chunk_list_base;
-  ULONG **coeff_base_list_base;
-  ULONG coeff_idx;
-  ULONG digit_count;
-  loggamma_t *loggamma_base;
-  u8 status;
-  ULONG *temp_chunk_list_base0;
-  ULONG *temp_chunk_list_base1;
-  ULONG *temp_chunk_list_base2;
-  ULONG *temp_chunk_list_base3;
-
-  loggamma_base=NULL;
-  status=(u8)(build_break_count!=LOGGAMMA_BUILD_BREAK_COUNT);
-  status=(u8)(status|(LOGGAMMA_BUILD_FEATURE_COUNT<build_feature_count));
-  status=(u8)(status|biguint_init(0, 0));
-  status=(u8)(status|fracterval_u128_init(1, 0));
-  if(!status){
-    loggamma_base=(loggamma_t *)(DEBUG_CALLOC_PARANOID(sizeof(loggamma_t)));
-    if(loggamma_base){
-      chunk_idx_max_list_base=biguint_malloc((LOGGAMMA_COEFF_IDX_MAX<<1)+1);
-      loggamma_base->chunk_idx_max_list_base=chunk_idx_max_list_base;
-      coeff_base_list_base=(ULONG **)(DEBUG_CALLOC_PARANOID((size_t)(((LOGGAMMA_COEFF_IDX_MAX+1)<<1)*sizeof(ULONG *))));
-      loggamma_base->coeff_base_list_base=coeff_base_list_base;
-      if(chunk_idx_max_list_base&&coeff_base_list_base){
-        chunk_idx_max_max=0;
-        coeff_idx=0;
-        do{
-          digit_count=(ULONG)(strlen(loggamma_hex_base_list_base[coeff_idx]));
-          chunk_idx_max=(digit_count-1)>>(ULONG_SIZE_LOG2+1);
-          chunk_idx_max_list_base[coeff_idx]=chunk_idx_max;
-          chunk_list_base=biguint_malloc(chunk_idx_max);
-          status=(u8)(status|!chunk_list_base);
-          coeff_base_list_base[coeff_idx]=chunk_list_base;
-          if(!status){
-            status=biguint_from_ascii_hex(&chunk_idx_max, chunk_idx_max, chunk_list_base, loggamma_hex_base_list_base[coeff_idx]);
-            chunk_idx_max_max=MAX(chunk_idx_max, chunk_idx_max_max);
-          }
-        }while((coeff_idx++)!=((LOGGAMMA_COEFF_IDX_MAX<<1)+1));
-        if(!status){
-/*
-Allocate enough temporary space to store the largest coefficient plus 64 bits of fractoid plus (LOGGAMMA_COEFF_IDX_MAX+1) extra (u64)s to compute the Pochhammer product in the denominator. We need 4 of these, one each for the numerator, denominator, Pochhammer product, and lower fracterval bound.
-*/
-          chunk_idx_max_max+=(U64_BITS>>ULONG_BITS_LOG2)+(((LOGGAMMA_COEFF_IDX_MAX+1)<<U64_SIZE_LOG2)>>ULONG_SIZE_LOG2);
-          temp_chunk_list_base0=biguint_malloc(chunk_idx_max_max);
-          loggamma_base->temp_chunk_list_base0=temp_chunk_list_base0;
-          temp_chunk_list_base1=biguint_malloc(chunk_idx_max_max);
-          loggamma_base->temp_chunk_list_base1=temp_chunk_list_base1;
-          temp_chunk_list_base2=biguint_malloc(chunk_idx_max_max);
-          loggamma_base->temp_chunk_list_base2=temp_chunk_list_base2;
-          temp_chunk_list_base3=biguint_malloc(chunk_idx_max_max);
-          loggamma_base->temp_chunk_list_base3=temp_chunk_list_base3;
-          status=!(temp_chunk_list_base0&&temp_chunk_list_base1&&temp_chunk_list_base2&&temp_chunk_list_base3);
-        }
-      }else{
-        status=1;
-      }
-      if(status){
-        loggamma_base=loggamma_free(loggamma_base);
-      }
-    }
-  }
-  return loggamma_base;
 }

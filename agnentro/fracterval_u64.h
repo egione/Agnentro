@@ -42,8 +42,6 @@ The following assumptions apply to the entire Fracterval U64 codebase:
 
 * Shift counts must not exceed the MSB of the type in question (but _can_ result in loss of the MSB on left shift, which shall result in all ones).
 
-* By default, the "FRU64" macros perform overflow checking if overflow is possible; those that end in "UNSAFE" don't, and assume that the programmer is careful enough to verify that overflow either can't occur or would be innocuous. The advantage to "UNSAFE" macros is that they're optimized for speed, typically involving inline code.
-
 VARIABLE NAMING CONVENTIONS
 
 The code in the entire Fracterval U64 codebase mostly follows the guideline below, but as a practical matter, some exceptions are necessary.
@@ -60,11 +58,9 @@ The code in the entire Fracterval U64 codebase mostly follows the guideline belo
 
 * _j is an index private to a macro.
 
-* _k ("kache") is base of a list.
+* _l is the maximum ("limit") index of a list.
 
-* _l is the maximum ("limit") index of a list. Specifically, _l0 denotes the current limit, whereas _l1 denotes the upper bound.
-
-* _m is the base of a data structure other than a list, which is always _k.
+* _m is the base of a data structure, such as a list.
 
 * _n is a ULONG, which may be an index into a list.
 
@@ -201,20 +197,18 @@ TYPEDEF_END(fru64);
 #define FRU64_LOG_DELTA_U64(_a, _v, _z) \
   _z=(u8)(_z|fracterval_u64_log_delta_u64(&_a, _v))
 
-#define FRU64_LOG_DELTA_U64_CACHED(_a, _l0, _l1, _k, _v, _z) \
-  _z=(u8)(_z|fracterval_u64_log_delta_u64_cached(&_a, &_l0, _l1, _k, _v))
+#define FRU64_LOG_DELTA_U64_CACHED(_a, _l, _m0, _m1, _v, _z) \
+  _z=(u8)(_z|fracterval_u64_log_delta_u64_cached(&_a, _l, _m0, _m1, _v))
 
-#define FRU64_LOG_DELTA_U64_CACHED_UNSAFE(_a, _l0, _l1, _k, _v) \
+#define FRU64_LOG_DELTA_U64_NONZERO_CACHED(_a, _l, _m0, _m1, _v) \
   do{ \
-    u8 _s; \
+    ULONG _i; \
     \
-    _s=1; \
-    if((_v)<=(_l0)){ \
-      _a=(_k)[_v]; \
-      _s=(_a.a==U64_MAX); \
-    } \
-    if(_s){ \
-      fracterval_u64_log_delta_u64_cached(&_a, &_l0, _l1, _k, _v); \
+    _i=(_l)&(ULONG)(_v); \
+    if((_m1)[_i]==(_v)){ \
+      _a=(_m0)[_i]; \
+    }else{ \
+      fracterval_u64_log_delta_u64_cached(&_a, _l, _m0, _m1, _v); \
     } \
   }while(0)
 
@@ -227,20 +221,18 @@ TYPEDEF_END(fru64);
 #define FRU64_LOG_U64(_a, _v, _z) \
   _z=(u8)(_z|fracterval_u64_log_u64(&_a, _v))
 
-#define FRU64_LOG_U64_CACHED(_a, _l0, _l1, _k, _v, _z) \
-  _z=(u8)(_z|fracterval_u64_log_u64_cached(&_a, &_l0, _l1, _k, _v))
+#define FRU64_LOG_U64_CACHED(_a, _l, _m0, _m1, _v, _z) \
+  _z=(u8)(_z|fracterval_u64_log_u64_cached(&_a, _l, _m0, _m1, _v))
 
-#define FRU64_LOG_U64_CACHED_UNSAFE(_a, _l0, _l1, _k, _v) \
+#define FRU64_LOG_U64_NONZERO_CACHED(_a, _l, _m0, _m1, _v) \
   do{ \
-    u8 _s; \
+    ULONG _i; \
     \
-    _s=1; \
-    if((_v)<=(_l0)){ \
-      _a=(_k)[_v]; \
-      _s=(_a.a==U64_MAX); \
-    } \
-    if(_s){ \
-      fracterval_u64_log_u64_cached(&_a, &_l0, _l1, _k, _v); \
+    _i=(_l)&(ULONG)(_v); \
+    if((_m1)[_i]==(_v)){ \
+      _a=(_m0)[_i]; \
+    }else{ \
+      fracterval_u64_log_u64_cached(&_a, _l, _m0, _m1, _v); \
     } \
   }while(0)
 /*

@@ -128,8 +128,8 @@ Out:
   ULONG haystack_mask_count_plus_span;
   fru64 log;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   u32 mask;
   u32 mask_max;
   ULONG mask_span;
@@ -145,8 +145,8 @@ Out:
   agnentroprox_base->mask_count1=0;
   agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
   needle_mask_count=agnentroprox_base->mask_count0;
 /*
@@ -166,7 +166,7 @@ where:
   haystack_mask_count=haystack_mask_idx_max+1;
   mask_span=(ULONG)(mask_max)+1;
   haystack_mask_count_plus_span=haystack_mask_count+mask_span;
-  FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_mask_count_plus_span));
+  FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(haystack_mask_count_plus_span));
   FRU128_FROM_FRU64_MULTIPLY_U64(diventropy, log, (u64)(needle_mask_count));
   mask=0;
   do{
@@ -174,7 +174,7 @@ where:
     needle_freq=needle_freq_list_base[mask];
     if(haystack_freq){
       freq_agnostic=haystack_freq+1;
-      FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_agnostic));
+      FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_agnostic));
       FRU128_FROM_FRU64_MULTIPLY_U64(diventropy_delta, log, (u64)(needle_freq));
       FRU128_SUBTRACT_FRU128_SELF(diventropy, diventropy_delta, overflow_status);
     }
@@ -233,10 +233,10 @@ Out:
   ULONG haystack_freq_agnostic;
   ULONG *haystack_freq_list_base;
   ULONG haystack_freq_old;
-  ULONG log_delta_idx_max;
-  ULONG log_delta_idx_max_max;
-  fru64 *log_delta_list_base;
   fru64 log_delta;
+  ULONG log_delta_idx_max;
+  fru64 *log_delta_list_base;
+  u64 *log_delta_parameter_list_base;
   u32 mask;
   u32 mask_old;
   u8 mask_u8;
@@ -270,8 +270,8 @@ Out:
   granularity=agnentroprox_base->granularity;
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
-  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
   log_delta_list_base=agnentroprox_base->log_delta_list_base;
+  log_delta_parameter_list_base=agnentroprox_base->log_delta_parameter_list_base;
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
   overlap_status=agnentroprox_base->overlap_status;
   u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
@@ -325,13 +325,13 @@ By the way, (64-58) in the shifts below reflect conversion from 6.58 to 6.64 fix
       needle_freq=needle_freq_list_base[mask];
       needle_freq_old=needle_freq_list_base[mask_old];
       haystack_freq_list_base[mask_old]=haystack_freq_old-1;
-      FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(haystack_freq_old));
+      FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(haystack_freq_old));
       FRU128_FROM_FRU64_MULTIPLY_U64(diventropy_delta, log_delta, (u64)(needle_freq_old));
       FRU128_SHIFT_LEFT_SELF(diventropy_delta, 64-58, overflow_status);
       FRU128_ADD_FRU128_SELF(diventropy, diventropy_delta, overflow_status);
       haystack_freq_agnostic=haystack_freq+1;
       haystack_freq_list_base[mask]=haystack_freq_agnostic;
-      FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(haystack_freq_agnostic));
+      FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(haystack_freq_agnostic));
       FRU128_FROM_FRU64_MULTIPLY_U64(diventropy_delta, log_delta, (u64)(needle_freq));
       FRU128_SHIFT_LEFT_SELF(diventropy_delta, 64-58, overflow_status);
       FRU128_SUBTRACT_FRU128_SELF(diventropy, diventropy_delta, overflow_status);
@@ -446,9 +446,9 @@ Out:
   ULONG freq_pop_ulong_idx;
   loggamma_t *loggamma_base;
   ULONG loggamma_idx_max;
-  ULONG loggamma_idx_max_max;
   fru128 *loggamma_list_base;
   u64 loggamma_parameter;
+  u64 *loggamma_parameter_list_base;
   poissocache_t *poissocache_base;
   u32 mask;
   ULONG mask_count;
@@ -488,8 +488,8 @@ Out:
   agnentroprox_mask_list_accrue(agnentroprox_base, 0, mask_idx_max, mask_list_base);
   loggamma_base=agnentroprox_base->loggamma_base;
   loggamma_idx_max=agnentroprox_base->loggamma_idx_max;
-  loggamma_idx_max_max=agnentroprox_base->loggamma_idx_max_max;
   loggamma_list_base=agnentroprox_base->loggamma_list_base;
+  loggamma_parameter_list_base=agnentroprox_base->loggamma_parameter_list_base;
   mask_count=agnentroprox_base->mask_count0;
   FRU128_SET_ZERO(entropy);
   mask_span=(ULONG)(mask_max)+1;
@@ -499,9 +499,9 @@ Out:
 Compute (loggamma(mask_count_plus_span)-loggamma(mask_span)), which is the upper bound of agnentropy in nats.
 */
     loggamma_parameter=(u64)(mask_count)+mask_span;
-    LOGGAMMA_FROM_U64_CACHED(entropy, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+    LOGGAMMA_U64_CACHED(entropy, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
     loggamma_parameter=(u64)(mask_span);
-    LOGGAMMA_FROM_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+    LOGGAMMA_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
     FRU128_SUBTRACT_FRU128_SELF(entropy, term, overflow_status);
 /*
 Subtract the sum of loggamma(freq+1), which is log(freq!), over all masks. This accounts for the compressive effect of the span in agnentro_encode().
@@ -511,7 +511,7 @@ Subtract the sum of loggamma(freq+1), which is log(freq!), over all masks. This 
       freq=freq_list_base[mask];
       if(1<freq){
         loggamma_parameter=(u64)(freq)+1;
-        LOGGAMMA_FROM_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+        LOGGAMMA_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
         FRU128_SUBTRACT_FRU128_SELF(entropy, term, overflow_status);
       }
     }while((mask++)!=mask_max);
@@ -544,9 +544,9 @@ where:
   Z=mask_span
 */
     loggamma_parameter=(u64)(mask_count)+1;
-    LOGGAMMA_FROM_U64_CACHED(entropy, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+    LOGGAMMA_U64_CACHED(entropy, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
     loggamma_parameter=(u64)(mask_span)+1;
-    LOGGAMMA_FROM_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+    LOGGAMMA_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
     FRU128_ADD_FRU128_SELF(entropy, term, overflow_status);
     freq_pop_cache_idx=0;
     freq_pop_ulong_idx=0;
@@ -554,14 +554,14 @@ where:
       status=poissocache_item_get_serialized(&freq_pop_cache_idx, &freq_pop_ulong_idx, &freq, poissocache_base, &pop);
       if((!status)&&pop){
         loggamma_parameter=(u64)(freq)+1;
-        LOGGAMMA_FROM_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+        LOGGAMMA_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
         if(1<pop){
           FRU128_MULTIPLY_U64_SELF(term, pop, overflow_status);
         }
         FRU128_SUBTRACT_FRU128_SELF(entropy, term, overflow_status);
         if(1<pop){
           loggamma_parameter=(u64)(pop)+1;
-          LOGGAMMA_FROM_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_idx_max_max, loggamma_list_base, loggamma_parameter, overflow_status);
+          LOGGAMMA_U64_CACHED(term, loggamma_base, loggamma_idx_max, loggamma_list_base, loggamma_parameter_list_base, loggamma_parameter, overflow_status);
           FRU128_SUBTRACT_FRU128_SELF(entropy, term, overflow_status);
         }
       }
@@ -811,11 +811,11 @@ Out:
   u8 granularity;
   fru64 log;
   ULONG log_delta_idx_max;
-  ULONG log_delta_idx_max_max;
   fru64 *log_delta_list_base;
+  u64 *log_delta_parameter_list_base;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   u32 mask;
   ULONG mask_count;
   u32 mask_max;
@@ -853,8 +853,8 @@ Out:
   freq_list_base1=agnentroprox_base->freq_list_base1;
   mask_max=agnentroprox_base->mask_max;
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   FRU128_SET_ZERO(entropy);
   sweep_mask_count=sweep_mask_idx_max+1;
   if(mode!=AGNENTROPROX_MODE_EXOENTROPY){
@@ -882,13 +882,13 @@ where:
   Q1=(mask_count_plus_span (after subtracting Q0))
   Z=mask_span
 */
-    FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count_plus_span));
+    FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(mask_count_plus_span));
     FRU128_FROM_FRU64_MULTIPLY_U64(entropy, term_plus, (u64)(sweep_mask_count));
     FRU128_SHIFT_LEFT_SELF(entropy, 64-58, overflow_status);
     mask=0;
     do{
       freq=freq_list_base1[mask]+1;
-      FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+      FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
       freq=freq_list_base0[mask];
       FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq));
       FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
@@ -907,8 +907,8 @@ where:
   }
   granularity=agnentroprox_base->granularity;
   log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
-  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
   log_delta_list_base=agnentroprox_base->log_delta_list_base;
+  log_delta_parameter_list_base=agnentroprox_base->log_delta_parameter_list_base;
   mask_sign_mask=agnentroprox_base->mask_sign_mask;
   mean_shift=agnentroprox_base->mean_shift;
   mean_unsigned=agnentroprox_base->mean_unsigned;
@@ -965,8 +965,8 @@ The agnentropy difference, dA, is:
 
   dA=log(freq_old)-log(freq_plus_1)
 */
-        FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_plus_1));
-        FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_old));
+        FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
+        FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
         if(freq_plus_1<freq_old){
           FRU64_SUBTRACT_FRU64_SELF(term_plus, term_minus, overflow_status);
           FRU128_ADD_FRU64_SHIFTED_SELF(entropy, 64-58, term_plus, overflow_status);
@@ -989,15 +989,15 @@ The exoentropy difference, dE, is:
   dE=(freq*log_delta(exofreq))+log(exofreq_old+1)-((freq_old-1)*log_delta(exofreq_old+1))-log(exofreq)
   dE=(freq*log_delta(exofreq))+log(exofreq_old_plus_1)-(freq_old_minus_1*log_delta(exofreq_old_plus_1))-log(exofreq)
 */
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_plus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(exofreq));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_plus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exofreq));
         FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_plus, (u64)(freq));
-        FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(exofreq_old_plus_1));
+        FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exofreq_old_plus_1));
         FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_plus, overflow_status);
         FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
         FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_minus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(exofreq_old_plus_1));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_minus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exofreq_old_plus_1));
         FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq_old_minus_1));
-        FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(exofreq));
+        FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exofreq));
         FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_minus, overflow_status);
         FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
         FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
@@ -1021,10 +1021,10 @@ where we need to serialize updates to the populations of the old and new masks, 
           POISSOCACHE_ITEM_ULONG_IDX_GET(freq_pop_ulong_idx, freq_pop_idx_max, freq_old, freq_pop_list_base0, freq_pop_list_base1, poissocache_base);
           pop=freq_pop_list_base1[freq_pop_ulong_idx+1];
           freq_pop_list_base1[freq_pop_ulong_idx+1]=pop-1;
-          FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_old));
-          FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_plus_1));
+          FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
+          FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
           if(pop!=1){
-            FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(pop));
+            FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(pop));
             FRU64_ADD_FRU64_SELF(term_plus, log, overflow_status);
           }
           POISSOCACHE_ITEM_ULONG_IDX_GET(freq_pop_ulong_idx, freq_pop_idx_max, freq_old_minus_1, freq_pop_list_base0, freq_pop_list_base1, poissocache_base);
@@ -1032,14 +1032,14 @@ where we need to serialize updates to the populations of the old and new masks, 
           pop++;
           freq_pop_list_base1[freq_pop_ulong_idx+1]=pop;
           if(pop!=1){
-            FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(pop));
+            FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(pop));
             FRU64_ADD_FRU64_SELF(term_minus, log, overflow_status);
           }
           POISSOCACHE_ITEM_ULONG_IDX_GET(freq_pop_ulong_idx, freq_pop_idx_max, freq, freq_pop_list_base0, freq_pop_list_base1, poissocache_base);
           pop=freq_pop_list_base1[freq_pop_ulong_idx+1];
           freq_pop_list_base1[freq_pop_ulong_idx+1]=pop-1;
           if(pop!=1){
-            FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(pop));
+            FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(pop));
             FRU64_ADD_FRU64_SELF(term_plus, log, overflow_status);
           }
           POISSOCACHE_ITEM_ULONG_IDX_GET(freq_pop_ulong_idx, freq_pop_idx_max, freq_plus_1, freq_pop_list_base0, freq_pop_list_base1, poissocache_base);
@@ -1047,7 +1047,7 @@ where we need to serialize updates to the populations of the old and new masks, 
           pop++;
           freq_pop_list_base1[freq_pop_ulong_idx+1]=pop;
           if(pop!=1){
-            FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(pop));
+            FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(pop));
             FRU64_ADD_FRU64_SELF(term_minus, log, overflow_status);
           }
           FRU128_ADD_FRU64_SHIFTED_SELF(entropy, 64-58, term_plus, overflow_status);
@@ -1065,18 +1065,18 @@ where any log(0) or log_delta(0) is treated as though it equals zero.
 */
         if(freq_old!=freq_plus_1){
           if(freq_old_minus_1){
-            FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_plus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq_old_minus_1));
+            FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_plus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old_minus_1));
             FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_plus, (u64)(freq_old_minus_1));
-            FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_old));
+            FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
             FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_plus, overflow_status);
             FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
             FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
           }
           if(freq){
             if(freq_plus_1!=sweep_mask_count){
-              FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_minus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+              FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_minus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
               FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq));
-              FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_plus_1));
+              FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
               FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_minus, overflow_status);
               FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
               FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
@@ -1257,11 +1257,11 @@ Out:
   ULONG freq_old_minus_1;
   u8 granularity;
   ULONG log_delta_idx_max;
-  ULONG log_delta_idx_max_max;
   fru64 *log_delta_list_base;
+  u64 *log_delta_parameter_list_base;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   u32 mask;
   ULONG mask_count;
   u32 mask_max;
@@ -1288,8 +1288,8 @@ Out:
   freq_list_base1=agnentroprox_base->freq_list_base1;
   mask_max=agnentroprox_base->mask_max;
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   FRU128_SET_ZERO(exoentropy);
   sweep_mask_count=sweep_mask_idx_max+1;
   agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base0);
@@ -1315,13 +1315,13 @@ where:
   Q1=(mask_count_plus_span (after subtracting Q0))
   Z=mask_span
 */
-  FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count_plus_span));
+  FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(mask_count_plus_span));
   FRU128_FROM_FRU64_MULTIPLY_U64(exoentropy, term_plus, (u64)(sweep_mask_count));
   FRU128_SHIFT_LEFT_SELF(exoentropy, 64-58, overflow_status);
   mask=0;
   do{
     freq=freq_list_base1[mask]+1;
-    FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+    FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
     freq=freq_list_base0[mask];
     FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq));
     FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
@@ -1340,8 +1340,8 @@ where:
   }
   granularity=agnentroprox_base->granularity;
   log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
-  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
   log_delta_list_base=agnentroprox_base->log_delta_list_base;
+  log_delta_parameter_list_base=agnentroprox_base->log_delta_parameter_list_base;
   overlap_status=agnentroprox_base->overlap_status;
   u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
   u8_idx=sweep_mask_count*u8_idx_delta;
@@ -1394,15 +1394,15 @@ The exoentropy difference, dE, is:
   dE=(freq*log_delta(exofreq))+log(exofreq_old+1)-((freq_old-1)*log_delta(exofreq_old+1))-log(exofreq)
   dE=(freq*log_delta(exofreq))+log(exofreq_old_plus_1)-(freq_old_minus_1*log_delta(exofreq_old_plus_1))-log(exofreq)
 */
-      FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_plus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(exofreq));
+      FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_plus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exofreq));
       FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_plus, (u64)(freq));
-      FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(exofreq_old_plus_1));
+      FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exofreq_old_plus_1));
       FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_plus, overflow_status);
       FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
       FRU128_ADD_FRU128_SELF(exoentropy, entropy_delta, overflow_status);
-      FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_minus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(exofreq_old_plus_1));
+      FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_minus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exofreq_old_plus_1));
       FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq_old_minus_1));
-      FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(exofreq));
+      FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exofreq));
       FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_minus, overflow_status);
       FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
       FRU128_SUBTRACT_FRU128_SELF(exoentropy, entropy_delta, overflow_status);
@@ -1417,18 +1417,18 @@ where any log(0) or log_delta(0) is treated as though it equals zero.
 */
       if(freq_old!=freq_plus_1){
         if(freq_old_minus_1){
-          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_plus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq_old_minus_1));
+          FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_plus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old_minus_1));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_plus, (u64)(freq_old_minus_1));
-          FRU64_LOG_U64_CACHED_UNSAFE(term_plus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_old));
+          FRU64_LOG_U64_NONZERO_CACHED(term_plus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
           FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_plus, overflow_status);
           FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
           FRU128_ADD_FRU128_SELF(shannon_entropy, entropy_delta, overflow_status);
         }
         if(freq){
           if(freq_plus_1!=sweep_mask_count){
-            FRU64_LOG_DELTA_U64_CACHED_UNSAFE(term_minus, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+            FRU64_LOG_DELTA_U64_NONZERO_CACHED(term_minus, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
             FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, term_minus, (u64)(freq));
-            FRU64_LOG_U64_CACHED_UNSAFE(term_minus, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq_plus_1));
+            FRU64_LOG_U64_NONZERO_CACHED(term_minus, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
             FRU128_ADD_FRU64_LO_SELF(entropy_delta, term_minus, overflow_status);
             FRU128_SHIFT_LEFT_SELF(entropy_delta, 64-58, overflow_status);
             FRU128_SUBTRACT_FRU128_SELF(shannon_entropy, entropy_delta, overflow_status);
@@ -1510,8 +1510,11 @@ Out:
   *agnentroprox_base and all its child allocations are freed.
 */
   if(agnentroprox_base){
-    fracterval_u128_free(agnentroprox_base->loggamma_list_base);
+    loggamma_free(agnentroprox_base->loggamma_parameter_list_base);
+    loggamma_free(agnentroprox_base->loggamma_list_base);
+    fracterval_u64_free(agnentroprox_base->log_parameter_list_base);
     fracterval_u64_free(agnentroprox_base->log_list_base);
+    fracterval_u64_free(agnentroprox_base->log_delta_parameter_list_base);
     fracterval_u64_free(agnentroprox_base->log_delta_list_base);
     poissocache_free_all(agnentroprox_base->poissocache_base);
     agnentroprox_free(agnentroprox_base->freq_list_base2);
@@ -1552,24 +1555,27 @@ Out:
   Returns NULL if (build_break_count!=AGNENTROPROX_BUILD_BREAK_COUNT); (build_feature_count>AGNENTROPROX_BUILD_FEATURE_COUNT); there is insufficient memory; or one of the input parameters falls outside its valid range. Else, returns the base of an agnentroprox_t to be used with other Agnentroprox functions. It must be freed with agnentroprox_free_all(); *loggamma_base must not be freed prior to doing so.
 */
   agnentroprox_t *agnentroprox_base;
-  ULONG cache_idx_max_max;
+  ULONG cache_idx_max;
   ULONG *freq_list_base0;
   ULONG *freq_list_base1;
   ULONG *freq_list_base2;
-  ULONG log_delta_idx_max_max;
+  ULONG log_delta_idx_max;
   fru64 *log_delta_list_base;
-  ULONG log_idx_max_max;
+  u64 *log_delta_parameter_list_base;
+  ULONG log_idx_max;
   fru64 *log_list_base;
-  ULONG loggamma_idx_max_max;
+  u64 *log_parameter_list_base;
+  ULONG loggamma_idx_max;
   fru128 *loggamma_list_base;
+  u64 *loggamma_parameter_list_base;
   ULONG mask_count_max_max;
-  u8 mask_max_msb;
   ULONG mask_count_plus_span_max_max;
   u32 mask_sign_mask;
   u64 mask_span;
   fru128 mask_span_log;
   u8 mask_span_power_of_2_status;
   u8 mean_shift;
+  u8 msb;
   u32 n;
   u32 n_minus_2;
   poissocache_t *poissocache_base;
@@ -1578,7 +1584,6 @@ Out:
   u8 status;
 
   agnentroprox_base=NULL;
-  loggamma_list_base=NULL;
   overflow_status=0;
   status=fracterval_u128_init(1, 1);
   status=(u8)(status|fracterval_u64_init(0, 0));
@@ -1633,18 +1638,20 @@ N was shifted to the right by one bit too many (unless perhaps (N==3), in which 
   if(!status){
 /*
 Allocate private storage. We need to use calloc() instead of malloc() because if there's an allocation failure, we'll free all the list bases below. If one of those bases happens to be uninitialized, then it had better be zero (NULL) so as not to cause an instruction fault. (Technically, NULL can be nonzero, but try finding one platform where that was ever the case.)
+
+With the exception of JSD, exoentropy and exoelasticity computation, it will be rare that any operand to log, log delta, or loggamma exceeds (sweep_mask_idx_max_max+1), so this should be the maximum index of the subset of those math caches which is required in light of the particular mode_bitmap. For exoentropy, this increases to (mask_idx_max_max+1).
 */
     agnentroprox_base=DEBUG_CALLOC_PARANOID((ULONG)(sizeof(agnentroprox_t)));
     if(agnentroprox_base){
-      mask_max_msb=U32_BIT_MAX;
-      while(!(mask_max>>mask_max_msb)){
-        mask_max_msb--;
+      msb=U32_BIT_MAX;
+      while(!(mask_max>>msb)){
+        msb--;
       }
-      mask_sign_mask=(u32)(1U<<mask_max_msb);
-      mean_shift=(u8)(U128_BIT_MAX-mask_max_msb);
+      mask_sign_mask=(u32)(1U<<msb);
+      mean_shift=(u8)(U128_BIT_MAX-msb);
       agnentroprox_base->loggamma_base=loggamma_base;
       agnentroprox_base->mask_max=mask_max;
-      agnentroprox_base->mask_max_msb=mask_max_msb;
+      agnentroprox_base->mask_max_msb=msb;
       agnentroprox_base->mask_sign_mask=mask_sign_mask;
       agnentroprox_base->granularity=granularity;
       agnentroprox_base->mean_shift=mean_shift;
@@ -1663,47 +1670,55 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
       poissocache_base=poissocache_init(0, 0, poissocache_item_idx_max);
       status=(u8)(status|!poissocache_base);
       agnentroprox_base->poissocache_base=poissocache_base;
+
       if(!status){
 /*
-Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the desired maximum value, then back off exponentially until we succeed.
-
-With the exception of JSD, exoentropy and exoelasticity computation, it will be rare that any operand to log, log delta, or loggamma exceeds (sweep_idx_max_max+1), so this should be the maximum index of the subset of those math caches which is required in light of the particular mode_bitmap. For exoentropy, this increases to (mask_idx_max_max+1).
+Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the maximum reasonable expectation of the number of unique results we would need to recall at any given time, which is essentially the number of masks in the sweep window, then back off exponentially until we succeed. cache_idx_max will be one less than this value. We must set it to one less than a power of 2 because the cache functions will use it as an index AND mask.
 */
-        cache_idx_max_max=sweep_mask_idx_max_max+1;
-        if(mode_bitmap&AGNENTROPROX_MODE_JSD){
-          cache_idx_max_max=mask_count_max_max<<1;
-        }else if(mode_bitmap&(AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY)){
-          cache_idx_max_max=mask_idx_max_max+mask_max+1;
+        cache_idx_max=sweep_mask_idx_max_max;
+        msb=0;
+        if(cache_idx_max){
+          msb=ULONG_BIT_MAX;
+          while(!(cache_idx_max>>msb)){
+            msb--;
+          }
         }
+        cache_idx_max=1;
+        cache_idx_max<<=msb;
+        cache_idx_max<<=1;
+        cache_idx_max--;
 /*
 Caches which are not required shall have single-item allocations just to satisfy accessability expectations.
 */
-        log_idx_max_max=0;
-        log_delta_idx_max_max=0;
-        loggamma_idx_max_max=0;
+        log_idx_max=0;
+        log_delta_idx_max=0;
+        loggamma_idx_max=0;
         if(mode_bitmap&(AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_JSD|AGNENTROPROX_MODE_SHANNON)){
-          log_delta_idx_max_max=cache_idx_max_max;
+          log_delta_idx_max=cache_idx_max;
         }
         if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_JSD|AGNENTROPROX_MODE_LOGFREEDOM|AGNENTROPROX_MODE_SHANNON)){
-          log_idx_max_max=cache_idx_max_max;
+          log_idx_max=cache_idx_max;
         }
         if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_LOGFREEDOM)){
-          loggamma_idx_max_max=cache_idx_max_max;
+          loggamma_idx_max=cache_idx_max;
         }
         do{
-          log_delta_list_base=fracterval_u64_log_delta_u64_cache_init(log_delta_idx_max_max);
-          status=!log_delta_list_base;
-          log_list_base=fracterval_u64_log_u64_cache_init(log_idx_max_max);
-          status=(u8)(status|!log_list_base);
-          loggamma_list_base=loggamma_from_u64_cache_init(loggamma_idx_max_max);
-          status=(u8)(status|!loggamma_list_base);
+        log_delta_parameter_list_base=fracterval_u64_log_u64_cache_init(log_delta_idx_max, &log_delta_list_base);
+        status=!log_delta_parameter_list_base;
+        log_parameter_list_base=fracterval_u64_log_u64_cache_init(log_idx_max, &log_list_base);
+        status=(u8)(status|!log_parameter_list_base);
+        loggamma_parameter_list_base=loggamma_u64_cache_init(loggamma_idx_max, &loggamma_list_base);
+        status=(u8)(status|!loggamma_parameter_list_base);
           if(!status){
-            agnentroprox_base->log_delta_idx_max_max=log_delta_idx_max_max;
+            agnentroprox_base->log_delta_idx_max=log_delta_idx_max;
             agnentroprox_base->log_delta_list_base=log_delta_list_base;
-            agnentroprox_base->log_idx_max_max=log_idx_max_max;
+            agnentroprox_base->log_delta_parameter_list_base=log_delta_parameter_list_base;
+            agnentroprox_base->log_idx_max=log_idx_max;
             agnentroprox_base->log_list_base=log_list_base;
-            agnentroprox_base->loggamma_idx_max_max=loggamma_idx_max_max;
+            agnentroprox_base->log_parameter_list_base=log_parameter_list_base;
+            agnentroprox_base->loggamma_idx_max=loggamma_idx_max;
             agnentroprox_base->loggamma_list_base=loggamma_list_base;
+            agnentroprox_base->loggamma_parameter_list_base=loggamma_parameter_list_base;
 /*
 Precompute a fracterval giving the log(mask_max+1), which is used to compute raw entropy.
 */
@@ -1715,21 +1730,24 @@ Convert from 6.122 to 6.64 fixed-point.
             agnentroprox_base->mask_span_log=mask_span_log;
             break;
           }else{
-            fracterval_u128_free(loggamma_list_base);
+            loggamma_free(loggamma_parameter_list_base);
+            loggamma_free(loggamma_list_base);
+            fracterval_u64_free(log_parameter_list_base);
             fracterval_u64_free(log_list_base);
+            fracterval_u64_free(log_delta_parameter_list_base);
             fracterval_u64_free(log_delta_list_base);
 /*
-Shrink one of the caches by a factor of 2. The loggamma cache is least important to performance, so shrink it before the others.
+Shrink one of the caches by a factor of 2, ordered so as to cause minimal performance degradation.
 */
-            if(loggamma_idx_max_max){
-              loggamma_idx_max_max>>=1;
-            }else if(log_delta_idx_max_max<=log_idx_max_max){
-              log_idx_max_max>>=1;
+            if(log_delta_idx_max==loggamma_idx_max){
+              loggamma_idx_max>>=1;
+            }else if(log_delta_idx_max==log_idx_max){
+              log_idx_max>>=1;
             }else{
-              log_delta_idx_max_max>>=1;
+              log_delta_idx_max>>=1;
             }
           }
-        }while(log_delta_idx_max_max|log_idx_max_max|loggamma_idx_max_max);
+        }while(log_delta_idx_max|log_idx_max|loggamma_idx_max);
       }
       if(!status){
         agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base0);
@@ -1741,6 +1759,7 @@ Shrink one of the caches by a factor of 2. The loggamma cache is least important
   }
   return agnentroprox_base;
 }
+//rml get rid of freqlistbase2 and references to it, then get rid of the need for mode_bitmap altogether
 
 fru128
 agnentroprox_jsd_get(agnentroprox_t *agnentroprox_base, u8 *haystack_mask_list_base, u8 *overflow_status_base){
@@ -1774,8 +1793,8 @@ Out:
   fru128 jsd;
   fru128 jsd_coeff;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   fru64 log0;
   fru64 log1;
   u64 log2;
@@ -1802,8 +1821,8 @@ Out:
   agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, haystack_mask_list_base);
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
 /*
 Compute D=(1-(normalized Jensen-Shannon divergence)):
@@ -1832,7 +1851,7 @@ where:
   Z=(mask span)
 */
   FRU128_SET_ZERO(jsd);
-  FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count));
+  FRU64_LOG_U64_NONZERO_CACHED(log0, log_idx_max, log_list_base, log_parameter_list_base, (u64)(mask_count));
   FRU128_FROM_FRU64_MULTIPLY_U64(haystack_shannon_entropy, log0, (u64)(mask_count));
   needle_shannon_entropy=haystack_shannon_entropy;
   log2=FRU128_LOG2_FLOOR_HI>>(U64_BITS-58);
@@ -1845,12 +1864,12 @@ where:
     needle_freq=needle_freq_list_base[mask];
     freq=haystack_freq+needle_freq;
     if(1<freq){
-      FRU64_LOG_U64_CACHED_UNSAFE(log0, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+      FRU64_LOG_U64_NONZERO_CACHED(log0, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
       if(haystack_freq){
         if(haystack_freq!=1){
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(haystack_freq));
           FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, ignored_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq));
+          FRU64_LOG_U64_NONZERO_CACHED(log1, log_idx_max, log_list_base, log_parameter_list_base, (u64)(haystack_freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(haystack_freq));
           FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, ignored_status);
         }else{
@@ -1861,7 +1880,7 @@ where:
         if(needle_freq!=1){
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log0, (u64)(needle_freq));
           FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, ignored_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log1, log_idx_max, log_idx_max_max, log_list_base, (u64)(needle_freq));
+          FRU64_LOG_U64_NONZERO_CACHED(log1, log_idx_max, log_list_base, log_parameter_list_base, (u64)(needle_freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log1, (u64)(needle_freq));
           FRU128_SUBTRACT_FRU128_SELF(needle_shannon_entropy, entropy_delta, ignored_status);
         }else{
@@ -1949,11 +1968,11 @@ Out:
   fru64 log;
   fru64 log_delta;
   ULONG log_delta_idx_max;
-  ULONG log_delta_idx_max_max;
   fru64 *log_delta_list_base;
+  u64 *log_delta_parameter_list_base;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   u32 mask;
   u32 mask_old;
   u8 mask_u8;
@@ -2000,11 +2019,11 @@ Out:
   granularity=agnentroprox_base->granularity;
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   log_delta_idx_max=agnentroprox_base->log_delta_idx_max;
-  log_delta_idx_max_max=agnentroprox_base->log_delta_idx_max_max;
   log_delta_list_base=agnentroprox_base->log_delta_list_base;
+  log_delta_parameter_list_base=agnentroprox_base->log_delta_parameter_list_base;
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
   overlap_status=agnentroprox_base->overlap_status;
   u8_idx_delta=(u8)((u8)(granularity*(!overlap_status))+1);
@@ -2093,20 +2112,20 @@ where the log of zero is taken to be zero. Note that S0 is constant because the 
       needle_freq_old=needle_freq_list_base[mask_old];
       freq=haystack_freq_old+needle_freq_old;
       if(freq!=1){
-        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+        FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
         FRU128_ADD_FRU64_LO_SELF(haystack_implied_entropy, log, overflow_status);
         freq--;
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
         FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq_old));
         FRU128_ADD_FRU128_SELF(needle_implied_entropy, entropy_delta, overflow_status);
         freq=haystack_freq_old-1;
         if(freq){
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
           FRU128_ADD_FRU128_SELF(haystack_implied_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+          FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(freq));
           FRU128_ADD_FRU128_SELF(haystack_shannon_entropy, entropy_delta, overflow_status);
-          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(haystack_freq_old));
+          FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(haystack_freq_old));
           FRU128_ADD_FRU64_LO_SELF(haystack_shannon_entropy, log, overflow_status);
         }
       }
@@ -2116,20 +2135,20 @@ where the log of zero is taken to be zero. Note that S0 is constant because the 
       haystack_freq_old--;
       haystack_freq_list_base[mask_old]=haystack_freq_old;
       if(freq){
-        FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(freq));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
         FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(needle_freq));
         FRU128_SUBTRACT_FRU128_SELF(needle_implied_entropy, entropy_delta, ignored_status);
         FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
         FRU128_SUBTRACT_FRU128_SELF(haystack_implied_entropy, entropy_delta, ignored_status);
         freq++;
-        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+        FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
         FRU128_SUBTRACT_FRU64_LO_SELF(haystack_implied_entropy, log, ignored_status);
         if(haystack_freq){
-          FRU64_LOG_DELTA_U64_CACHED_UNSAFE(log_delta, log_delta_idx_max, log_delta_idx_max_max, log_delta_list_base, (u64)(haystack_freq));
+          FRU64_LOG_DELTA_U64_NONZERO_CACHED(log_delta, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(haystack_freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log_delta, (u64)(haystack_freq));
           FRU128_SUBTRACT_FRU128_SELF(haystack_shannon_entropy, entropy_delta, ignored_status);
           freq=haystack_freq+1;
-          FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+          FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
           FRU128_SUBTRACT_FRU64_LO_SELF(haystack_shannon_entropy, log, ignored_status);
         }
       }
@@ -2971,8 +2990,8 @@ Out:
   ULONG *freq_list_base;
   fru64 log;
   ULONG log_idx_max;
-  ULONG log_idx_max_max;
   fru64 *log_list_base;
+  u64 *log_parameter_list_base;
   u32 mask;
   ULONG mask_count;
   u32 mask_max;
@@ -2987,8 +3006,8 @@ Out:
     mask_count=agnentroprox_base->mask_count1;
   }
   log_idx_max=agnentroprox_base->log_idx_max;
-  log_idx_max_max=agnentroprox_base->log_idx_max_max;
   log_list_base=agnentroprox_base->log_list_base;
+  log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
   mask_max=agnentroprox_base->mask_max;
   FRU128_SET_ZERO(entropy);
 /*
@@ -3004,7 +3023,7 @@ where:
   Z=(mask_max+1)
 */
   if(1<mask_count){
-    FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(mask_count));
+    FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(mask_count));
     FRU128_FROM_FRU64_MULTIPLY_U64(entropy, log, (u64)(mask_count));
     mask=0;
     do{
@@ -3017,7 +3036,7 @@ Shannon entropy is zero because all symbols are identical. Tread carefully becau
           FRU128_SET_ZERO(entropy);
           break;
         }
-        FRU64_LOG_U64_CACHED_UNSAFE(log, log_idx_max, log_idx_max_max, log_list_base, (u64)(freq));
+        FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
         FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq));
         FRU128_SUBTRACT_FRU128_SELF(entropy, term, overflow_status);
       }

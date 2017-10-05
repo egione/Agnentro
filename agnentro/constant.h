@@ -200,6 +200,10 @@ u128, the unsigned 128-bit integer type, is defined differently on 32-bit and 64
 #define U8_SIZE_LOG2 0U
 #define U8_SPAN 0x100U
 #define U8_SPAN_HALF 0x80U
+#define UINT_IS_NOT_POWER_OF_2(n) (!!((n)&((n)-1U)))
+#define UINT_IS_NOT_POWER_OF_2_MINUS_1(n) (!((n)&((n)+1U)))
+#define UINT_IS_POWER_OF_2(n) (!((n)&((n)-1U)))
+#define UINT_IS_POWER_OF_2_MINUS_1(n) (!((n)&((n)+1U)))
 #undef ULONG_MAX
 #ifdef _64_
   #define UDOUBLE __uint128_t

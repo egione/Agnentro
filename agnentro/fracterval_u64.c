@@ -285,7 +285,7 @@ Out:
 fru64 *
 fracterval_u64_list_malloc(ULONG fru64_idx_max){
 /*
-Allocate a list of undefined (fru64)s.
+Allocate a list of (fru64)s.
 
 In:
 
@@ -293,7 +293,7 @@ In:
 
 Out:
 
-  Returns NULL on failure, else the base of (fru64_idx_max+1) undefined items. It must be freed via fracterval_u64_free().
+  Returns NULL on failure, else the base of (fru64_idx_max+1) (fru64)s. It must be freed via fracterval_u64_free().
 */
   ULONG fru64_count;
   fru64 *list_base;
@@ -334,7 +334,7 @@ Out:
 
   Returns one if v is zero, else zero.
 
-  *a_base is (log(v+1)-log(v)) expressed as a 6.58 fixed-point fracterval if v is nonzero, else the ambiguous fracterval.
+  *a_base is (log(v+1)-log(v)) expressed as a 6.58 fixed-point fracterval if v is nonzero, else one.
 */
   fru64 log_delta;
   u64 mantissa0;
@@ -353,54 +353,32 @@ Out:
     mantissa0=v<<shift;
     mantissa1=v_plus_1<<shift;
 /*
-mantissa0 and mantissa1 have their high bits set, with (mantissa0<mantissa1), so fracterval_u64_log_mantissa_delta_u64() is guaranteed to return zero status.
+If mantissa1 is zero, it will be treated as 1.0 by fracterval_u64_log_mantissa_delta_u64(). Otherwise, mantissa0 and mantissa1 have their high bits set, with (mantissa0<mantissa1), so fracterval_u64_log_mantissa_delta_u64() is guaranteed to return zero status.
 */
     fracterval_u64_log_mantissa_delta_u64(&log_delta, mantissa0, mantissa1);
     FRU64_SHIFT_RIGHT_SELF(log_delta, U64_BITS_LOG2);
   }else{
     if(v){
+/*
+If v_plus_1 is zero, then (v==U64_MAX). In this case, the logdelta is on the interval [(2^(-64)), (2^(-64))+(2^(-128))]. But we need to return 6.58, so the result is the zero fracterval, which has already been loaded into logdelta. Otherwise, return (ln 2) shifted appropriately.
+*/
       if(v_plus_1){
         log_delta.a=FRU64_LOG2_FLOOR>>U64_BITS_LOG2;
-        log_delta.b=log_delta.a;
       }
     }else{
-      log_delta.b=~log_delta.b;
+      log_delta.a--;
       status=1;
     }
+    log_delta.b=log_delta.a;
   }
   *a_base=log_delta;
   return status;
 }
 
-fru64 *
-fracterval_u64_log_delta_u64_cache_init(ULONG log_delta_idx_max_max){
-/*
-Allocate a cache for saving previous fracterval_u64_log_delta_u64() results.
-
-In:
-
-  log_delta_idx_max_max is one less than the number of items to allocate in the cache.
-
-Out:
-
-  Returns NULL on failure, else the base of a list containing log_delta_idx_max_max undefined 64-bit fractervals, except for the first one, which is set to ones in order to force a cache miss because it's an error case, whereas cache hits must be associated with good status. It must be freed via fracterval_u64_free().
-*/
-  fru64 *log_delta_list_base;
-  u64 ones;
-
-  log_delta_list_base=fracterval_u64_list_malloc(log_delta_idx_max_max);
-  if(log_delta_list_base){
-    ones=U64_MAX;
-    log_delta_list_base[0].a=ones;
-    log_delta_list_base[0].b=ones;
-  }
-  return log_delta_list_base;
-}
-
 u8
-fracterval_u64_log_delta_u64_cached(fru64 *a_base, ULONG *log_delta_idx_max_base, ULONG log_delta_idx_max_max, fru64 *log_delta_list_base, u64 v){
+fracterval_u64_log_delta_u64_cached(fru64 *a_base, ULONG log_delta_idx_max, fru64 *log_delta_list_base, u64 *log_delta_parameter_list_base, u64 v){
 /*
-Use FRU64_LOG_DELTA_U64_CACHED() instead of calling here directly.
+Use FRU64_LOG_DELTA_U64_CACHED(), or FRU64_LOG_DELTA_U64_NONZERO_CACHED() if v is guaranteed to be nonzero, instead of calling here directly.
 
 Deliver cached results from fracterval_u64_log_delta_u64().
 
@@ -408,53 +386,36 @@ In:
 
   *a_base is undefined.
 
-  *log_delta_idx_max_base is initially zero, and fed back thereafter. It defines the maximum index at which the cache is defined.
+  log_delta_idx_max is fracterval_u64_log_u64_cache_init():In:log_delta_idx_max.
 
-  log_delta_idx_max_max is fracterval_u64_log_delta_u64_cache_init():In:log_delta_idx_max_max.
+  log_delta_list_base is fracterval_u64_log_u64_cache_init():Out:*log_delta_list_base_base.
 
-  log_delta_list_base is the return value of fracterval_u64_log_delta_u64_cache_init().
+  log_delta_parameter_list_base is the return value of fracterval_u64_log_u64_cache_init().
 
   v is as defined in fracterval_u64_log_delta_u64().
 
 Out:
 
-  Returns as defined for fracterval_u64_log_delta_u64(a, v).
+  Returns as defined for fracterval_u64_log_delta_u64(a_base, v).
 
   *a_base is as defined in fracterval_u64_log_delta_u64().
 
-  *log_delta_idx_max_base is updated.
+  *log_delta_list_base contains *a_base at index (log_delta_idx_max&v).
 
-  *log_delta_list_base is consistent through index *log_delta_idx_max_base.
+  *log_delta_parameter_list_base contains v at index (log_delta_idx_max&v).
 */
   fru64 a;
-  ULONG log_delta_idx;
-  ULONG log_delta_idx_max;
-  u64 ones;
+  ULONG idx;
   u8 status;
 
-  log_delta_idx_max=*log_delta_idx_max_base;
-  log_delta_idx=(ULONG)(v);
-  ones=U64_MAX;
-  status=1;
-  if(log_delta_idx<=log_delta_idx_max){
-    a=log_delta_list_base[log_delta_idx];
-    status=(a.a==ones);
-  }
-  if(status){
+  idx=log_delta_idx_max&(ULONG)(v);
+  if(log_delta_parameter_list_base[idx]==v){
+    a=log_delta_list_base[idx];
+    status=!v;
+  }else{
+    log_delta_parameter_list_base[idx]=v;
     status=fracterval_u64_log_delta_u64(&a, v);
-/*
-Only cache results which can fit in the cache and returned good status because good status is always returned on cache hits.
-*/
-    if((log_delta_idx<=log_delta_idx_max_max)&&(!status)){
-      if(log_delta_idx_max<log_delta_idx){
-        while(log_delta_idx!=(++log_delta_idx_max)){
-          log_delta_list_base[log_delta_idx_max].a=ones;
-          log_delta_list_base[log_delta_idx_max].b=ones;
-        }
-        *log_delta_idx_max_base=log_delta_idx;
-      }
-      log_delta_list_base[log_delta_idx]=a;
-    }
+    log_delta_list_base[idx]=a;
   }
   *a_base=a;
   return status;
@@ -465,7 +426,7 @@ fracterval_u64_log_mantissa_delta_u64(fru64 *a_base, u64 p, u64 q){
 /*
 Use FRU64_LOG_MANTISSA_DELTA_U64() instead of calling here directly.
 
-Compute the absolute value of the difference between the natural logs of sequential mantissas on [0.5, 1.0).
+Compute the absolute value of the difference between the natural logs of mantissas on [0.5, 1.0].
 
 In:
 
@@ -473,13 +434,13 @@ In:
 
   p is a mantissa on [U64_SPAN_HALF, U64_MAX-1], corresponding to [0.5, 1.0). Unlike a fractoid which has an uncertainty of one ULP, a mantissa is assumed to have no uncertainty.
 
-  q is analogous to p, but on [p+1, U64_MAX].
+  q is analogous to p, but on [p+1, U64_MAX]. It may also be zero, in which case it shall be treated as though it were 1.0.
 
 Out:
 
   Returns one if (p<U64_SPAN_HALF), else zero.
 
-  *a_base is (log(q)-log(p)) expressed as a 6.58 fracterval if (U64_SPAN_HALF<=p), else the ambiguous fracterval.
+  *a_base is (log(q)-log(p)) expressed as a fracterval if (U64_SPAN_HALF<=p), else the ambiguous fracterval.
 */
   u64 denominator;
   fru64 log_delta;
@@ -602,7 +563,7 @@ Out:
 
   Returns one if v is zero, else zero.
 
-  *a_base is log(v) expressed as a 6.58 fixed-point fracterval if v is nonzero, else the ambiguous fracterval.
+  *a_base is log(v) expressed as a 6.58 fixed-point fracterval if v is nonzero, else zero.
 */
   fru64 log_fractoid;
   fru64 log;
@@ -633,48 +594,51 @@ mantissa has its high bit set, so fracterval_u64_log_mantissa_u64() is guarantee
       log.a=FRU64_LOG2_FLOOR>>U64_BITS_LOG2;
       log.b=log.a;
     }else{
-      log.a=0;
-      if(v){
-        log.b=log.a;
-      }else{
-        log.b=~log.a;
-        status=1;
-      }
+      FRU64_SET_ZERO(log);
+      status=!v;
     }
   }
   *a_base=log;
   return status;
 }
 
-fru64 *
-fracterval_u64_log_u64_cache_init(ULONG log_idx_max_max){
+u64 *
+fracterval_u64_log_u64_cache_init(ULONG log_idx_max, fru64 **log_list_base_base){
 /*
-Allocate a cache for saving previous fracterval_u64_log_u64() results.
+Allocate a cache for saving previous fracterval_u64_log_delta_u64() or fracterval_u64_log_u64() results.
 
 In:
 
-  log_idx_max_max is one less than the number of items to allocate in the cache.
+  log_idx_max is one less than the number of items to allocate in the cache. It must be one less than a power of 2.
 
 Out:
 
-  Returns NULL on failure, else the base of a list containing log_idx_max_max undefined 64-bit fractervals, except for the first one, which is set to ones in order to force a cache miss because it's an error case, whereas cache hits must be associated with good status. It must be freed via fracterval_u64_free().
+  Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined.
+
+  *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru64)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u64_free().
 */
   fru64 *log_list_base;
-  u64 ones;
+  u64 *log_parameter_list_base;
+  fru64 zero;
 
-  log_list_base=fracterval_u64_list_malloc(log_idx_max_max);
-  if(log_list_base){
-    ones=U64_MAX;
-    log_list_base[0].a=ones;
-    log_list_base[0].b=ones;
+  log_list_base=fracterval_u64_list_malloc(log_idx_max);
+  log_parameter_list_base=fracterval_u64_u64_list_malloc(log_idx_max);
+  if(UINT_IS_POWER_OF_2_MINUS_1(log_idx_max)&&log_list_base&&log_parameter_list_base){
+    fracterval_u64_u64_list_zero(log_idx_max, log_parameter_list_base);
+    FRU64_SET_ZERO(zero);
+    log_list_base[0]=zero;
+    *log_list_base_base=log_list_base;
+  }else{
+    log_parameter_list_base=fracterval_u64_free(log_parameter_list_base);
+    fracterval_u64_free(log_list_base);
   }
-  return log_list_base;
+  return log_parameter_list_base;
 }
 
 u8
-fracterval_u64_log_u64_cached(fru64 *a_base, ULONG *log_idx_max_base, ULONG log_idx_max_max, fru64 *log_list_base, u64 v){
+fracterval_u64_log_u64_cached(fru64 *a_base, ULONG log_idx_max, fru64 *log_list_base, u64 *log_parameter_list_base, u64 v){
 /*
-Use FRU64_LOG_U64_CACHED() instead of calling here directly.
+Use FRU64_LOG_U64_CACHED(), or FRU64_LOG_U64_NONZERO_CACHED() if v is guaranteed to be nonzero, instead of calling here directly.
 
 Deliver cached results from fracterval_u64_log_u64().
 
@@ -682,53 +646,36 @@ In:
 
   *a_base is undefined.
 
-  *log_idx_max_base is initially zero, and fed back thereafter. It defines the maximum index at which the cache is defined.
+  log_idx_max is fracterval_u64_log_u64_cache_init():In:log_idx_max.
 
-  log_idx_max_max is fracterval_u64_log_u64_cache_init():In:log_idx_max_max.
+  log_list_base is fracterval_u64_log_u64_cache_init():Out:*log_list_base_base.
 
-  log_list_base is the return value of fracterval_u64_log_u64_cache_init().
+  log_parameter_list_base is the return value of fracterval_u64_log_u64_cache_init().
 
   v is as defined in fracterval_u64_log_u64().
 
 Out:
 
-  Returns as defined for fracterval_u64_log_u64(a, v).
+  Returns as defined for fracterval_u64_log_u64(a_base, v).
 
   *a_base is as defined in fracterval_u64_log_u64().
 
-  *log_idx_max_base is updated.
+  *log_list_base contains *a_base at index (log_idx_max&v).
 
-  *log_list_base is consistent through index *log_idx_max_base.
+  *log_parameter_list_base contains v at index (log_idx_max&v).
 */
   fru64 a;
-  ULONG log_idx;
-  ULONG log_idx_max;
-  u64 ones;
+  ULONG idx;
   u8 status;
 
-  log_idx_max=*log_idx_max_base;
-  log_idx=(ULONG)(v);
-  ones=U64_MAX;
-  status=1;
-  if(log_idx<=log_idx_max){
-    a=log_list_base[log_idx];
-    status=(a.a==ones);
-  }
-  if(status){
+  idx=log_idx_max&(ULONG)(v);
+  if(log_parameter_list_base[idx]==v){
+    a=log_list_base[idx];
+    status=!v;
+  }else{
+    log_parameter_list_base[idx]=v;
     status=fracterval_u64_log_u64(&a, v);
-/*
-Only cache results which can fit in the cache and returned good status because good status is always returned on cache hits.
-*/
-    if((log_idx<=log_idx_max_max)&&(!status)){
-      if(log_idx_max<log_idx){
-        while(log_idx!=(++log_idx_max)){
-          log_list_base[log_idx_max].a=ones;
-          log_list_base[log_idx_max].b=ones;
-        }
-        *log_idx_max_base=log_idx;
-      }
-      log_list_base[log_idx]=a;
-    }
+    log_list_base[idx]=a;
   }
   *a_base=a;
   return status;
@@ -1141,6 +1088,63 @@ Out:
   }
   *a_base=a;
   return status;
+}
+
+u64 *
+fracterval_u64_u64_list_malloc(ULONG u64_idx_max){
+/*
+Allocate a list of (u64)s.
+
+In:
+
+  u64_idx_max is the number of (u64)s to allocate, less one.
+
+Out:
+
+  Returns NULL on failure, else the base of (u64_idx_max+1) (u64)s. It must be freed via fracterval_u64_free().
+*/
+  u64 *list_base;
+  u64 list_bit_count;
+  ULONG list_size;
+  ULONG u64_count;
+
+  list_base=NULL;
+  u64_count=u64_idx_max+1;
+  if(u64_count){
+    list_size=u64_count<<U64_SIZE_LOG2;
+    if((list_size>>U64_SIZE_LOG2)==u64_count){
+/*
+Ensure that the allocated size in bits can be described in 64 bits.
+*/
+      list_bit_count=(u64)(list_size)<<U8_BITS_LOG2;
+      if((list_bit_count>>U8_BITS_LOG2)==list_size){
+        list_base=DEBUG_MALLOC_PARANOID(list_size);
+      }
+    }
+  }
+  return list_base;
+}
+
+void
+fracterval_u64_u64_list_zero(ULONG u64_idx_max, u64 *u64_list_base){
+/*
+Zero a list of (u64)s.
+
+In:
+
+  u64_idx_max is the number of (u64)s to zero, less one.
+
+  u64_list_base is the base of the list to zero.
+
+Out:
+
+  The list is zeroed as specified above.
+*/
+  ULONG list_size;
+
+  list_size=(u64_idx_max+1)<<U64_SIZE_LOG2;
+  memset(u64_list_base, 0, (size_t)(list_size));
+  return;
 }
 
 u8
