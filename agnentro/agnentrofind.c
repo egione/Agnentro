@@ -218,8 +218,8 @@ main(int argc, char *argv[]){
   overflow_status=0;
   status=ascii_init(0, 0);
   status=(u8)(status|filesys_init(0, 1));
-  status=(u8)(status|fracterval_u128_init(1, 0));
-  loggamma_base=loggamma_init(1, 0);
+  status=(u8)(status|fracterval_u128_init(2, 0));
+  loggamma_base=loggamma_init(3, 0);
   status=(u8)(status|!loggamma_base);
   agnentroprox_base=NULL;
   case_insensitive_status=0;

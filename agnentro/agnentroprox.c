@@ -1585,8 +1585,8 @@ Out:
 
   agnentroprox_base=NULL;
   overflow_status=0;
-  status=fracterval_u128_init(1, 1);
-  status=(u8)(status|fracterval_u64_init(0, 0));
+  status=fracterval_u128_init(2, 1);
+  status=(u8)(status|fracterval_u64_init(1, 0));
   status=(u8)(status|(AGNENTROPROX_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|(build_break_count!=AGNENTROPROX_BUILD_BREAK_COUNT));
   status=(u8)(status|(!mask_max));

@@ -167,7 +167,7 @@ Out:
   status=(u8)(build_break_count!=LOGGAMMA_BUILD_BREAK_COUNT);
   status=(u8)(status|(LOGGAMMA_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|biguint_init(0, 0));
-  status=(u8)(status|fracterval_u128_init(1, 0));
+  status=(u8)(status|fracterval_u128_init(2, 0));
   if(!status){
     loggamma_base=(loggamma_t *)(DEBUG_CALLOC_PARANOID(sizeof(loggamma_t)));
     if(loggamma_base){

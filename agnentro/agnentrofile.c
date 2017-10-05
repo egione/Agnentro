@@ -186,7 +186,7 @@ main(int argc, char *argv[]){
   status=ascii_init(0, 0);
   status=(u8)(status|biguint_init(0, 0));
   status=(u8)(status|filesys_init(0, 0));
-  status=(u8)(status|fracterval_u128_init(1, 0));
+  status=(u8)(status|fracterval_u128_init(2, 0));
   agnentrocodec_base=NULL;
   agnentroprox_base=NULL;
   loggamma_base=NULL;
@@ -214,7 +214,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("(output_file) is the name of the file to overwrite, for (mode>1).\n\n");
       break;
     }
-    loggamma_base=loggamma_init(1, 0);
+    loggamma_base=loggamma_init(3, 0);
     if(!loggamma_base){
       agnentrofile_error_print("Loggamma initialization failed");
       break;
