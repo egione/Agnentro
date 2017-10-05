@@ -1,1 +1,0 @@
-This file just exists so Git won't ignore the tmp folder.
