@@ -72,6 +72,7 @@ int
 main(int argc, char *argv[]){
   agnentroprox_t *agnentroprox_base;
   u128 agnentropy_score;
+  u8 append_mode;
   ULONG arg_idx;
   ULONG channel_size;
   u8 delta_status;
@@ -95,7 +96,9 @@ main(int argc, char *argv[]){
   u64 fourier_sum_max;
   u8 ignored_status;
   u64 iteration;
+  u128 jset_score;
   u128 kurtosis_score;
+  u128 let_score;
   u128 logfreedom_score;
   loggamma_t *loggamma_base;
   u8 mask;
@@ -109,9 +112,9 @@ main(int argc, char *argv[]){
   u64 mean_u64;
   u8 mean_u8;
   ULONG miss_count;
-  u8 mode;
-  u8 mode_bitmap;
-  u8 mode_bitmap_copy;
+  u16 mode;
+  u16 mode_bitmap;
+  u16 mode_bitmap_copy;
   u8 overflow_status;
   u64 parameter;
   u8 parity;
@@ -154,7 +157,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("where:\n\n");
       DEBUG_PRINT("(file) is a 2-channel signed byte data file from:\n\n  http://setiquest.org/wiki/index.php?title=SetiQuest_Data_Links&oldid=3581\n\n");
       DEBUG_PRINT("(mode_bitmap) is a 16-bit hex value, the bits of which giving the desired test modes:\n\n");
-      DEBUG_PRINT("  bit 0: agnentropy\n  bit 1: exoelasticity\n  bit 2: exoentropy\n  bit 3: logfreedom\n  bit 4: shannon entropy\n  bit 5: obtuse kurtosis\n  bit 6: obtuse variance\n  bit 7: ideal absolute Fourier integral\n  bit 8: preprocess with deltafication\n\n");
+      DEBUG_PRINT("   bit 0: agnentropy\n   bit 1: exoelasticity\n   bit 2: exoentropy\n   bit 3: logfreedom\n   bit 4: shannon entropy\n   bit 5: obtuse kurtosis\n   bit 6: obtuse variance\n   bit 7: ideal absolute Fourier integral\n   bit 8: preprocess with deltafication\n   bit 9: Jensen-Shannon exodivergence\n  bit 10: Leidich exodivergence\n\n");
       DEBUG_PRINT("(\"Obtuse\" refers to the fact that the mean of the entire (2^24)-sample subset\nwill be assumed equal to the mean of the sweep; otherwise, compute complexity\nwould grow out of hand due to the nonlinear relationship among mean, variance,\nand kurtosis.) Test various modes to evaluate sensitivity and speed. Agnentropy\nis fastest; kurtosis is slowest. Usually, exoentropy is the most sensitive;\nkurtosis is the least. Set bit 6 to enable Fourier analysis at the optimum\nfrequency required to detect the signal; this provides a sense of best case\nperformance, given unlimited compute power and advance knowledge of the signal\ntype. Set bit 7 to take the first delta before testing. For example, the mask\nlist {A, B, C...} would be transformed to {A, (B-A), (C-B)...}, wrapped to 8\nbits. This will usually enhance sensitivity, but will degrade it for Fourier.\n\n");
       DEBUG_PRINT("(seed) is a decimal random number less than (2^64).\n\n");
       DEBUG_PRINT("(sweep) is the nonzero decimal number of samples (bytes, in the case of SETI\nfiles) in the sliding window of entropy analysis for each mode. For the sake of\nsimplicity, only channel 0 will be analyzed. (2^24) contiguous samples will be\nread from the file at a random base offset on each iteration. Then, sweep bytes\nof signal will be injected into its end zone, where it's hardest to find by\nluck due to result ranking rules. The signal will alternately increment and\ndecrement successive bytes, saturating the results to the signed 8-bit range.\nThis represents the lowest-amplitude signal which could theoretically be\ndetected, and which affects all sweep bytes. Start with 100000, then adjust\nas necessary until the fractions are all around (1/2), i.e. (80...) in hex.\n\n");
@@ -171,7 +174,7 @@ main(int argc, char *argv[]){
     if(status){
       break;
     }
-    status=ascii_hex_to_u64_convert(argv[2], &parameter, 0x1FF);
+    status=ascii_hex_to_u64_convert(argv[2], &parameter, 0x7FF);
     status=(u8)(status|!parameter);
     if(status){
       setidemo_error_print("Invalid mode_bitmap");
@@ -181,25 +184,31 @@ main(int argc, char *argv[]){
     fourier_status=(u8)((parameter>>7)&1);
     mode_bitmap=0;
     if((parameter>>0)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_AGNENTROPY);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_AGNENTROPY);
     }
     if((parameter>>1)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_EXOELASTICITY);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_EXOELASTICITY);
     }
     if((parameter>>2)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_EXOENTROPY);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_EXOENTROPY);
     }
     if((parameter>>3)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_LOGFREEDOM);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_LOGFREEDOM);
     }
     if((parameter>>4)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_SHANNON);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_SHANNON);
     }
     if((parameter>>5)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_KURTOSIS);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_KURTOSIS);
     }
     if((parameter>>6)&1){
-      mode_bitmap=(u8)(mode_bitmap|AGNENTROPROX_MODE_VARIANCE);
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_VARIANCE);
+    }
+    if((parameter>>9)&1){
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_JSET);
+    }
+    if((parameter>>10)&1){
+      mode_bitmap=(u16)(mode_bitmap|AGNENTROPROX_MODE_LET);
     }
     status=ascii_decimal_to_u64_convert(argv[3], &seed, U64_MAX);
     if(status){
@@ -303,7 +312,9 @@ It's safe to ignore the status return from agnentroprox_mask_idx_max_get() when 
     U128_SET_ZERO(exoentropy_score);
     U128_SET_ZERO(fourier_score);
     iteration=0;
+    U128_SET_ZERO(jset_score);
     U128_SET_ZERO(kurtosis_score);
+    U128_SET_ZERO(let_score);
     U128_SET_ZERO(logfreedom_score);
     U128_SET_ZERO(score);
     U128_SET_ZERO(score_max);
@@ -472,12 +483,16 @@ Set score_delta to the number of masks in the signal which were not included in 
       do{
         if(mode_bitmap_copy&AGNENTROPROX_MODE_AGNENTROPY){
           mode=AGNENTROPROX_MODE_AGNENTROPY;
-        }else if(mode_bitmap_copy&AGNENTROPROX_MODE_EXOENTROPY){
-          mode=AGNENTROPROX_MODE_EXOENTROPY;
         }else if(mode_bitmap_copy&AGNENTROPROX_MODE_EXOELASTICITY){
           mode=AGNENTROPROX_MODE_EXOELASTICITY;
+        }else if(mode_bitmap_copy&AGNENTROPROX_MODE_EXOENTROPY){
+          mode=AGNENTROPROX_MODE_EXOENTROPY;
+        }else if(mode_bitmap_copy&AGNENTROPROX_MODE_JSET){
+          mode=AGNENTROPROX_MODE_JSET;
         }else if(mode_bitmap_copy&AGNENTROPROX_MODE_KURTOSIS){
           mode=AGNENTROPROX_MODE_KURTOSIS;
+        }else if(mode_bitmap_copy&AGNENTROPROX_MODE_LET){
+          mode=AGNENTROPROX_MODE_LET;
         }else if(mode_bitmap_copy&AGNENTROPROX_MODE_LOGFREEDOM){
           mode=AGNENTROPROX_MODE_LOGFREEDOM;
         }else if(mode_bitmap_copy&AGNENTROPROX_MODE_SHANNON){
@@ -485,12 +500,13 @@ Set score_delta to the number of masks in the signal which were not included in 
         }else if(mode_bitmap_copy&AGNENTROPROX_MODE_VARIANCE){
           mode=AGNENTROPROX_MODE_VARIANCE;
         }
-        mode_bitmap_copy=(u8)(mode^mode_bitmap_copy);
+        mode_bitmap_copy=(u16)(mode^mode_bitmap_copy);
 /*
 Find the highest entropy sweep, with ties resolving in favor of earlier sweeps (i.e. away from the end zone where the signal actually resides).
 */
         if(mode!=AGNENTROPROX_MODE_EXOELASTICITY){
-          agnentroprox_entropy_transform(agnentroprox_base, 0, entropy_list_base, SETIDEMO_MASK_IDX_MAX, mask_list_base, 0, &match_u8_idx, mode, &overflow_status, sweep_mask_idx_max);
+          append_mode=((mode==AGNENTROPROX_MODE_JSET)||(mode==AGNENTROPROX_MODE_LET));
+          agnentroprox_entropy_transform(agnentroprox_base, append_mode, entropy_list_base, SETIDEMO_MASK_IDX_MAX, mask_list_base, 0, &match_u8_idx, mode, &overflow_status, sweep_mask_idx_max);
         }else{
           agnentroprox_exoelasticity_transform(agnentroprox_base, 1, entropy_list_base, SETIDEMO_MASK_IDX_MAX, mask_list_base, 0, &match_u8_idx, &overflow_status, sweep_mask_idx_max);
         }
@@ -498,14 +514,20 @@ Find the highest entropy sweep, with ties resolving in favor of earlier sweeps (
         case AGNENTROPROX_MODE_AGNENTROPY:
           score=agnentropy_score;
           break;
-        case AGNENTROPROX_MODE_EXOENTROPY:
-          score=exoentropy_score;
-          break;
         case AGNENTROPROX_MODE_EXOELASTICITY:
           score=exoelasticity_score;
           break;
+        case AGNENTROPROX_MODE_EXOENTROPY:
+          score=exoentropy_score;
+          break;
+        case AGNENTROPROX_MODE_JSET:
+          score=jset_score;
+          break;
         case AGNENTROPROX_MODE_KURTOSIS:
           score=kurtosis_score;
+          break;
+        case AGNENTROPROX_MODE_LET:
+          score=let_score;
           break;
         case AGNENTROPROX_MODE_LOGFREEDOM:
           score=logfreedom_score;
@@ -528,14 +550,20 @@ Set score_delta to the number of masks in the signal which were not included in 
         case AGNENTROPROX_MODE_AGNENTROPY:
           agnentropy_score=score;
           break;
-        case AGNENTROPROX_MODE_EXOENTROPY:
-          exoentropy_score=score;
-          break;
         case AGNENTROPROX_MODE_EXOELASTICITY:
           exoelasticity_score=score;
           break;
+        case AGNENTROPROX_MODE_EXOENTROPY:
+          exoentropy_score=score;
+          break;
+        case AGNENTROPROX_MODE_JSET:
+          jset_score=score;
+          break;
         case AGNENTROPROX_MODE_KURTOSIS:
           kurtosis_score=score;
+          break;
+        case AGNENTROPROX_MODE_LET:
+          let_score=score;
           break;
         case AGNENTROPROX_MODE_LOGFREEDOM:
           logfreedom_score=score;
@@ -561,17 +589,29 @@ Set score_delta to the number of masks in the signal which were not included in 
         FTD128_RATIO_U128_SATURATE(score, agnentropy_score, score_max, ignored_status);
         DEBUG_U128("agnentropy_score     ", score);
       }
-      if(mode_bitmap&AGNENTROPROX_MODE_EXOENTROPY){
-        FTD128_RATIO_U128_SATURATE(score, exoentropy_score, score_max, ignored_status);
-        DEBUG_U128("exoentropy_score     ", score);
-      }
       if(mode_bitmap&AGNENTROPROX_MODE_EXOELASTICITY){
         FTD128_RATIO_U128_SATURATE(score, exoelasticity_score, score_max, ignored_status);
         DEBUG_U128("exoelasticity_score  ", score);
       }
+      if(mode_bitmap&AGNENTROPROX_MODE_EXOENTROPY){
+        FTD128_RATIO_U128_SATURATE(score, exoentropy_score, score_max, ignored_status);
+        DEBUG_U128("exoentropy_score     ", score);
+      }
       if(fourier_status){
         FTD128_RATIO_U128_SATURATE(score, fourier_score, score_max, ignored_status);
         DEBUG_U128("fourier_score        ", score);
+      }
+      if(mode_bitmap&AGNENTROPROX_MODE_JSET){
+        FTD128_RATIO_U128_SATURATE(score, jset_score, score_max, ignored_status);
+        DEBUG_U128("jensen_shannon_score ", score);
+      }
+      if(mode_bitmap&AGNENTROPROX_MODE_KURTOSIS){
+        FTD128_RATIO_U128_SATURATE(score, kurtosis_score, score_max, ignored_status);
+        DEBUG_U128("obtuse_kurtosis_score", score);
+      }
+      if(mode_bitmap&AGNENTROPROX_MODE_LET){
+        FTD128_RATIO_U128_SATURATE(score, let_score, score_max, ignored_status);
+        DEBUG_U128("leidich_score        ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_LOGFREEDOM){
         FTD128_RATIO_U128_SATURATE(score, logfreedom_score, score_max, ignored_status);
@@ -580,10 +620,6 @@ Set score_delta to the number of masks in the signal which were not included in 
       if(mode_bitmap&AGNENTROPROX_MODE_SHANNON){
         FTD128_RATIO_U128_SATURATE(score, shannon_score, score_max, ignored_status);
         DEBUG_U128("shannon_score        ", score);
-      }
-      if(mode_bitmap&AGNENTROPROX_MODE_KURTOSIS){
-        FTD128_RATIO_U128_SATURATE(score, kurtosis_score, score_max, ignored_status);
-        DEBUG_U128("obtuse_kurtosis_score", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_VARIANCE){
         FTD128_RATIO_U128_SATURATE(score, variance_score, score_max, ignored_status);

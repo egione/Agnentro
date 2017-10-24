@@ -57,8 +57,8 @@ Approximate Binary Search
 #define AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX 4U
 #define AGNENTROFIND_GEOMETRY_GRANULARITY (3U<<AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)
 #define AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX 0U
-#define AGNENTROFIND_GEOMETRY_MODE (1U<<AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)
-#define AGNENTROFIND_GEOMETRY_MODE_BIT_IDX 3U
+#define AGNENTROFIND_GEOMETRY_MODE (3U<<AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_MODE_BIT_IDX 2U
 #define AGNENTROFIND_GEOMETRY_OVERLAP (1U<<AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)
 #define AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX 7U
 #define AGNENTROFIND_FORMAT_ASCENDING (1U<<AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX)
@@ -259,7 +259,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("where all numerical parameters are decimal unless otherwise stated:\n\n");
       DEBUG_PRINT("(needle) is one of the following: (0) a UTF8 text string prefixed with \"@\", and\nsurrounded by single or double quotes if necessary; (1) a series of hex bytes\nstarting with \"+\", for example \"+5cE2\" which means 5C followed by E2; or (2)\nthe name of a file containing the binary data to find. If you don't know some\nof the bytes in the middle, then fake them as plausibly as possible.\n\n");
       DEBUG_PRINT("(haystack) is the file or folder to search for matches (no wildcard characters).\nIn the latter case, all symlinks will be ignored so that no subfolder will be\nprocessed more than once.\n\n");
-      DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bit 3: (mode) tells the type of entropy divergence to use:\n\n    0 for divcompressivity, which is fast and fairly accurate.\n\n    1 for (1-(normalized Jensen-Shannon divergence)) (AKA \"negated JSD\"), which\n    is slower and more accurate.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols.\n\n");
+      DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bits 2-3: (mode) tells the type of entropy to use when computing the\n  divergence from the distribution inside the sweep window (the sliding window\n  within a given (haystack) file) to (and perhaps also from) (needle):\n\n    00 for divcompressivity (fast approximation of the Kullback-Leibler\n    divergence).\n\n    01 for (1-(normalized Leidich divergence)) (AKA \"negated LD\") (medium\n    speed, weights distributions by file size).\n\n    10 for (1-(normalized Jensen-Shannon divergence)) (AKA \"negated JSD\")\n    (slowest, cares about distributions, not file sizes).\n\n    11 Reserved.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols.\n\n");
       DEBUG_PRINT("(sweep) is the nonzero number of masks in the sliding haystack window, except\nfor the following special cases: \"e\" or \"i\" to find only exact matches or\ncase-insensitive exact matches, respectively; or \"n\" or \"h\" to find approximate\nmatches the same size as (needle) or (haystack), respectively. For example, 5\nmeans: a 5-byte window if (granularity)=0, a 10-byte window if (granularity)=1\nand (overlap)=0, or a 7-byte window if (granularity)=2 and (overlap)=1. Prefix\nwith \"+\" to treat the first (sweep) bytes of the file as the entire haystack\nor \"-\" for the same with the last (sweep) masks.\n\n");
       DEBUG_PRINT("(ranks) is the nonzero number of slots in the list of (best) matches. Matches\nwill be reported as 0-based file offsets or filenames when haystack is a file\nor folder, respectively. In either case, results will be sorted in the order\nimplied by granularity, such that lesser offsets and files encountered earlier\nwill prevail in case of a tie. If (ranks) is prefixed with \"@\", then results\nwill be delivered to the folder or file following that symbol. In this case\nthey will be sorted by sweep window base offset, and not by entropy. Each\nresult will be an 8-byte fracterval mean (center) if (precise) is 0, else a\npair of 16-byte fracterval low and high values if (precise) is 1. In this way,\nit's possible to dump the results of an entire entropy transform. If (haystack)\nis a file in this case, then (ranks) will be treated as a file; otherwise it\nwill be treated as a folder.\n\n");
       DEBUG_PRINT("(format) is a hex bitmap which controls output formatting:\n\n  bit 0: (merge) Prevent the reporting of more than 1 match per sweep. This is\n  useful for filtering because usually many matches occur within the same\n  sweep. In either case, a sweep with global minimum or maximum score will be\n  reported at rank 0. Ignored when (haystack) is a folder.\n\n  bit 1: (ascending) Display worst matches first. Either way, ties will be\n  resolved in favor of lower sweep offsets.\n\n  bit 2: (cavalier) Do not report errors encountered after commencing analysis.\n\n  bit 3: (progress) Make verbose comments about compute progress.\n\n  bit 4: (precise) Set to display entropy values as 64.64 fixed-point hex\n  fractervals. Fractervals are displayed as {(A.B), (C.D)} where (A.B) is the\n  lower bound and (C.D) is (1/(2^64)) less than the upper bound.\n\n");
@@ -356,10 +356,18 @@ Don't accept ranks larger than we can fit in the address space, considering that
     delta_count=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX)&3);
     granularity=(u8)((parameter>>AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)&3);
     merge_status=0;
-    mode=AGNENTROPROX_MODE_DIVENTROPY;
-    if((parameter>>AGNENTROFIND_GEOMETRY_MODE_BIT_IDX)&1){
-      mode=AGNENTROPROX_MODE_JSD;
-    }    
+    mode=(u16)((parameter>>AGNENTROFIND_GEOMETRY_MODE_BIT_IDX)&3);
+    if(!mode){
+      mode=AGNENTROPROX_MODE_DIVENTROPY;
+    }else if(mode==1){
+      mode=AGNENTROPROX_MODE_LDT;
+    }else if(mode==2){
+      mode=AGNENTROPROX_MODE_JSDT;
+    }else{
+      status=1;
+      agnentrofind_parameter_error_print("geometry.mode");
+      break;
+    }
     overlap_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)&1);
     precise_status=0;
     progress_status=0;
@@ -738,8 +746,10 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
             if(progress_status){
               DEBUG_PRINT("Doing ");
               if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
-                if(mode==AGNENTROPROX_MODE_JSD){
+                if(mode==AGNENTROPROX_MODE_JSDT){
                   DEBUG_PRINT("negated JSD");
+                }else if(mode==AGNENTROPROX_MODE_LDT){
+                  DEBUG_PRINT("negated LD");
                 }else{
                   DEBUG_PRINT("divcompressivity");
                 }
@@ -757,15 +767,11 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
               rank_list_base=entropy_list_base1;
             }
             if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
-              if(mode==AGNENTROPROX_MODE_JSD){
-                if(haystack_mask_idx_max!=needle_mask_idx_max){
-                  agnentroprox_needle_freq_list_copy(agnentroprox_base, 0);
-                  agnentroprox_needle_freq_list_equalize(agnentroprox_base, sweep_mask_idx_max);
-                }
-                match_count=agnentroprox_jsd_transform(agnentroprox_base, append_mode, haystack_mask_idx_max, haystack_mask_list_base, rank_list_base, match_idx_max_max, match_u8_idx_list_base, &overflow_status);
-                if(haystack_mask_idx_max!=needle_mask_idx_max){
-                  agnentroprox_needle_freq_list_copy(agnentroprox_base, 1);
-                }
+              if(mode==AGNENTROPROX_MODE_JSDT){
+                match_count=agnentroprox_jsd_transform(agnentroprox_base, append_mode, haystack_mask_idx_max, haystack_mask_list_base, rank_list_base, match_idx_max_max, match_u8_idx_list_base, sweep_mask_idx_max);
+                entropy=rank_list_base[0];
+              }else if(mode==AGNENTROPROX_MODE_LDT){
+                match_count=agnentroprox_ld_transform(agnentroprox_base, append_mode, haystack_mask_idx_max, haystack_mask_list_base, rank_list_base, match_idx_max_max, match_u8_idx_list_base, sweep_mask_idx_max);
                 entropy=rank_list_base[0];
               }else{
                 if(append_mode<=1){
@@ -855,7 +861,7 @@ We're guaranteed at least one match, so go ahead and convert it to divcompressiv
                   }
                   status=0;
                 }
-              }else if((mode!=AGNENTROPROX_MODE_JSD)&&(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT)){
+              }else if((mode!=AGNENTROPROX_MODE_JSDT)&&(mode!=AGNENTROPROX_MODE_LDT)&&(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT)){
 /*
 Convert all matches to divcompressivity.
 */
@@ -964,8 +970,10 @@ Don't attempt to merge ranking sweeps in haystack mode, as there's only one entr
           }
           DEBUG_PRINT("cending by ");
           if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
-            if(mode==AGNENTROPROX_MODE_JSD){
+            if(mode==AGNENTROPROX_MODE_JSDT){
               DEBUG_PRINT("negated JSD:\n");
+            }else if(mode==AGNENTROPROX_MODE_LDT){
+              DEBUG_PRINT("negated LD:\n");
             }else{
               DEBUG_PRINT("divcompressivity:\n");
             }

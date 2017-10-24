@@ -89,8 +89,10 @@ TYPEDEF_START
   u128 b;
 TYPEDEF_END(fru128);
 
-#define FRU128_LOG2_FLOOR_HI 0xB17217F7D1CF79ABULL
-#define FRU128_LOG2_FLOOR_LO 0xC9E3B39803F2F6AFULL
+#define FTD128_2LOG2_RECIP_FLOOR_HI 0xB8AA3B295C17F0BBULL
+#define FTD128_2LOG2_RECIP_FLOOR_LO 0xBE87FED0691D3E88ULL
+#define FTD128_LOG2_FLOOR_HI 0xB17217F7D1CF79ABULL
+#define FTD128_LOG2_FLOOR_LO 0xC9E3B39803F2F6AFULL
 
 #ifdef _64_
   #define U128_ADD_U128(__a, __p, __q) \
@@ -444,6 +446,9 @@ TYPEDEF_END(fru128);
     (__p)^=(__q); \
     (__q)^=(__p); \
     (__p)^=(__q)
+
+  #define U128_TO_OR_U64_LO(__t, __p) \
+    __t|=(u64)(__p)
 
   #define U128_TO_U64_HI(__u, __p) \
     __u=(u64)((__p)>>64)
@@ -1031,6 +1036,9 @@ TYPEDEF_END(fru128);
     (__p.a)^=(__q.a); \
     (__p.b)^=(__q.b)
 
+  #define U128_TO_OR_U64_LO(__t, __p) \
+    __t|=(__p.a)
+
   #define U128_TO_U64_HI(__u, __p) \
     __u=(__p.b)
 
@@ -1258,15 +1266,11 @@ TYPEDEF_END(fru128);
 
 #define FRU128_FROM_FRU64_HI(_a, _v) \
   U128_FROM_U64_HI(_a.a, _v.a); \
-  U128_FROM_U64_HI_SATURATE(_a.b, _v.b)
+  U128_FROM_U64_HI(_a.b, _v.b)
 
 #define FRU128_FROM_FRU64_LO(_a, _v) \
   U128_FROM_U64_LO(_a.a, _v.a); \
   U128_FROM_U64_LO(_a.b, _v.b)
-
-#define FRU128_FROM_FRU64(_a, _v) \
-  U128_FROM_U64_HI(_a.a, _v.a); \
-  U128_FROM_U64_HI_SATURATE(_a.b, _v.b)
 
 #define FRU128_FROM_FRU64_MULTIPLY_U64(_a, _p, _v) \
   U128_FROM_U64_PRODUCT(_a.a, _p.a, _v); \
@@ -1285,13 +1289,25 @@ TYPEDEF_END(fru128);
   _a.a=(_p); \
   _a.b=(_p)
 
-#define FRU128_FROM_FTD64_HI(_a, _w) \
-  U128_FROM_U64_HI(_a.a, _w); \
-  U128_FROM_U64_HI_SATURATE(_a.b, _w)
+#define FRU128_FROM_FTD64_HI(_a, _v) \
+  U128_FROM_U64_HI(_a.a, _v); \
+  U128_FROM_U64_HI_SATURATE(_a.b, _v)
 
 #define FRU128_FROM_FTD64_LO(_a, _v) \
   U128_FROM_U64_LO(_a.a, _v); \
   U128_FROM_U64_LO(_a.b, _v)
+
+#define FRU128_FROM_FTD128_MANTISSA_U128_PRODUCT(_a, _p, _q) \
+  fracterval_u128_from_fractoid_u128_mantissa_u128_product(&_a, _p, _q)
+
+#define FRU128_FROM_FTD128_MANTISSA_U64_PRODUCT(_a, _p, _v) \
+  fracterval_u128_from_fractoid_u128_mantissa_u64_product(&_a, _p, _v)
+
+#define FRU128_FROM_FTD128_U64_NONZERO_PRODUCT(_a, _p, _v, _z) \
+  _z=(u8)(_z|fracterval_u128_from_fractoid_u128_u64_product(&_a, _p, _v))
+
+#define FRU128_FROM_FTD128_U64_PRODUCT(_a, _p, _v, _z) \
+  _z=(u8)(_z|fracterval_u128_from_fractoid_u128_u64_product(&_a, _p, _v));
 
 #define FRU128_FROM_U128_PAIR(_a, _p, _q) \
   _a.a=(_p); \
@@ -1318,8 +1334,28 @@ TYPEDEF_END(fru128);
 #define FRU128_LOG_MANTISSA_DELTA_U64(_a, _p, _q, _z) \
   _z=(u8)(_z|fracterval_u128_log_mantissa_delta_u64(&_a, _p, _q))
 
-#define FRU128_LOG_MANTISSA_U64(_a, _p, _z) \
-  _z=(u8)(_z|fracterval_u128_log_mantissa_u64(&_a, _p))
+#define FRU128_LOG_MANTISSA_U128(_a, _p, _z) \
+  _z=(u8)(_z|fracterval_u128_log_mantissa_u128(&_a, _p))
+
+#define FRU128_LOG_U128(_a, _p, _z) \
+  _z=(u8)(_z|fracterval_u128_log_u128(&_a, _p))
+
+#define FRU128_LOG_U128_CACHED(_a, _l, _m0, _m1, _p, _z) \
+  _z=(u8)(_z|fracterval_u128_log_u128_cached(&_a, _l, _m0, _m1, _p))
+
+#define FRU128_LOG_U128_NONZERO_CACHED(_a, _l, _m0, _m1, _p) \
+  do{ \
+    ULONG _i; \
+    u64 _j; \
+    \
+    U128_TO_U64_LO(_j, _p); \
+    _i=(_l)&(ULONG)(_j); \
+    if(U128_IS_EQUAL((_m1)[_i], _p)){ \
+      _a=(_m0)[_i]; \
+    }else{ \
+      fracterval_u128_log_u128_cached(&_a, _l, _m0, _m1, _p); \
+    } \
+  }while(0)
 
 #define FRU128_LOG_U64(_a, _v, _z) \
   _z=(u8)(_z|fracterval_u128_log_u64(&_a, _v))
@@ -1403,20 +1439,12 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
   _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a.a, _p)); \
   _a.b=_a.a
 
-#define FRU128_RECIPROCAL_U128_SATURATE_SELF(_a, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a.a, _a.a)); \
-  _a.b=_a.a
-
 #define FRU128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
   _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a.a, _v)); \
   _a.b=_a.a
 
 #define FRU128_ROOT_FRACTOID_U128(_a, _p) \
   fracterval_u128_root_fractoid_u128(&_a, _p);
-
-#define FRU128_SCALE_U128(_a, _p, _q) \
-  _a.a=fractoid_u128_scale_u128(_p, _q); \
-  _a.b=_a.a
 
 #define FRU128_SET_AMBIGUOUS(_a) \
   U128_SET_ZERO(_a.a); \
@@ -1601,6 +1629,9 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
     _a.b=_p.b; \
   }
 
+#define FTD128_FROM_MANTISSA_U128_PRODUCT(_a, _p, _q) \
+  _a=fractoid_u128_from_mantissa_u128_product(_p, _q)
+
 #define FTD128_RATIO_U128_SATURATE(_a, _p, _q, _z) \
   _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a, _p, _q))
 
@@ -1613,8 +1644,8 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
 #define FTD128_RECIPROCAL_U128_SATURATE(_a, _p, _z) \
   _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a, _p))
 
+#define FTD128_RECIPROCAL_U128_SATURATE_SELF(_a, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a, _a))
+
 #define FTD128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
   _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a, _v))
-
-#define FTD128_SCALE_U128(_a, _p, _q) \
-  _a=fractoid_u128_scale_u128(_p, _q)

@@ -85,22 +85,7 @@ TYPEDEF_START
   u64 b;
 TYPEDEF_END(fru64);
 
-#define FRU64_LOG2_FLOOR 0xB17217F7D1CF79ABULL
-
-#define FTD64_RATIO_U64_SATURATE(_a, _v, _w, _z) \
-  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _v, _w))
-
-#define FTD64_RATIO_U64_SATURATE_SELF(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _a, _v))
-
-#define FTD64_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _v))
-
-#define FTD64_RECIPROCAL_U64_SATURATE_SELF(_a, _z) \
-  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _a))
-
-#define FTD64_SCALE_U64(_a, _v, _w) \
-  _a=fractoid_u64_scale_u64(_v, _w)
+#define FTD64_LOG2_FLOOR 0xB17217F7D1CF79ABULL
 
 #define FRU64_ADD_FRU64(_a, _p, _q, _z) \
   _a.a=_p.a+_q.a; \
@@ -189,6 +174,9 @@ TYPEDEF_END(fru64);
 #define FRU64_FROM_FTD64(_a, _p) \
   _a.a=(_p); \
   _a.b=(_p)
+
+#define FRU64_FROM_FTD64_MANTISSA_U64_PRODUCT(_a, _p, _q) \
+  fracterval_u64_from_fractoid_u64_mantissa_u64_product(&_a, _p, _q)
 
 #define FRU64_FROM_U64_PAIR(_a, _v, _w) \
   _a.a=(_v); \
@@ -301,10 +289,6 @@ such that, in fact, the result is always contained by a fractoid.
   _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a.a, _v)); \
   _a.b=_a.a
 
-#define FRU64_SCALE_U64(_a, _v, _w) \
-  _a.a=fractoid_u64_scale_u64(_v, _w); \
-  _a.b=_a.a
-
 #define FRU64_SET_AMBIGUOUS(_a) \
   _a.a=0; \
   _a.b=~_a.a
@@ -409,3 +393,18 @@ such that, in fact, the result is always contained by a fractoid.
   if(_a.b<=_p.b){ \
     _a.b=_p.b; \
   }
+
+#define FTD64_FROM_MANTISSA_U64_PRODUCT(_a, _p, _q) \
+  _a=fractoid_u64_from_mantissa_u64_product(_p, _q)
+
+#define FTD64_RATIO_U64_SATURATE(_a, _v, _w, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _v, _w))
+
+#define FTD64_RATIO_U64_SATURATE_SELF(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _a, _v))
+
+#define FTD64_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _v))
+
+#define FTD64_RECIPROCAL_U64_SATURATE_SELF(_a, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _a))

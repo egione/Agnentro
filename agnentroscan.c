@@ -81,7 +81,7 @@ agnentroscan_error_print(char *char_list_base){
 }
 
 void
-agnentroscan_mode_text_print(u8 mode, u8 normalized_status){
+agnentroscan_mode_text_print(u16 mode, u8 normalized_status){
   switch(mode){
   case AGNENTROPROX_MODE_AGNENTROPY:
     if(normalized_status){
@@ -90,6 +90,9 @@ agnentroscan_mode_text_print(u8 mode, u8 normalized_status){
       DEBUG_PRINT("agnentropy");
     }
     break;
+  case AGNENTROPROX_MODE_EXOELASTICITY:
+    DEBUG_PRINT("exoelasticity");
+    break;
   case AGNENTROPROX_MODE_EXOENTROPY:
     if(normalized_status){
       DEBUG_PRINT("exocompressivity");
@@ -97,8 +100,14 @@ agnentroscan_mode_text_print(u8 mode, u8 normalized_status){
       DEBUG_PRINT("exoentropy");
     }
     break;
+  case AGNENTROPROX_MODE_JSET:
+    DEBUG_PRINT("(1-(Jensen-Shannon exodivergence))");
+    break;
   case AGNENTROPROX_MODE_KURTOSIS:
     DEBUG_PRINT("obtuse kurtosis");
+    break;
+  case AGNENTROPROX_MODE_LET:
+    DEBUG_PRINT("(1-(Leidich exodivergence))");
     break;
   case AGNENTROPROX_MODE_LOGFREEDOM:
     if(normalized_status){
@@ -215,7 +224,7 @@ main(int argc, char *argv[]){
   u64 match_u8_idx_u64;
   u128 mean_f128;
   u8 merge_status;
-  u8 mode;
+  u16 mode;
   char *mode_text_base;
   u8 normalized_status;
   char *out_filename_base;
@@ -292,7 +301,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("agnentroscan mode haystack geometry sweep ranks [format [dump_delta dump_size\n");
       DEBUG_PRINT("  dump_filename]]\n\n");
       DEBUG_PRINT("where all numerical parameters are decimal unless otherwise stated:\n\n");
-      DEBUG_PRINT("(mode) is the type of entropy to compute in nats (bits times log(2)): \"A\" for\nagnentropy, \"E\" for exoentropy, \"L\" for logfreedom, or \"S\" for Shannon entropy.\nLowercase letters will compute the corresponding inverse normalized quantity,\ni.e. a 64-bit fraction on [0, 1] where greater values correspond to less\nentropy: \"a\" for compressivity, \"e\" for exocompressivity, \"l\" for\ndyspoissonism, or \"s\" for shannonism. Use \"x\" for exoelasticity, which is\ninherently normalized.\n\n");
+      DEBUG_PRINT("(mode) is the type of entropy to compute in nats (bits times log(2)): \"A\" for\nagnentropy, \"E\" for exoentropy, \"L\" for logfreedom, or \"S\" for Shannon entropy.\nLowercase letters will compute the corresponding inverse normalized quantity,\ni.e. a 64-bit fraction on [0, 1] where greater values correspond to less\nentropy: \"a\" for compressivity, \"e\" for exocompressivity, \"l\" for\ndyspoissonism, or \"s\" for shannonism. Use \"j\" for Jensen-Shannon\nexodivergence, \"i\" for Leidich exodivergence, or \"x\" for exoelasticity, all of\nwhich being inherently normalized.\n\n");
       DEBUG_PRINT("(haystack) is the file or folder to analyze. In the latter case, all symlinks\nwill be ignored so that no subfolder will be processed more than once.\n\n");
       DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols.\n\n");
       DEBUG_PRINT("(sweep) is the nonzero number of masks in the sliding haystack window, except\nthat \"h\" means that the window size will equal the haystack size, in which\ncase no sliding can occur. For example, 5 means: a 5-byte window if\n(granularity)=0, a 10-byte window if (granularity)=1 and (overlap)=0, or a\n7-byte window if (granularity)=2 and (overlap)=1. Prefix with \"+\" to treat the\nfirst (sweep) bytes of the file as the entire haystack or \"-\" for the same with\n the last (sweep) masks.\n\n");
@@ -393,6 +402,20 @@ Don't accept ranks larger than we can fit in the address space, considering that
         mode=AGNENTROPROX_MODE_AGNENTROPY;
       }else if(mode=='e'){
         mode=AGNENTROPROX_MODE_EXOENTROPY;
+      }else if(mode=='i'){
+        mode=AGNENTROPROX_MODE_LET;
+/*
+Verify that the user understands that Leidich exodivergence is normalized, but then set normalized_status to zero because it already comes out of the transform normalized, so we don't need to do any further normalization.
+*/
+        status=!normalized_status;
+        normalized_status=0;
+      }else if(mode=='j'){
+        mode=AGNENTROPROX_MODE_JSET;
+/*
+Verify that the user understands that Jensen-Shannon exodivergence is normalized, but then set normalized_status to zero because it already comes out of the transform normalized, so we don't need to do any further normalization.
+*/
+        status=!normalized_status;
+        normalized_status=0;
       }else if(mode=='l'){
         mode=AGNENTROPROX_MODE_LOGFREEDOM;
       }else if(mode=='k'){
@@ -405,14 +428,11 @@ Don't accept ranks larger than we can fit in the address space, considering that
         status=normalized_status;
       }else if(mode=='x'){
         mode=AGNENTROPROX_MODE_EXOELASTICITY;
-/*
-Verify that the user understands that exoelasticity is normalized, but then set normalized_status to zero because it already comes out of the transform normalized, so we don't need to do any further normalization.
-*/
         status=!normalized_status;
         normalized_status=0;
       }else{
         status=1;
-     }
+      }
     }
     if(status){
       agnentroscan_parameter_error_print("mode");
@@ -423,10 +443,21 @@ Verify that the user understands that exoelasticity is normalized, but then set 
       agnentroscan_error_print("(overlap) is nonsensical with kurtosis and variance");
       break;
     }
-    if((sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK)&&(mode==AGNENTROPROX_MODE_EXOENTROPY)&&normalized_status){
-      status=1;
-      agnentroscan_error_print("By definition, exocompressivity in haystack mode is always (1/2)");
-      break;
+    if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
+      if(((mode==AGNENTROPROX_MODE_EXOENTROPY)&&normalized_status)||(mode==AGNENTROPROX_MODE_JSET)||(mode==AGNENTROPROX_MODE_LET)){
+        status=1;
+        DEBUG_PRINT("ERROR: By definition, ");
+        agnentroscan_mode_text_print(mode, normalized_status);
+        DEBUG_PRINT(" in haystack mode is ");
+        if(mode==AGNENTROPROX_MODE_EXOENTROPY){
+          DEBUG_PRINT("always (1/2).\n");
+        }else if(mode==AGNENTROPROX_MODE_JSET){
+          DEBUG_PRINT("undefined.\n");
+        }else if(mode==AGNENTROPROX_MODE_LET){
+          DEBUG_PRINT("always one.\n");
+        }
+        break;
+      }
     }
     cavalier_status=0;
     merge_status=0;

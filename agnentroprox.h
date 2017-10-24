@@ -22,34 +22,33 @@ License version 3 along with the Agnentro Library (filename
 */
 TYPEDEF_START
   fru128 entropy;
-  fru128 haystack_implied_entropy;
-  fru128 haystack_shannon_entropy;
-  fru128 jsd_coeff;
+  fru128 ld_coeff;
   fru128 mask_span_log;
-  fru128 needle_implied_entropy;
-  fru128 needle_shannon_entropy;
-  fru128 normalizer;
   fru128 sum_quartics;
   fru128 sum_squares;
+  u128 haystack_mask_count_recip_half;
+  u128 log2_recip_half;
   u128 mean_f128;
   u128 mean_unsigned;
+  u128 needle_mask_count_recip_half;
   ULONG *freq_list_base0;
   ULONG *freq_list_base1;
-  ULONG *freq_list_base2;
   fru64 *log_delta_list_base;
   u64 *log_delta_parameter_list_base;
   fru64 *log_list_base;
   u64 *log_parameter_list_base;
+  fru128 *log_u128_list_base;
+  u128 *log_u128_parameter_list_base;
   loggamma_t *loggamma_base;
   fru128 *loggamma_list_base;
   u64 *loggamma_parameter_list_base;
   poissocache_t *poissocache_base;
   ULONG log_delta_idx_max;
   ULONG log_idx_max;
+  ULONG log_u128_idx_max;
   ULONG loggamma_idx_max;
   ULONG mask_count0;
   ULONG mask_count1;
-  ULONG mask_count2;
   u32 mask_max;
   u32 mask_sign_mask;
   u8 delta_status;
@@ -65,12 +64,27 @@ TYPEDEF_END(agnentroprox_t)
 
 #define AGNENTROPROX_LOG2_RECIP_HALF_HI 0xB8AA3B295C17F0BBULL
 #define AGNENTROPROX_LOG2_RECIP_HALF_LO 0xBE87FED0691D3E88ULL
-#define AGNENTROPROX_MODE_AGNENTROPY (1U<<0)
-#define AGNENTROPROX_MODE_DIVENTROPY (1U<<1)
-#define AGNENTROPROX_MODE_EXOELASTICITY (1U<<2)
-#define AGNENTROPROX_MODE_EXOENTROPY (1U<<3)
-#define AGNENTROPROX_MODE_JSD (1U<<8)
-#define AGNENTROPROX_MODE_KURTOSIS (1U<<4)
-#define AGNENTROPROX_MODE_LOGFREEDOM (1U<<5)
-#define AGNENTROPROX_MODE_SHANNON (1U<<6)
-#define AGNENTROPROX_MODE_VARIANCE (1U<<7)
+#define AGNENTROPROX_MODE_AGNENTROPY (1U<<AGNENTROPROX_MODE_AGNENTROPY_BIT_IDX)
+#define AGNENTROPROX_MODE_AGNENTROPY_BIT_IDX 0U
+#define AGNENTROPROX_MODE_DIVENTROPY (1U<<AGNENTROPROX_MODE_DIVENTROPY_BIT_IDX)
+#define AGNENTROPROX_MODE_DIVENTROPY_BIT_IDX 1U
+#define AGNENTROPROX_MODE_EXOELASTICITY (1U<<AGNENTROPROX_MODE_EXOELASTICITY_BIT_IDX)
+#define AGNENTROPROX_MODE_EXOELASTICITY_BIT_IDX 2U
+#define AGNENTROPROX_MODE_EXOENTROPY (1U<<AGNENTROPROX_MODE_EXOENTROPY_BIT_IDX)
+#define AGNENTROPROX_MODE_EXOENTROPY_BIT_IDX 3U
+#define AGNENTROPROX_MODE_JSDT (1U<<AGNENTROPROX_MODE_JSDT_BIT_IDX)
+#define AGNENTROPROX_MODE_JSDT_BIT_IDX 8U
+#define AGNENTROPROX_MODE_JSET (1U<<AGNENTROPROX_MODE_JSET_BIT_IDX)
+#define AGNENTROPROX_MODE_JSET_BIT_IDX 9U
+#define AGNENTROPROX_MODE_KURTOSIS (1U<<AGNENTROPROX_MODE_KURTOSIS_BIT_IDX)
+#define AGNENTROPROX_MODE_KURTOSIS_BIT_IDX 4U
+#define AGNENTROPROX_MODE_LDT (1U<<AGNENTROPROX_MODE_LDT_BIT_IDX)
+#define AGNENTROPROX_MODE_LDT_BIT_IDX 10U
+#define AGNENTROPROX_MODE_LET (1U<<AGNENTROPROX_MODE_LET_BIT_IDX)
+#define AGNENTROPROX_MODE_LET_BIT_IDX 11U
+#define AGNENTROPROX_MODE_LOGFREEDOM (1U<<AGNENTROPROX_MODE_LOGFREEDOM_BIT_IDX)
+#define AGNENTROPROX_MODE_LOGFREEDOM_BIT_IDX 5U
+#define AGNENTROPROX_MODE_SHANNON (1U<<AGNENTROPROX_MODE_SHANNON_BIT_IDX)
+#define AGNENTROPROX_MODE_SHANNON_BIT_IDX 6U
+#define AGNENTROPROX_MODE_VARIANCE (1U<<AGNENTROPROX_MODE_VARIANCE_BIT_IDX)
+#define AGNENTROPROX_MODE_VARIANCE_BIT_IDX 7U

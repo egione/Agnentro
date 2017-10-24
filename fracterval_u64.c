@@ -241,6 +241,86 @@ Out:
   return status;
 }
 
+void
+fracterval_u64_from_fractoid_u64_mantissa_u64_product(fru64 *a_base, u64 p, u64 q){
+/*
+Use FRU64_FROM_FTD64_MANTISSA_U64_PRODUCT() instead of calling here directly.
+
+Set a fracterval to the product of a fractoid and a mantissa.
+
+In:
+
+  *a_base is undefined.
+
+  p is the fractoid, which is NOT interchangeable with the mantissa because fractoids have a presumed error of one ULP, whereas mantissas are presumed to have none.
+
+  q is the mantissa.
+
+Out:
+
+  *a_base is ({p}*q) expressed as a fracterval.
+*/
+  fru64 a;
+  #ifdef _64_
+    u128 product0;
+    u128 product1;
+  #else
+    u8 carry;
+    u32 factor0_0;
+    u32 factor0_1;
+    u32 factor1_0;
+    u32 factor1_1;
+    u32 product_lo_or;
+    u64 product0;
+    u64 product1;
+    u64 product2;
+    u64 product3;
+  #endif
+
+  #ifdef _64_
+    product0=(u128)(p)*q;
+    product1=(u128)(p)*q;
+    product1+=q;
+    a.a=(u64)(product0>>64);
+    a.b=(u64)(product1>>64);
+    if((!(u64)(product1))&&q){
+      a.b--;
+    }
+  #else
+    factor0_0=(u32)(p);
+    factor0_1=(u32)(p>>U32_BITS);
+    factor1_0=(u32)(q);
+    factor1_1=(u32)(q>>U32_BITS);
+    product0=(u64)(factor0_0)*factor1_0;
+    product1=(u64)(factor0_1)*factor1_0;
+    a.b=product0+q;
+    product2=(u64)(factor0_0)*factor1_1;
+    carry=(a.b<product0);
+    product_lo_or=(u32)(a.b);
+    a.a=product0>>U32_BITS;
+    a.b>>=U32_BITS;
+    a.a+=product1;
+    a.b+=(u64)(carry)<<U32_BITS;
+    a.a+=product2;
+    a.b+=product1;
+    product3=(u64)(factor0_1)*factor1_1;
+    carry=(a.a<product2);
+    a.b+=product2;
+    a.a>>=U32_BITS;
+    a.a+=(u64)(carry)<<U32_BITS;
+    carry=(a.b<product2);
+    product_lo_or|=(u32)(a.b);
+    a.b>>=U32_BITS;
+    a.a+=product3;
+    a.b+=product3+((u64)(carry)<<U32_BITS);
+    if((!product_lo_or)&&q){
+      a.b--;
+    }
+  #endif
+  *a_base=a;
+  return;
+}
+
 void *
 fracterval_u64_free(void *base){
 /*
@@ -363,7 +443,7 @@ If mantissa1 is zero, it will be treated as 1.0 by fracterval_u64_log_mantissa_d
 If v_plus_1 is zero, then (v==U64_MAX). In this case, the logdelta is on the interval [(2^(-64)), (2^(-64))+(2^(-128))]. But we need to return 6.58, so the result is the zero fracterval, which has already been loaded into logdelta. Otherwise, return (ln 2) shifted appropriately.
 */
       if(v_plus_1){
-        log_delta.a=FRU64_LOG2_FLOOR>>U64_BITS_LOG2;
+        log_delta.a=FTD64_LOG2_FLOOR>>U64_BITS_LOG2;
       }
     }else{
       log_delta.a--;
@@ -565,8 +645,8 @@ Out:
 
   *a_base is log(v) expressed as a 6.58 fixed-point fracterval if v is nonzero, else zero.
 */
-  fru64 log_fractoid;
   fru64 log;
+  fru64 log_fractoid;
   fru64 log2;
   u64 log2_count;
   u64 mantissa;
@@ -584,14 +664,14 @@ mantissa has its high bit set, so fracterval_u64_log_mantissa_u64() is guarantee
 */
     fracterval_u64_log_mantissa_u64(&log_fractoid, mantissa);
     FRU64_SHIFT_RIGHT_SELF(log_fractoid, U64_BITS_LOG2);
-    FRU64_FROM_FTD64(log2, FRU64_LOG2_FLOOR);
+    FRU64_FROM_FTD64(log2, FTD64_LOG2_FLOOR);
     FRU64_SHIFT_RIGHT_SELF(log2, U64_BITS_LOG2);
     log2_count=(u8)(msb+1);
     FRU64_MULTIPLY_U64_SELF(log2, log2_count, status);
     FRU64_SUBTRACT_FRU64(log, log2, log_fractoid, status);
   }else{
     if(v==2){
-      log.a=FRU64_LOG2_FLOOR>>U64_BITS_LOG2;
+      log.a=FTD64_LOG2_FLOOR>>U64_BITS_LOG2;
       log.b=log.a;
     }else{
       FRU64_SET_ZERO(log);
@@ -613,7 +693,7 @@ In:
 
 Out:
 
-  Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined.
+  Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined. This list must be freed via fracterval_u64_free().
 
   *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru64)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u64_free().
 */
@@ -779,7 +859,7 @@ In:
 
 Out:
 
-  *a_base is (p*q).
+  *a_base is (p*{q}) expressed as a fracterval.
 */
   fru64 a;
   #ifdef _64_
@@ -802,8 +882,8 @@ Out:
     product1=(u128)(p.b)*q;
     product1+=p.b;
     product1+=q;
-    a.a=(u64)(product0>>64);
-    a.b=(u64)(product1>>64);
+    a.a=(u64)(product0>>U64_BITS);
+    a.b=(u64)(product1>>U64_BITS);
   #else
     factor0_0=(u32)(p.a);
     factor0_1=(u32)(p.a>>U32_BITS);
@@ -882,7 +962,10 @@ Out:
     product1=(u128)(p.b)*q;
     product1+=q;
     a.a=(u64)(product0>>64);
-    a.b=(u64)(product1>>64)-((!(u64)(product1))&&q);
+    a.b=(u64)(product1>>64);
+    if((!(u64)(product1))&&q){
+      a.b--;
+    }
   #else
     factor0_0=(u32)(p.a);
     factor0_1=(u32)(p.a>>U32_BITS);
@@ -909,9 +992,8 @@ Out:
     product_lo_or=(u32)(a.b);
     a.b>>=U32_BITS;
     a.b+=product1+((u64)(carry)<<U32_BITS);
-    carry=(a.b<product1);
     a.b+=product2;
-    carry=(u8)(carry+(a.b<product2));
+    carry=(a.b<product2);
     product_lo_or|=(u32)(a.b);
     a.b>>=U32_BITS;
     a.b+=product3+((u64)(carry)<<U32_BITS)-((!product_lo_or)&&q);
@@ -1010,7 +1092,7 @@ Out:
 */
   fru64 a;
 
-  FRU64_MULTIPLY_FTD64(a, p, FRU64_LOG2_FLOOR);
+  FRU64_MULTIPLY_FTD64(a, p, FTD64_LOG2_FLOOR);
   *a_base=a;
   return;
 }
@@ -1038,7 +1120,7 @@ Out:
   fru64 log2;
   u8 status;
 
-  log2.a=FRU64_LOG2_FLOOR;
+  log2.a=FTD64_LOG2_FLOOR;
   log2.b=log2.a;
   status=0;
   FRU64_DIVIDE_FRU64(a, p, log2, status);
@@ -1145,6 +1227,59 @@ Out:
   list_size=(u64_idx_max+1)<<U64_SIZE_LOG2;
   memset(u64_list_base, 0, (size_t)(list_size));
   return;
+}
+
+u64
+fractoid_u64_from_mantissa_u64_product(u64 v, u64 w){
+/*
+Use FTD64_FROM_MANTISSA_U64_PRODUCT() instead of calling here directly.
+
+Set a u64 fractoid to the product of 2 u64 mantissas.
+
+In:
+
+  *a_base is undefined.
+
+  v is a mantissa factor.
+
+  w is the other mantissa factor.
+
+Out:
+
+  Returns the minimum value of {v*w} which includes the exact value (v*w).
+*/
+  u128 a;
+  #ifdef _32_
+    u64 a_old;
+    u64 product0;
+  #endif
+  u64 product1;
+
+  #ifdef _64_
+    a=(u128)(v)*w;
+    product1=(u64)(a>>64);
+    if((!(u64)(a))&&product1){
+      product1--;
+    }
+  #else
+    a.a=(u64)((u32)(v))*(u32)(w);
+    a.b=(u64)((u32)(v>>U32_BITS))*(u32)(w>>U32_BITS);
+    product0=(u64)((u32)(v>>U32_BITS))*(u32)(w);
+    product1=(u64)((u32)(v))*(u32)(w>>U32_BITS);
+    a_old=a.a;
+    a.a+=product0<<U32_BITS;
+    a.b+=product0>>U32_BITS;
+    a.b+=(a.a<a_old);
+    a_old=a.a;
+    a.a+=product1<<U32_BITS;
+    a.b+=product1>>U32_BITS;
+    a.b+=(a.a<a_old);
+    if((!a.a)&&a.b){
+      a.b--;
+    }
+    product1=a.b;
+  #endif
+  return product1;
 }
 
 u8
@@ -1302,57 +1437,4 @@ Out:
   }
   *a_base=a;
   return status;
-}
-
-u64
-fractoid_u64_scale_u64(u64 v, u64 w){
-/*
-Use FTD64_SCALE_U64() instead of calling here directly.
-
-Set a u64 fractoid to the product of 2 u64 mantissas.
-
-In:
-
-  *a_base is undefined.
-
-  v is a mantissa factor.
-
-  w is the other mantissa factor.
-
-Out:
-
-  Returns the minimum value of {v*w} which includes the exact value (v*w).
-*/
-  u128 a;
-  #ifdef _32_
-    u64 a_old;
-    u64 product0;
-  #endif
-  u64 product1;
-
-  #ifdef _64_
-    a=(u128)(v)*w;
-    product1=(u64)(a>>64);
-    if((!(u64)(a))&&product1){
-      product1--;
-    }
-  #else
-    a.a=(u64)((u32)(v))*(u32)(w);
-    a.b=(u64)((u32)(v>>U32_BITS))*(u32)(w>>U32_BITS);
-    product0=(u64)((u32)(v>>U32_BITS))*(u32)(w);
-    product1=(u64)((u32)(v))*(u32)(w>>U32_BITS);
-    a_old=a.a;
-    a.a+=product0<<U32_BITS;
-    a.b+=product0>>U32_BITS;
-    a.b+=(a.a<a_old);
-    a_old=a.a;
-    a.a+=product1<<U32_BITS;
-    a.b+=product1>>U32_BITS;
-    a.b+=(a.a<a_old);
-    if((!a.a)&&a.b){
-      a.b--;
-    }
-    product1=a.b;
-  #endif
-  return product1;
 }

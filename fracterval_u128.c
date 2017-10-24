@@ -260,6 +260,164 @@ Out:
   return status;
 }
 
+void
+fracterval_u128_from_fractoid_u128_mantissa_u128_product(fru128 *a_base, u128 p, u128 q){
+/*
+Use FRU128_FROM_FTD128_MANTISSA_U128_PRODUCT() instead of calling here directly.
+
+Set a fracterval to the product of a fractoid and a mantissa.
+
+In:
+
+  *a_base is undefined.
+
+  p is the fractoid, which is NOT interchangeable with the mantissa because fractoids have a presumed error of one ULP, whereas mantissas are presumed to have none.
+
+  q is the mantissa.
+
+Out:
+
+  *a_base is ({p}*q) expressed as a fracterval.
+*/
+  fru128 a;
+  u8 carry;
+  u64 factor0_0;
+  u64 factor0_1;
+  u64 factor1_0;
+  u64 factor1_1;
+  u64 product_lo_or;
+  u128 product0;
+  u128 product1;
+  u128 product2;
+  u128 product3;
+
+  U128_TO_U64_PAIR(factor0_0, factor0_1, p);
+  U128_TO_U64_PAIR(factor1_0, factor1_1, q);
+  U128_FROM_U64_PRODUCT(product0, factor0_0, factor1_0);
+  U128_FROM_U64_PRODUCT(product1, factor0_1, factor1_0);
+  U128_ADD_U128(a.b, product0, q);
+  U128_FROM_U64_PRODUCT(product2, factor0_0, factor1_1);
+  carry=U128_IS_LESS(a.b, product0);
+  U128_TO_U64_LO(product_lo_or, a.b);
+  U128_SHIFT_RIGHT(a.a, U64_BITS, product0);
+  U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
+  U128_ADD_U128_SELF(a.a, product1);
+  U128_ADD_U8_HI_SELF(a.b, carry);
+  U128_ADD_U128_SELF(a.a, product2);
+  U128_ADD_U128_SELF(a.b, product1);
+  U128_FROM_U64_PRODUCT(product3, factor0_1, factor1_1);
+  carry=U128_IS_LESS(a.a, product2);
+  U128_ADD_U128_SELF(a.b, product2);
+  U128_SHIFT_RIGHT_SELF(a.a, U64_BITS);
+  U128_ADD_U8_HI_SELF(a.a, carry);
+  carry=U128_IS_LESS(a.b, product2);
+  U128_TO_OR_U64_LO(product_lo_or, a.b);
+  U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
+  U128_ADD_U128_SELF(a.a, product3);
+  U128_ADD_U8_HI_SELF(a.b, carry);
+  U128_ADD_U128_SELF(a.b, product3);
+  if((!product_lo_or)&&U128_IS_NOT_ZERO(q)){
+    U128_DECREMENT_SELF(a.b);
+  }
+  *a_base=a;
+  return;
+}
+
+void
+fracterval_u128_from_fractoid_u128_mantissa_u64_product(fru128 *a_base, u128 p, u64 v){
+/*
+Use FRU128_FROM_FTD128_MANTISSA_U64_PRODUCT() instead of calling here directly.
+
+Set a fracterval to the product of a fractoid and a mantissa.
+
+In:
+
+  *a_base is undefined.
+
+  p is the fractoid.
+
+  v is the mantissa.
+
+Out:
+
+  *a_base is ({p}*v) expressed as a fracterval.
+*/
+  fru128 a;
+  u64 factor0;
+  u64 factor1;
+  u64 product_u64;
+  u128 product0;
+  u128 product1;
+
+  U128_TO_U64_PAIR(factor0, factor1, p);
+  U128_FROM_U64_PRODUCT(product0, factor0, v);
+  U128_FROM_U64_PRODUCT(product1, factor1, v);
+  U128_TO_U64_HI(product_u64, product0);
+  U128_ADD_U64_LO(a.b, product0, v);
+  U128_ADD_U64_LO(a.a, product1, product_u64);
+  U128_TO_U64_LO(product_u64, a.b);
+  U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
+  U128_ADD_U128_SELF(a.b, product1);
+  if((!product_u64)&&v){
+    U128_DECREMENT_SELF(a.b);
+  }
+  *a_base=a;
+  return;
+}
+
+u8
+fracterval_u128_from_fractoid_u128_u64_product(fru128 *a_base, u128 p, u64 v){
+/*
+Use FRU128_FROM_FTD128_U64_PRODUCT(), or FRU128_FROM_FTD128_NONZERO_U64_PRODUCT() if v is guaranteed to be nonzero, instead of calling here directly.
+
+Set a fracterval to the product of a fractoid and a u64.
+
+In:
+
+  *a_base is undefined.
+
+  p is the fractoid.
+
+  v is the u64.
+
+Out:
+
+  Returns one if ({p}*v) could exceed one, else zero.
+
+  *a_base is ({p}*v) expressed as a fracterval.
+*/
+  fru128 a;
+  u64 factor0;
+  u64 factor1;
+  u64 product_u64;
+  u128 product0;
+  u128 product1;
+  u8 status;
+
+  U128_TO_U64_PAIR(factor0, factor1, p);
+  U128_FROM_U64_PRODUCT(product0, factor0, v);
+  U128_FROM_U64_PRODUCT(product1, factor1, v);
+  U128_TO_U64_LO(product_u64, product1);
+  U128_ADD_U64_HI(a.a, product0, product_u64);
+  if(U128_IS_LESS_EQUAL(product0, a.a)){
+    U128_ADD_U64_LO(a.b, a.a, v);
+    if(U128_IS_LESS_EQUAL(a.a, a.b)){
+      if(v){
+        U128_DECREMENT_SELF(a.b);
+      }
+      status=0;
+    }else{
+      U128_SET_ONES(a.b);
+      status=1;
+    }
+  }else{
+    FRU128_SET_ONES(a);
+    status=1;
+  }
+  *a_base=a;
+  return status;
+}
+
 void *
 fracterval_u128_free(void *base){
 /*
@@ -383,7 +541,7 @@ If mantissa_u128_1 is zero, it will be treated as 1.0 by fracterval_u128_log_man
   }else{
     if(v){
       if(v_plus_1){
-        U128_FROM_U64_PAIR(log_delta.a, FRU128_LOG2_FLOOR_LO, FRU128_LOG2_FLOOR_HI);
+        U128_FROM_U64_PAIR(log_delta.a, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
         U128_SHIFT_RIGHT_SELF(log_delta.a, U64_BITS_LOG2);
       }else{
 /*
@@ -570,6 +728,142 @@ If status is one, it's because underflow occured, which doesn't affect correctne
 }
 
 u8
+fracterval_u128_log_u128(fru128 *a_base, u128 p){
+/*
+Use FRU128_LOG_U128() instead of calling here directly.
+
+Compute the 7.121 fixed-point natural log of a u128.
+
+In:
+
+  *a_base is undefined.
+
+  p is the u128 whose log to compute.
+
+Out:
+
+  Returns one if p is zero, else zero.
+
+  *a_base is log(p) expressed as a 6.121 fixed-point fracterval if v is nonzero, else zero.
+*/
+  fru128 log;
+  fru128 log_fractoid;
+  fru128 log2;
+  u64 log2_count;
+  u128 mantissa;
+  u8 msb;
+  u8 shift;
+  u8 status;
+  u64 v;
+
+  U128_TO_U64_HI(v, p);
+  if(!v){
+    U128_TO_U64_LO(v, p);
+    status=fracterval_u128_log_u64(&log, v);
+    FRU128_SHIFT_RIGHT_SELF(log, 1);
+  }else{
+    BITSCAN_MSB64_SMALL_GET(msb, v);
+    msb=(u8)(msb+U64_BITS);
+    shift=(u8)(U128_BIT_MAX-msb);
+    U128_SHIFT_LEFT(mantissa, shift, p);
+/*
+mantissa has its high bit set, so fracterval_u128_log_mantissa_u128() is guaranteed to return zero status.
+*/
+    status=fracterval_u128_log_mantissa_u128(&log_fractoid, mantissa);
+    FRU128_SHIFT_RIGHT_SELF(log_fractoid, U128_BITS_LOG2);
+    U128_FROM_U64_PAIR(log2.a, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
+    log2.b=log2.a;
+    FRU128_SHIFT_RIGHT_SELF(log2, U128_BITS_LOG2);
+    log2_count=(u8)(msb+1);
+    FRU128_MULTIPLY_U64_SELF(log2, log2_count, status);
+    FRU128_SUBTRACT_FRU128(log, log2, log_fractoid, status);
+  }
+  *a_base=log;
+  return status;
+}
+
+u128 *
+fracterval_u128_log_u128_cache_init(ULONG log_idx_max, fru128 **log_list_base_base){
+/*
+Allocate a cache for saving previous fracterval_u128_log_u128() results.
+
+In:
+
+  log_idx_max is one less than the number of items to allocate in the cache. It must be one less than a power of 2.
+
+Out:
+
+  Returns NULL on failure, else the base of (log_idx_max+1) u128 zeroes, all but the first of which indicating that the corresponding cache entry is undefined. This list must be freed via fracterval_u128_free().
+
+  *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
+*/
+  fru128 *log_list_base;
+  u128 *log_parameter_list_base;
+  fru128 zero;
+
+  log_list_base=fracterval_u128_list_malloc(log_idx_max);
+  log_parameter_list_base=fracterval_u128_u128_list_malloc(log_idx_max);
+  if(UINT_IS_POWER_OF_2_MINUS_1(log_idx_max)&&log_list_base&&log_parameter_list_base){
+    fracterval_u128_u128_list_zero(log_idx_max, log_parameter_list_base);
+    FRU128_SET_ZERO(zero);
+    log_list_base[0]=zero;
+    *log_list_base_base=log_list_base;
+  }else{
+    log_parameter_list_base=fracterval_u128_free(log_parameter_list_base);
+    fracterval_u128_free(log_list_base);
+  }
+  return log_parameter_list_base;
+}
+
+u8
+fracterval_u128_log_u128_cached(fru128 *a_base, ULONG log_idx_max, fru128 *log_list_base, u128 *log_parameter_list_base, u128 p){
+/*
+Use FRU128_LOG_U128_CACHED(), or FRU128_LOG_U128_NONZERO_CACHED() if p is guaranteed to be nonzero, instead of calling here directly.
+
+Deliver cached results from fracterval_u128_log_u128().
+
+In:
+
+  *a_base is undefined.
+
+  log_idx_max is fracterval_u128_log_u128_cache_init():In:log_idx_max.
+
+  log_list_base is fracterval_u128_log_u128_cache_init():Out:*log_list_base_base.
+
+  log_parameter_list_base is the return value of fracterval_u128_log_u128_cache_init().
+
+  p is as defined in fracterval_u128_log_u128().
+
+Out:
+
+  Returns as defined for fracterval_u128_log_u128(a_base, p).
+
+  *a_base is as defined in fracterval_u128_log_u128().
+
+  *log_list_base contains *a_base at index (log_idx_max&v).
+
+  *log_parameter_list_base contains v at index (log_idx_max&v).
+*/
+  fru128 a;
+  ULONG idx;
+  u8 status;
+  u64 v;
+
+  U128_TO_U64_LO(v, p);
+  idx=log_idx_max&(ULONG)(v);
+  if(U128_IS_EQUAL(log_parameter_list_base[idx], p)){
+    a=log_list_base[idx];
+    status=U128_IS_ZERO(p);
+  }else{
+    log_parameter_list_base[idx]=p;
+    status=fracterval_u128_log_u128(&a, p);
+    log_list_base[idx]=a;
+  }
+  *a_base=a;
+  return status;
+}
+
+u8
 fracterval_u128_log_u64(fru128 *a_base, u64 v){
 /*
 Use FRU128_LOG_U64() instead of calling here directly.
@@ -588,8 +882,8 @@ Out:
 
   *a_base is log(v) expressed as a 6.122 fixed-point fracterval if v is nonzero, else zero.
 */
-  fru128 log_fractoid;
   fru128 log;
+  fru128 log_fractoid;
   fru128 log2;
   u64 log2_count;
   u64 mantissa;
@@ -609,7 +903,7 @@ mantissa_u128 has its high bit set, so fracterval_u128_log_mantissa_u128() is gu
 */
     fracterval_u128_log_mantissa_u128(&log_fractoid, mantissa_u128);
     FRU128_SHIFT_RIGHT_SELF(log_fractoid, U64_BITS_LOG2);
-    U128_FROM_U64_PAIR(log2.a, FRU128_LOG2_FLOOR_LO, FRU128_LOG2_FLOOR_HI);
+    U128_FROM_U64_PAIR(log2.a, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
     log2.b=log2.a;
     FRU128_SHIFT_RIGHT_SELF(log2, U64_BITS_LOG2);
     log2_count=(u8)(msb+1);
@@ -617,7 +911,7 @@ mantissa_u128 has its high bit set, so fracterval_u128_log_mantissa_u128() is gu
     FRU128_SUBTRACT_FRU128(log, log2, log_fractoid, status);
   }else{
     if(v==2){
-      U128_FROM_U64_PAIR(log.a, FRU128_LOG2_FLOOR_LO, FRU128_LOG2_FLOOR_HI);
+      U128_FROM_U64_PAIR(log.a, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
       U128_SHIFT_RIGHT_SELF(log.a, U64_BITS_LOG2);
       log.b=log.a;
     }else{
@@ -640,7 +934,7 @@ In:
 
 Out:
 
-  Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined.
+  Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined. This list must be freed via fracterval_u128_free().
 
   *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
 */
@@ -791,7 +1085,7 @@ In:
 
 Out:
 
-  *a_base is (p*q) expressed as a fracterval.
+  *a_base is (p*{q}) expressed as a fracterval.
 */
   fru128 a;
   u8 carry;
@@ -842,7 +1136,7 @@ Out:
 void
 fracterval_u128_multiply_mantissa_u128(fru128 *a_base, fru128 p, u128 q){
 /*
-Use FRU128_MANTISSA_FTD128() instead of calling here directly.
+Use FRU128_MULTIPLY_MANTISSA_FTD128() instead of calling here directly.
 
 Multiply a fracterval by a mantissa.
 
@@ -856,7 +1150,7 @@ In:
 
 Out:
 
-  *a_base is (p*q).
+  *a_base is (p*q) expressed as a fracterval.
 */
   fru128 a;
   u8 carry;
@@ -864,7 +1158,7 @@ Out:
   u64 factor0_1;
   u64 factor1_0;
   u64 factor1_1;
-  u64 product_lo;
+  u64 product_lo_or;
   u128 product0;
   u128 product1;
   u128 product2;
@@ -890,20 +1184,17 @@ Out:
   U128_FROM_U64_PRODUCT(product3, factor0_1, factor1_1);
   U128_ADD_U128(a.b, product0, q);
   carry=U128_IS_LESS(a.b, product0);
-  U128_TO_U64_LO(product_lo, a.b);
+  U128_TO_U64_LO(product_lo_or, a.b);
   U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
   U128_ADD_U8_HI_SELF(a.b, carry);
   U128_ADD_U128_SELF(a.b, product1);
-  carry=U128_IS_LESS(a.b, product1);
   U128_ADD_U128_SELF(a.b, product2);
-  carry=(u8)(carry+U128_IS_LESS(a.b, product2));
-  if(!product_lo){
-    U128_TO_U64_LO(product_lo, a.b);
-  }
+  carry=U128_IS_LESS(a.b, product2);
+  U128_TO_OR_U64_LO(product_lo_or, a.b);
   U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
   U128_ADD_U8_HI_SELF(a.b, carry);
   U128_ADD_U128_SELF(a.b, product3);
-  if((!product_lo)&&U128_IS_NOT_ZERO(q)){
+  if((!product_lo_or)&&U128_IS_NOT_ZERO(q)){
     U128_DECREMENT_SELF(a.b);
   }
   *a_base=a;
@@ -972,7 +1263,7 @@ Out:
   fru128 a;
   u128 log2;
 
-  U128_FROM_U64_PAIR(log2, FRU128_LOG2_FLOOR_LO, FRU128_LOG2_FLOOR_HI);
+  U128_FROM_U64_PAIR(log2, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
   FRU128_MULTIPLY_FTD128(a, p, log2);
   *a_base=a;
   return;
@@ -1001,7 +1292,7 @@ Out:
   fru128 log2;
   u8 status;
 
-  U128_FROM_U64_PAIR(log2.a, FRU128_LOG2_FLOOR_LO, FRU128_LOG2_FLOOR_HI);
+  U128_FROM_U64_PAIR(log2.a, FTD128_LOG2_FLOOR_LO, FTD128_LOG2_FLOOR_HI);
   log2.b=log2.a;
   status=0;
   FRU128_DIVIDE_FRU128(a, p, log2, status);
@@ -1030,13 +1321,13 @@ In:
 
 Out:
 
+  Returns zero if the insertion was successful, else one if p didn't qualify.
+
   *rank_count_base is updated.
 
   *rank_idx_base is the u128 fracterval index (not the u128 index) at which p was stored.
 
   *threshold_base is updated and has not increased.
-
-  Returns zero if the insertion was successful, else one if p didn't qualify.
 */
   u128 p_mean;
   u128 q_mean;
@@ -1102,13 +1393,13 @@ In:
 
 Out:
 
+  Returns zero if the insertion was successful, else one if p didn't qualify.
+
   *rank_count_base is updated.
 
   *rank_idx_base is the u128 fracterval index (not the u128 index) at which p was stored.
 
   *threshold_base is updated and has not increased.
-
-  Returns zero if the insertion was successful, else one if p didn't qualify.
 */
   u128 p_mean;
   u128 q_mean;
@@ -1189,19 +1480,17 @@ fracterval_u128_root_fractoid_u128(fru128 *a_base, u128 p){
 /*
 Use FRU128_ROOT_FRACTOID_U128() instead of calling here directly.
 
-Set a fracterval to the square root of a u128 fractoid.
+Set a fracterval to the square root of a fractoid.
 
 In:
 
   *a_base is undefined.
 
-  v is the u64 whose reciprocal to compute.
+  p is the fractoid whose square root to compute.
 
 Out:
 
-  Returns one if v is fracterval overflow occurred, else zero.
-
-  *a_base is (p^(1/2)) expressed as a fracterval.
+  *a_base is ({p}^(1/2)) expressed as a fracterval.
 */
   u128 root;
   u128 root_max;
@@ -1214,7 +1503,7 @@ Out:
     U128_SUBTRACT_U128(root, root_max, root_min);
     U128_SHIFT_RIGHT_SELF(root, 1);
     U128_SUBTRACT_FROM_U128_SELF(root, root_max);
-    FTD128_SCALE_U128(square, root, root);
+    FTD128_FROM_MANTISSA_U128_PRODUCT(square, root, root);
     if(U128_IS_LESS(square, p)){
       root_min=root;
     }else{
@@ -1227,7 +1516,7 @@ Out:
     U128_SUBTRACT_U128(root, root_max, root_min);
     U128_SHIFT_RIGHT_SELF(root, 1);
     U128_SUBTRACT_FROM_U128_SELF(root, root_max);
-    FTD128_SCALE_U128(square, root, root);
+    FTD128_FROM_MANTISSA_U128_PRODUCT(square, root, root);
     if(U128_IS_LESS_EQUAL(square, p)){
       root_min=root;
     }else{
@@ -1393,6 +1682,59 @@ Out:
   list_size=(u64_idx_max+1)<<U64_SIZE_LOG2;
   memset(u64_list_base, 0, (size_t)(list_size));
   return;
+}
+
+u128
+fractoid_u128_from_mantissa_u128_product(u128 p, u128 q){
+/*
+Use FTD128_FROM_MANTISSA_U128_PRODUCT() instead of calling here directly.
+
+Set a u128 fractoid to the product of 2 u128 mantissas.
+
+In:
+
+  p is a mantissa factor.
+
+  q is the other mantissa factor.
+
+Out:
+
+  Returns the minimum value of {p*q} which includes the exact value (p*q).
+*/
+  u128 a0;
+  u128 a1;
+  u8 carry;
+  u64 chunk;
+  u64 p0;
+  u64 p1;
+  u64 q0;
+  u64 q1;
+  u128 r;
+
+  U128_TO_U64_LO(p0, p);
+  U128_TO_U64_HI(p1, p);
+  U128_TO_U64_LO(q0, q);
+  U128_TO_U64_HI(q1, q);
+  U128_FROM_U64_PRODUCT(a0, p0, q0);
+  U128_FROM_U64_PRODUCT(a1, p1, q1);
+  U128_FROM_U64_PRODUCT(r, p0, q1);
+  U128_TO_U64_LO(chunk, r);
+  carry=0;
+  U128_ADD_U64_HI_SELF_CHECK(a0, chunk, carry);
+  U128_TO_U64_HI(chunk, r);
+  U128_ADD_U8_SELF(a1, carry);
+  U128_ADD_U64_LO_SELF(a1, chunk);
+  U128_FROM_U64_PRODUCT(r, p1, q0);
+  U128_TO_U64_LO(chunk, r);
+  carry=0;
+  U128_ADD_U64_HI_SELF_CHECK(a0, chunk, carry);
+  U128_TO_U64_HI(chunk, r);
+  U128_ADD_U8_SELF(a1, carry);
+  U128_ADD_U64_LO_SELF(a1, chunk);
+  if(U128_IS_ZERO(a0)){
+    U128_DECREMENT_SATURATE_SELF(a1);
+  }
+  return a1;
 }
 
 u8
@@ -1672,59 +2014,6 @@ Out:
   FTD128_RATIO_U64_SATURATE(a, one, v, status);
   *a_base=a;
   return status;
-}
-
-u128
-fractoid_u128_scale_u128(u128 p, u128 q){
-/*
-Use FTD128_SCALE_U128() instead of calling here directly.
-
-Set a u128 fractoid to the product of 2 u128 mantissas.
-
-In:
-
-  p is a mantissa factor.
-
-  q is the other mantissa factor.
-
-Out:
-
-  Returns the minimum value of {p*q} which includes the exact value (p*q).
-*/
-  u128 a0;
-  u128 a1;
-  u8 carry;
-  u64 chunk;
-  u64 p0;
-  u64 p1;
-  u64 q0;
-  u64 q1;
-  u128 r;
-
-  U128_TO_U64_LO(p0, p);
-  U128_TO_U64_HI(p1, p);
-  U128_TO_U64_LO(q0, q);
-  U128_TO_U64_HI(q1, q);
-  U128_FROM_U64_PRODUCT(a0, p0, q0);
-  U128_FROM_U64_PRODUCT(a1, p1, q1);
-  U128_FROM_U64_PRODUCT(r, p0, q1);
-  U128_TO_U64_LO(chunk, r);
-  carry=0;
-  U128_ADD_U64_HI_SELF_CHECK(a0, chunk, carry);
-  U128_TO_U64_HI(chunk, r);
-  U128_ADD_U8_SELF(a1, carry);
-  U128_ADD_U64_LO_SELF(a1, chunk);
-  U128_FROM_U64_PRODUCT(r, p1, q0);
-  U128_TO_U64_LO(chunk, r);
-  carry=0;
-  U128_ADD_U64_HI_SELF_CHECK(a0, chunk, carry);
-  U128_TO_U64_HI(chunk, r);
-  U128_ADD_U8_SELF(a1, carry);
-  U128_ADD_U64_LO_SELF(a1, chunk);
-  if(U128_IS_ZERO(a0)){
-    U128_DECREMENT_SATURATE_SELF(a1);
-  }
-  return a1;
 }
 
 u8

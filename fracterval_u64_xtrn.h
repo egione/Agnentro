@@ -22,6 +22,7 @@ License version 3 along with the Fracterval U64 Library (filename
 extern u8 fracterval_u64_divide_fracterval_u64(fru64 *a_base, fru64 p, fru64 q);
 extern u8 fracterval_u64_divide_u64(fru64 *a_base, fru64 p, u64 v);
 extern void *fracterval_u64_free(void *base);
+extern void fracterval_u64_from_fractoid_u64_mantissa_u64_product(fru64 *a_base, u64 p, u64 q);
 extern u8 fracterval_u64_init(u32 build_break_count, u32 build_feature_count);
 extern fru64 *fracterval_u64_list_malloc(ULONG fracterval_u64_idx_max);
 extern u8 fracterval_u64_log_delta_u64(fru64 *a_base, u64 v);
@@ -40,6 +41,6 @@ extern u8 fracterval_u64_nats_to_bits(fru64 *a_base, fru64 p);
 extern u8 fracterval_u64_shift_left(fru64 *a_base, u8 b, fru64 p);
 extern u64 *fracterval_u64_u64_list_malloc(ULONG u64_idx_max);
 extern void fracterval_u64_u64_list_zero(ULONG u64_idx_max, u64 *u64_list_base);
+extern u64 fractoid_u64_from_mantissa_u64_product(u64 v, u64 w);
 extern u8 fractoid_u64_ratio_u64_saturate(u64 *a_base, u64 v, u64 w);
 extern u8 fractoid_u64_reciprocal_u64_saturate(u64 *a_base, u64 v);
-extern u64 fractoid_u64_scale_u64(u64 v, u64 w);
