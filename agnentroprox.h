@@ -44,8 +44,10 @@ TYPEDEF_START
   u64 *loggamma_parameter_list_base;
   poissocache_t *poissocache_base;
   ULONG log_delta_idx_max;
+  ULONG log_delta_u128_u64_idx_max;
   ULONG log_idx_max;
   ULONG log_u128_idx_max;
+  ULONG log_u128_u64_idx_max;
   ULONG loggamma_idx_max;
   ULONG mask_count0;
   ULONG mask_count1;
@@ -53,6 +55,7 @@ TYPEDEF_START
   u32 mask_sign_mask;
   u8 delta_status;
   u8 ignored_status;
+  u8 ld_shift;
   u8 mask_max_msb;
   u8 granularity;
   u8 mean_shift;

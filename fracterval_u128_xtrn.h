@@ -41,6 +41,7 @@ extern u8 fracterval_u128_log_u64_cached(fru128 *a_base, ULONG log_idx_max, fru1
 extern void fracterval_u128_multiply_fracterval_u128(fru128 *a_base, fru128 p, fru128 q);
 extern void fracterval_u128_multiply_fractoid_u128(fru128 *a_base, fru128 p, u128 q);
 extern void fracterval_u128_multiply_mantissa_u128(fru128 *a_base, fru128 p, u128 q);
+extern void fracterval_u128_multiply_mantissa_u64(fru128 *a_base, fru128 p, u64 v);
 extern u8 fracterval_u128_multiply_u64(fru128 *a_base, fru128 p, u64 v);
 extern void fracterval_u128_nats_from_bits(fru128 *a_base, fru128 p);
 extern u8 fracterval_u128_nats_to_bits(fru128 *a_base, fru128 p);
