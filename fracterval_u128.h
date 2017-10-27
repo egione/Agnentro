@@ -1398,6 +1398,12 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
 #define FRU128_MULTIPLY_MANTISSA_U128_SELF(_a, _p) \
   fracterval_u128_multiply_mantissa_u128(&_a, _a, _p)
 
+#define FRU128_MULTIPLY_MANTISSA_U64(_a, _p, _v) \
+  fracterval_u128_multiply_mantissa_u64(&_a, _p, _v)
+
+#define FRU128_MULTIPLY_MANTISSA_U64_SELF(_a, _v) \
+  fracterval_u128_multiply_mantissa_u64(&_a, _a, _v)
+
 #define FRU128_MULTIPLY_U64(_a, _p, _v, _z) \
   _z=(u8)(_z|fracterval_u128_multiply_u64(&_a, _p, _v))
 

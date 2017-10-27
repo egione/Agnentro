@@ -817,6 +817,7 @@ Out:
   u8 granularity;
   u8 ignored_status;
   fru128 ld_coeff;
+  u8 ld_shift;
   u128 log2_recip_half;
   fru64 log;
   ULONG log_delta_idx_max;
@@ -1135,39 +1136,37 @@ Compute (1-(normalized Leidich exodivergence)) delta according to the method des
         exo_freq=freq_list_base1[mask];
         exo_freq_old=freq_list_base1[mask_old];
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exo_freq));
-        FRU128_FROM_FRU64_LO(term_u128_plus, log);
+        FRU128_ADD_FRU64_LO_SELF(entropy, log, overflow_status);
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
-        FRU128_ADD_FRU64_LO_SELF(term_u128_plus, log, ignored_status);
+        FRU128_ADD_FRU64_LO_SELF(entropy, log, overflow_status);
         exo_freq--;
         if(exo_freq){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exo_freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(term_u128, log, (u64)(exo_freq));
-          FRU128_ADD_FRU128_SELF(term_u128_plus, term_u128, ignored_status);
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(exo_freq));
+          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
         }
+        freq_list_base1[mask]=exo_freq;
         if(freq_old_minus_1){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old_minus_1));
-          FRU128_FROM_FRU64_MULTIPLY_U64(term_u128, log, (u64)(freq_old_minus_1));
-          FRU128_ADD_FRU128_SELF(term_u128_plus, term_u128, ignored_status);
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(freq_old_minus_1));
+          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
         }
-        FRU128_SET_ZERO(term_u128_minus);
         if(exo_freq_old){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exo_freq_old));
-          FRU128_FROM_FRU64_MULTIPLY_U64(term_u128_minus, log, (u64)(exo_freq_old));
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(exo_freq_old));
+          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
         }
         if(freq){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
-          FRU128_FROM_FRU64_MULTIPLY_U64(term_u128, log, (u64)(freq));
-          FRU128_ADD_FRU128_SELF(term_u128_minus, term_u128, ignored_status);
+          FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(freq));
+          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
         }
         exo_freq_old++;
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exo_freq_old));
-        FRU128_ADD_FRU64_LO_SELF(term_u128_minus, log, ignored_status);
-        FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
-        FRU128_ADD_FRU64_LO_SELF(term_u128_minus, log, ignored_status);
-        FRU128_ADD_FRU128_SELF(entropy, term_u128_plus, overflow_status);
-        FRU128_SUBTRACT_FRU128_SELF(entropy, term_u128_minus, ignored_status);
-        freq_list_base1[mask]=exo_freq;
         freq_list_base1[mask_old]=exo_freq_old;
+        FRU128_SUBTRACT_FRU64_LO_SELF(entropy, log, ignored_status);
+        FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_plus_1));
+        FRU128_SUBTRACT_FRU64_LO_SELF(entropy, log, ignored_status);
         break;
       case AGNENTROPROX_MODE_EXOENTROPY_BIT_IDX:
         exo_freq=freq_list_base1[mask];
@@ -1414,14 +1413,15 @@ These finalization operations are the same as in agnentroprox_jsd_get(), but for
     }while(match_idx!=match_count);
   }else if(mode_bit_idx==AGNENTROPROX_MODE_LET_BIT_IDX){
     ld_coeff=agnentroprox_base->ld_coeff;
+    ld_shift=agnentroprox_base->ld_shift;
     do{      
       entropy=entropy_list_base[match_idx];
 /*
 These finalization operations are the same as in agnentroprox_ld_get().
 */
-      FRU128_SHIFT_LEFT_SELF(entropy, U64_BITS_LOG2-1, ignored_status);
+      FRU128_SHIFT_LEFT_SELF(entropy, ld_shift, ignored_status);
       FRU128_MULTIPLY_FRU128_SELF(entropy, ld_coeff);
-      FRU128_SHIFT_LEFT_SELF(entropy, U64_BITS+2, ignored_status);
+      FRU128_SHIFT_LEFT_SELF(entropy, 2, ignored_status);
       entropy_list_base[match_idx]=entropy;
       match_idx++;
     }while(match_idx!=match_count);
@@ -2414,10 +2414,12 @@ Out:
   u128 log2_recip_half;
   u32 mask;
   u64 mask_count;
+  u64 mask_count_numerator;
   u32 mask_max;
   ULONG needle_freq;
   ULONG *needle_freq_list_base;
   ULONG needle_mask_count;
+  u8 shift;
   fru128 term;
 /*
 In this function, we ignore returned overflow status (via ignored_status) because the LD is naturally on [0, 1], so saturation already does the right thing.
@@ -2441,7 +2443,18 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
 Compute (1-(normalized Leidich divergence)) according to the method described for LD(N, S, Z) in http://vixra.org/abs/1710.0261 .
 */
   mask_count=(u64)(haystack_mask_count)+needle_mask_count;
-  FRU128_RECIPROCAL_U64_SATURATE(coeff, mask_count, ignored_status);
+  shift=2;
+  while((1ULL<<shift)<=mask_count){
+    shift++;
+  }
+  shift--;
+  mask_count_numerator=1ULL<<shift;
+/*
+The most we can shift to the left without overflow is (U64_BIT_MAX+U64_BITS_LOG2-shift). The U64_BITS_LOG2 comes from the fact that all the logs we compute are 6.58 fixed-point, and we're ultimately looking to produce a fracterval result of the form 0.128. The conversion from fru64 logs to a fru128 result actually requires a left shift by (U64_BITS-shift), not (U64_BIT_MAX-shift), but the former could cause overflow due to interval uncertainty, and we're better off not dealing with the complexities of saturation, even though they would produce the correct result. So this means that we need to shift left by one at the last step. But then coeff will be multiplied by log2_recip_half, when it should really be multiplied by twice that value. So in total, we'll need to shift left by 2 at the last step.
+*/
+  shift=(u8)(U64_BIT_MAX+U64_BITS_LOG2-shift);
+  agnentroprox_base->ld_shift=shift;
+  FRU128_RATIO_U64_SATURATE(coeff, mask_count_numerator, mask_count, ignored_status);
   log2_recip_half=agnentroprox_base->log2_recip_half;
   FRU128_MULTIPLY_FTD128_SELF(coeff, log2_recip_half);
   agnentroprox_base->ld_coeff=coeff;
@@ -2472,11 +2485,11 @@ Compute (1-(normalized Leidich divergence)) according to the method described fo
   FRU128_SUBTRACT_FRU128(ld, ld_plus, ld_minus, ignored_status);
   agnentroprox_base->entropy=ld;
 /*
-Everything has been shifted right by U64_BITS_LOG2 due to logs being 6.58 fixed-point, so compensate we need to shift ld left by U64_BITS_LOG2. However, the maximum frequency is (2^58) (because that's the largest number of (u64)s which can be allocated while still being bitwise addressable via a u64). But we're adding 2 frequencies together. So the maximum value of ld_minus and ld_plus is something less than (2^(58+1)). So this leaves only (U64_BITS_LOG2-1) bits to spare before possible overflow. After doing so, we need to multiply by coeff for the sake of normalization. But coeff is half its actual value in the LD, so in total we need to shift left by an additional 2 bits. But then shift left by _another_ U64_BITS so that we shift the normalized entropy fraction into the top half of ld, which a fru128.
+See the comments above about why shift is what it is, and why we need the extra shift by 2.
 */
-  FRU128_SHIFT_LEFT_SELF(ld, U64_BITS_LOG2-1, ignored_status);
+  FRU128_SHIFT_LEFT_SELF(ld, shift, ignored_status);
   FRU128_MULTIPLY_FRU128_SELF(ld, coeff);
-  FRU128_SHIFT_LEFT_SELF(ld, U64_BITS+2, ignored_status);
+  FRU128_SHIFT_LEFT_SELF(ld, 2, ignored_status);
 /*
 Write ignored_status to prevent the compiler from complaining about it not being used.
 */
@@ -2542,6 +2555,7 @@ Out:
   ULONG *needle_freq_list_base;
   ULONG needle_freq_old;
   u8 overlap_status;
+  u8 shift;
   ULONG sweep_freq;
   ULONG *sweep_freq_list_base;
   ULONG sweep_freq_old;
@@ -2682,15 +2696,16 @@ Compute (1-(normalized Leidich divergence)) delta according to the method descri
     }
   }
   coeff=agnentroprox_base->ld_coeff;
+  shift=agnentroprox_base->ld_shift;
   match_idx=0;
   do{      
     ld=ld_list_base[match_idx];
 /*
 These finalization operations are the same as in agnentroprox_ld_get().
 */
-    FRU128_SHIFT_LEFT_SELF(ld, U64_BITS_LOG2-1, ignored_status);
+    FRU128_SHIFT_LEFT_SELF(ld, shift, ignored_status);
     FRU128_MULTIPLY_FRU128_SELF(ld, coeff);
-    FRU128_SHIFT_LEFT_SELF(ld, U64_BITS+2, ignored_status);
+    FRU128_SHIFT_LEFT_SELF(ld, 2, ignored_status);
     ld_list_base[match_idx]=ld;
     match_idx++;
   }while(match_idx!=match_count);

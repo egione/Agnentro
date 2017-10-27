@@ -1136,7 +1136,7 @@ Out:
 void
 fracterval_u128_multiply_mantissa_u128(fru128 *a_base, fru128 p, u128 q){
 /*
-Use FRU128_MULTIPLY_MANTISSA_FTD128() instead of calling here directly.
+Use FRU128_MULTIPLY_MANTISSA_U128() instead of calling here directly.
 
 Multiply a fracterval by a mantissa.
 
@@ -1195,6 +1195,52 @@ Out:
   U128_ADD_U8_HI_SELF(a.b, carry);
   U128_ADD_U128_SELF(a.b, product3);
   if((!product_lo_or)&&U128_IS_NOT_ZERO(q)){
+    U128_DECREMENT_SELF(a.b);
+  }
+  *a_base=a;
+  return;
+}
+
+void
+fracterval_u128_multiply_mantissa_u64(fru128 *a_base, fru128 p, u64 v){
+/*
+Use FRU128_MULTIPLY_MANTISSA_U64() instead of calling here directly.
+
+Multiply a fracterval by a mantissa.
+
+In:
+
+  *a_base is undefined.
+
+  p is the fracterval.
+
+  v is the mantissa. Unlike a fractoid which has an uncertainty of one ULP, a mantissa is assumed to have no uncertainty.
+
+Out:
+
+  *a_base is (p*v) expressed as a fracterval.
+*/
+  fru128 a;
+  u64 factor0;
+  u64 factor1;
+  u64 product_lo;
+  u128 product0;
+  u128 product1;
+
+  U128_TO_U64_PAIR(factor0, factor1, p.a);
+  U128_FROM_U64_PRODUCT(product0, factor0, v);
+  U128_FROM_U64_PRODUCT(product1, factor1, v);
+  a.a=product0;
+  U128_SHIFT_RIGHT_SELF(a.a, U64_BITS);
+  U128_ADD_U128_SELF(a.a, product1);
+  U128_TO_U64_PAIR(factor0, factor1, p.b);
+  U128_FROM_U64_PRODUCT(product0, factor0, v);
+  U128_FROM_U64_PRODUCT(product1, factor1, v);
+  U128_ADD_U64_LO(a.b, product0, v);
+  U128_TO_U64_LO(product_lo, a.b);
+  U128_SHIFT_RIGHT_SELF(a.b, U64_BITS);
+  U128_ADD_U128_SELF(a.b, product1);
+  if((!product_lo)&&v){
     U128_DECREMENT_SELF(a.b);
   }
   *a_base=a;
