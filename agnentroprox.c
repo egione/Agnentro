@@ -1752,7 +1752,7 @@ Out:
 }
 
 agnentroprox_t *
-agnentroprox_init(u32 build_break_count, u32 build_feature_count, u8 granularity, loggamma_t *loggamma_base, ULONG mask_idx_max_max, u32 mask_max, u16 mode_bitmap, u8 overlap_status, ULONG sweep_mask_idx_max_max){
+agnentroprox_init(u32 build_break_count, u32 build_feature_count, u8 granularity, loggamma_t *loggamma_base, ULONG mask_idx_max_max, u32 mask_max_max, u16 mode_bitmap, u8 overlap_status, ULONG sweep_mask_idx_max_max){
 /*
 Verify that the source code is sufficiently updated and initialize private storage.
 
@@ -1768,7 +1768,7 @@ In:
 
   mask_idx_max_max is the maximum possible number of masks that could possibly occur within a haystack, less one. If overlap_status is set, then this value should be the maximum possible size of a haystack (in bytes, not masks), less (granularity+1). See also agnentroprox_mask_idx_max_get().
 
-  mask_max is the maximum possible mask, which must not exeed (((granularity+1)<<U8_BITS_LOG2)-1). For example, when dealing with bytes, this would be U8_MAX. Due to implied allocation requirements, only compiling with (-D_64_) will allow the full u32 range. The limits on it are tricky to compute so this function tests them explicitly. Zero is tested for and disallowed because it creates more trouble than it's worth. For AGNENTROPROX_MODE_KURTOSIS and AGNENTROPROX_MODE_VARIANCE, this value must be one ones less than a power of 2, due to assumptions about where signed and unsigned masks are centered.
+  mask_max_max is the maximum possible mask, which must not exeed (((granularity+1)<<U8_BITS_LOG2)-1). For example, when dealing with bytes, this would be U8_MAX. Due to implied allocation requirements, only compiling with (-D_64_) will allow the full u32 range. The limits on it are tricky to compute so this function tests them explicitly. Zero is tested for and disallowed because it creates more trouble than it's worth. For AGNENTROPROX_MODE_KURTOSIS and AGNENTROPROX_MODE_VARIANCE, this value must be one ones less than a power of 2, due to assumptions about where signed and unsigned masks are centered. The reason that this is mask_max_max and not mask_max is that agnentroprox_mask_list_densify() may result in mask_max to being less than mask_max_max for a given mask list. If densification is not desired, then this value is equivalent to the usual mask_max.
 
   mode_bitmap is the OR of (AGNENTROPROX_MODE)s which express the caller's intended target services. If the caller breaks the promise, results will still be correct, but computed more slowly due to suboptimal math cache configuration.
 
@@ -1818,17 +1818,17 @@ Out:
   status=(u8)(status|fracterval_u64_init(FRU64_BUILD_BREAK_COUNT_EXPECTED, 0));
   status=(u8)(status|(AGNENTROPROX_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|(build_break_count!=AGNENTROPROX_BUILD_BREAK_COUNT));
-  status=(u8)(status|(!mask_max));
+  status=(u8)(status|(!mask_max_max));
   mask_count_max_max=mask_idx_max_max+1;
   status=(u8)(status|(!mask_count_max_max));
-  mask_span=(u64)(mask_max)+1;
+  mask_span=(u64)(mask_max_max)+1;
   mask_count_plus_span_max_max=(ULONG)(mask_count_max_max+mask_span);
   status=(u8)(status|(mask_count_plus_span_max_max<=mask_span));
   status=(u8)(status|(U32_BYTE_MAX<granularity));
   granularity=(u8)(granularity&U32_BYTE_MAX);
-  status=(u8)(status|((u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1)<mask_max));
+  status=(u8)(status|((u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1)<mask_max_max));
   status=(u8)(status|(mask_idx_max_max<sweep_mask_idx_max_max));
-  mask_span_power_of_2_status=!(mask_max&(mask_max+1));
+  mask_span_power_of_2_status=!(mask_max_max&(mask_max_max+1));
   if(mode_bitmap&(AGNENTROPROX_MODE_KURTOSIS|AGNENTROPROX_MODE_VARIANCE)){
     status=(u8)(status|(!mask_span_power_of_2_status)|overlap_status);
   }
@@ -1837,17 +1837,17 @@ For logfreedom computation, we need a list of pairs (frequency, population) whic
 
   (mask_idx_max_max+1)<=((((N-2)*((N-2)+1))>>1)+(N-2))
 
-Technically, we should use sweep_mask_idx_max_max instead of mask_idx_max_max, but the former is defined on In to be speculative, so it wouldn't be safe to do so. This is acceptable because N merely scales are the root of the latter. Furthermore, (N-2) need not exceed mask_max because at most (mask_max+1) unique masks cannot possibly give rise to more than equally many unique frequencies of nonzero population (but we could still temporarily overrun by 2). So N can be clipped to any value small enough such that:
+Technically, we should use sweep_mask_idx_max_max instead of mask_idx_max_max, but the former is defined on In to be speculative, so it wouldn't be safe to do so. This is acceptable because N merely scales are the root of the latter. Furthermore, (N-2) need not exceed mask_max_max because at most (mask_max_max+1) unique masks cannot possibly give rise to more than equally many unique frequencies of nonzero population (but we could still temporarily overrun by 2). So N can be clipped to any value small enough such that:
 
-  (mask_max+1)<=(N-2)
-  mask_max<(N-2)
+  (mask_max_max+1)<=(N-2)
+  mask_max_max<(N-2)
 
 And finally, it's good enough to find N which is one less than a power of 2, which is simple and fast. In fact, this is required for the correct operation of Poissocache, as well as all the result caches which inherit poissocache_item_idx_max as their maximum index.
 */
   n=U32_MAX;
   do{
     n_minus_2=n-2;
-    if((n_minus_2<=mask_max)&&((((((u64)(n_minus_2)+1)*n_minus_2)>>1)+n_minus_2)<(mask_idx_max_max+1))){
+    if((n_minus_2<=mask_max_max)&&((((((u64)(n_minus_2)+1)*n_minus_2)>>1)+n_minus_2)<(mask_idx_max_max+1))){
       break;
     }
     n>>=1;
@@ -1865,22 +1865,23 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
     agnentroprox_base=DEBUG_CALLOC_PARANOID((ULONG)(sizeof(agnentroprox_t)));
     if(agnentroprox_base){
       msb=U32_BIT_MAX;
-      while(!(mask_max>>msb)){
+      while(!(mask_max_max>>msb)){
         msb--;
       }
-      mask_sign_mask=(u32)(1U<<msb);
+      mask_sign_mask=1U<<msb;
       mean_shift=(u8)(U128_BIT_MAX-msb);
       agnentroprox_base->loggamma_base=loggamma_base;
-      agnentroprox_base->mask_max=mask_max;
+      agnentroprox_base->mask_max=mask_max_max;
+      agnentroprox_base->mask_max_max=mask_max_max;
       agnentroprox_base->mask_max_msb=msb;
       agnentroprox_base->mask_sign_mask=mask_sign_mask;
       agnentroprox_base->granularity=granularity;
       agnentroprox_base->mean_shift=mean_shift;
       agnentroprox_base->overlap_status=overlap_status;
-      freq_list_base0=agnentroprox_ulong_list_malloc((ULONG)(mask_max));
+      freq_list_base0=agnentroprox_ulong_list_malloc((ULONG)(mask_max_max));
       status=(u8)(status|!freq_list_base0);
       agnentroprox_base->freq_list_base0=freq_list_base0;
-      freq_list_base1=agnentroprox_ulong_list_malloc((ULONG)(mask_max));
+      freq_list_base1=agnentroprox_ulong_list_malloc((ULONG)(mask_max_max));
       status=(u8)(status|!freq_list_base1);
       agnentroprox_base->freq_list_base1=freq_list_base1;
       poissocache_base=poissocache_init(POISSOCACHE_BUILD_BREAK_COUNT_EXPECTED, 0, poissocache_item_idx_max);
@@ -1888,11 +1889,17 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
       agnentroprox_base->poissocache_base=poissocache_base;
       if(!status){
 /*
-Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the maximum reasonable expectation of the number of unique results we would need to recall at any given time, which is essentially poissocache_item_idx_max, then back off exponentially until we succeed. cache_idx_max will be one less than this value. We must set it to one less than a power of 2 because the cache functions will use it as an index AND mask.
+Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the maximum reasonable expectation of the number of unique results we would need to recall at any given time, which is essentially the greater of poissocache_item_idx_max and sweep_mask_idx_max_max, then back off exponentially until we succeed. cache_idx_max will be one less than this value. We must set it to one less than a power of 2 because the cache functions will use it as an index AND mask.
 
 Caches which are not required shall have single-item allocations just to satisfy accessability expectations.
 */
-        cache_idx_max=poissocache_item_idx_max;
+        cache_idx_max=MAX(poissocache_item_idx_max, sweep_mask_idx_max_max);
+        cache_idx_max|=1;
+        msb=U32_BIT_MAX;
+        while(!(cache_idx_max>>msb)){
+          msb--;
+        }
+        cache_idx_max=(ULONG)((2ULL<<msb)-1);
         log_idx_max=0;
         log_delta_idx_max=0;
         log_u128_idx_max=0;
@@ -1942,9 +1949,9 @@ Due to the way that the Jensen-Shannon divergence works, we end up taking the lo
             agnentroprox_base->loggamma_list_base=loggamma_list_base;
             agnentroprox_base->loggamma_parameter_list_base=loggamma_parameter_list_base;
 /*
-Precompute a fracterval giving the log(mask_max+1), which is used to compute raw entropy.
+Precompute a fracterval giving the log(mask_max_max+1), which is used to compute raw entropy.
 */
-            FRU128_LOG_U64(mask_span_log, (u64)(mask_span), overflow_status);
+            FRU128_LOG_U64(mask_span_log, mask_span, overflow_status);
 /*
 Convert from 6.122 to 6.64 fixed-point.
 */
@@ -1974,8 +1981,8 @@ Shrink one of the caches by a factor of 2, ordered so as to cause minimal perfor
         }while(log_delta_idx_max|log_idx_max|loggamma_idx_max);
       }
       if(!status){
-        agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base0);
-        agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base1);
+        agnentroprox_ulong_list_zero((ULONG)(mask_max_max), freq_list_base0);
+        agnentroprox_ulong_list_zero((ULONG)(mask_max_max), freq_list_base1);
       }else{
         agnentroprox_base=agnentroprox_free_all(agnentroprox_base);
       }
@@ -2826,92 +2833,6 @@ Out:
   return;
 }
 
-void
-agnentroprox_mask_list_deltafy(u8 channel_status, u8 delta_status, u8 granularity, ULONG mask_idx_max, u8 *mask_list_base){
-/*
-Perform reversible sample (un)differencing on a mask list in order to enhance signal detection or comparison.
-
-In:
-
-  channel_status is zero if each mask is a unified integer, else one if each mask consists of (granularity+1) parallel byte channels. For example, this value should be one for pixels consisting of red, green, and blue bytes.
-
-  delta_status is one if and only if *mask_list_base should be the first delta of its original state. If the latter is {A, B, C...}, then its first delta is {A, (B-A), (C-B)...}, ANDed with ((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1). Otherwise zero to reverse the process.
-
-  granularity is the agnentroprox_init():In:granularity, or will be if agnentroprox_init() has not yet been called. On [0, U32_BYTE_MAX].
-
-  mask_idx_max is one less than the number of masks of size (granularity+1) at *mask_list_base, regardless of agnentroprox_init():In:overlap_status.
-
-  *mask_list_base is the mask list.
-
-Out:
-
-  *mask_list_base is as described in In:delta_status.
-*/
-  u32 mask;
-  u32 mask_max;
-  u32 mask_old;
-  u8 mask_u8;
-  ULONG u8_idx;
-  u32 u8_idx_delta;
-  ULONG u8_idx_max;
-
-  mask_max=(1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1;
-  mask_old=0;
-  u8_idx=0;
-  u8_idx_delta=(u8)(granularity+1);
-  u8_idx_max=mask_idx_max*u8_idx_delta;
-  do{
-    mask=mask_list_base[u8_idx];
-    if(granularity){
-      mask_u8=mask_list_base[u8_idx+U16_BYTE_MAX];
-      mask|=(u32)(mask_u8)<<U8_BITS;
-      if(U16_BYTE_MAX<granularity){
-        mask_u8=mask_list_base[u8_idx+U24_BYTE_MAX];
-        mask|=(u32)(mask_u8)<<U16_BITS;
-        if(U24_BYTE_MAX<granularity){
-          mask_u8=mask_list_base[u8_idx+U32_BYTE_MAX];
-          mask|=(u32)(mask_u8)<<U24_BITS;
-        }
-      }
-    }
-    if(delta_status){
-      if(!channel_status){
-        mask-=mask_old;
-        mask_old+=mask;
-        mask&=mask_max;
-      }else{
-        mask=(((mask>>U24_BITS)-(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)-(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)-(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask-mask_old);
-        mask_old=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
-      }
-    }else{
-      if(!channel_status){
-        mask+=mask_old;
-        mask_old=mask;
-        mask&=mask_max;
-      }else{
-        mask=(((mask>>U24_BITS)+(mask_old>>U24_BITS))<<U24_BITS)|((u32)((u8)((mask>>U16_BITS)+(mask_old>>U16_BITS)))<<U16_BITS)|((u32)((u8)((mask>>U8_BITS)+(mask_old>>U8_BITS)))<<U8_BITS)|(u8)(mask+mask_old);
-        mask_old=mask;
-      }
-    }
-    mask_u8=(u8)(mask);
-    mask_list_base[u8_idx]=mask_u8;
-    if(granularity){
-      mask_u8=(u8)(mask>>U8_BITS);
-      mask_list_base[u8_idx+U16_BYTE_MAX]=mask_u8;
-      if(U16_BYTE_MAX<granularity){
-        mask_u8=(u8)(mask>>U16_BITS);
-        mask_list_base[u8_idx+U24_BYTE_MAX]=mask_u8;
-        if(U24_BYTE_MAX<granularity){
-          mask_u8=(u8)(mask>>U24_BITS);
-          mask_list_base[u8_idx+U32_BYTE_MAX]=mask_u8;
-        }
-      }
-    }
-    u8_idx+=u8_idx_delta;
-  }while(u8_idx<=u8_idx_max);
-  return;
-}
-
 u8 *
 agnentroprox_mask_list_malloc(u8 granularity, ULONG mask_idx_max, u8 overlap_status){
 /*
@@ -2976,6 +2897,8 @@ In:
   *sign_status_base is undefined.
 
 Out:
+
+  The effect of any previous call to agnentroprox_needle_mask_list_load() has been destroyed.
 
   The internal representation of the mean is stored at maximum accuracy, as required for interval math validity. A 64.64 fixed-point approximation is returned for display.
 
@@ -3228,6 +3151,63 @@ Out:
   }else{
     agnentroprox_base->mask_count1-=mask_count;
   }
+  return;
+}
+
+void
+agnentroprox_mask_max_reset(agnentroprox_t *agnentroprox_base){
+/*
+Restore mask_max to its default value of mask_max_max.
+
+In:
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+Out:
+
+  The next call to agnentroprox_entropy_delta_get() must have (new_status=1).
+*/
+  agnentroprox_mask_max_set(agnentroprox_base, agnentroprox_base->mask_max_max);
+  return;
+}
+
+void
+agnentroprox_mask_max_set(agnentroprox_t *agnentroprox_base, u32 mask_max){
+/*
+Don't call this dangerous function unless you're able to abide by the constraints given in Out. It sets a custom mask_max pursuant to mask span reduction.
+
+In:
+
+  Usually this function will be called pursuant to maskops_densify() in order to exploit the mask span reduction which it affords.
+
+  In:
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  mask_max is at least the maximum mask value which could be encountered until the next time this function is called. If zero, it will be internally converted to one in order to meet the requirements of agnentroprox_init(). The whole point is to increase the speed and sensistivity of various entropy transforms. However, these goals may or may not be realized because, for example, the speed and accuracy of the log function improves as the parameter increases.
+
+Out:
+
+  agnentroprox_entropy_delta_get() must be called with (new_status=1) each time this function changes mask_max. Neither that function nor agnentroprox_entropy_transform(), may be called for kurtosis (AGNENTROPROX_MODE_KURTOSIS) or variance (AGNENTROPROX_MODE_VARIANCE) modes. agnentroprox_mask_list_mean_get() may not be called at all. These constraints will be removed by to calling agnentroprox_mask_max_reset().
+*/
+  u8 ignored_status;
+  u64 mask_span;
+  fru128 mask_span_log;
+
+  mask_max+=!mask_max;
+  mask_span=(u64)(mask_max)+1;
+  agnentroprox_base->mask_max=mask_max;
+/*
+Update mask_span_log in a manner consistent with agnentroprox_init().
+*/
+  ignored_status=0;
+  FRU128_LOG_U64(mask_span_log, mask_span, ignored_status);
+  FRU128_SHIFT_RIGHT_SELF(mask_span_log, 122-64);
+  agnentroprox_base->ignored_status=ignored_status;
+  agnentroprox_base->mask_span_log=mask_span_log;
+/*
+Unless mask_max equals agnentroprox_init():In:mask_max_max, agnentroprox_base->mask_sign_mask, agnentroprox_base->mask_max_msb, agnentroprox_base->mean_shift, agnentroprox_base->mean_unsigned, and agnentroprox_base->sign_status are now inconsistent with mask_max, hence the postexit constraints on the caller.
+*/
   return;
 }
 

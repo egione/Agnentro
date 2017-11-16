@@ -30,6 +30,7 @@ Approximate Binary Search
 #include "flag_fracterval_u64.h"
 #include "flag_fracterval_u128.h"
 #include "flag_loggamma.h"
+#include "flag_maskops.h"
 #include "flag_poissocache.h"
 #include "flag_agnentroprox.h"
 #include "flag_agnentrofind.h"
@@ -43,6 +44,8 @@ Approximate Binary Search
 #include "fracterval_u64.h"
 #include "loggamma.h"
 #include "loggamma_xtrn.h"
+#include "maskops.h"
+#include "maskops_xtrn.h"
 #include "poissocache.h"
 #include "poissocache_xtrn.h"
 #include "agnentroprox.h"
@@ -51,25 +54,33 @@ Approximate Binary Search
 #include "filesys.h"
 #include "filesys_xtrn.h"
 
-#define AGNENTROFIND_GEOMETRY_CHANNELIZE (1U<<AGNENTROFIND_GEOMETRY_CHANNELIZE_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_CHANNELIZE 1U
 #define AGNENTROFIND_GEOMETRY_CHANNELIZE_BIT_IDX 6U
-#define AGNENTROFIND_GEOMETRY_DELTAS (3U<<AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_DELTAS 3U
 #define AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX 4U
-#define AGNENTROFIND_GEOMETRY_GRANULARITY (3U<<AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_DENSIFY 1U
+#define AGNENTROFIND_GEOMETRY_DENSIFY_BIT_IDX 2U
+#define AGNENTROFIND_GEOMETRY_GRANULARITY 3U
 #define AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX 0U
-#define AGNENTROFIND_GEOMETRY_MODE (3U<<AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)
-#define AGNENTROFIND_GEOMETRY_MODE_BIT_IDX 2U
-#define AGNENTROFIND_GEOMETRY_OVERLAP (1U<<AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_MODE 3U
+#define AGNENTROFIND_GEOMETRY_MODE_BIT_IDX 8U
+#define AGNENTROFIND_GEOMETRY_MODE_DIVENTROPY 0U
+#define AGNENTROFIND_GEOMETRY_MODE_JSDT 2U
+#define AGNENTROFIND_GEOMETRY_MODE_LDT 1U
+#define AGNENTROFIND_GEOMETRY_MODE_RESERVED 3U
+#define AGNENTROFIND_GEOMETRY_OVERLAP 1U
 #define AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX 7U
-#define AGNENTROFIND_FORMAT_ASCENDING (1U<<AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX)
+#define AGNENTROFIND_GEOMETRY_SURROUNDIFY 1U
+#define AGNENTROFIND_GEOMETRY_SURROUNDIFY_BIT_IDX 3U
+#define AGNENTROFIND_FORMAT_ASCENDING 1U
 #define AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX 1U
-#define AGNENTROFIND_FORMAT_CAVALIER (1U<<AGNENTROFIND_FORMAT_CAVALIER_BIT_IDX)
+#define AGNENTROFIND_FORMAT_CAVALIER 1U
 #define AGNENTROFIND_FORMAT_CAVALIER_BIT_IDX 2U
-#define AGNENTROFIND_FORMAT_MERGE (1U<<AGNENTROFIND_FORMAT_MERGE_BIT_IDX)
+#define AGNENTROFIND_FORMAT_MERGE 1U
 #define AGNENTROFIND_FORMAT_MERGE_BIT_IDX 0U
-#define AGNENTROFIND_FORMAT_PRECISE (1U<<AGNENTROFIND_FORMAT_PRECISE_BIT_IDX)
+#define AGNENTROFIND_FORMAT_PRECISE 1U
 #define AGNENTROFIND_FORMAT_PRECISE_BIT_IDX 4U
-#define AGNENTROFIND_FORMAT_PROGRESS (1U<<AGNENTROFIND_FORMAT_PROGRESS_BIT_IDX)
+#define AGNENTROFIND_FORMAT_PROGRESS 1U
 #define AGNENTROFIND_FORMAT_PROGRESS_BIT_IDX 3U
 #define AGNENTROFIND_SWEEP_STATUS_EXACT 0U
 #define AGNENTROFIND_SWEEP_STATUS_CUSTOM 1U
@@ -118,7 +129,7 @@ main(int argc, char *argv[]){
   u8 delete_status;
   u8 delta_count;
   u8 delta_idx;
-  ULONG deltafy_mask_idx_max;
+  u8 densify_status;
   u8 digit;
   u8 digit_shift;
   u8 direction_status;
@@ -145,9 +156,11 @@ main(int argc, char *argv[]){
   u8 file_status;
   u8 filesys_status;
   u8 granularity;
+  u8 granularity_channelized;
   u8 granularity_status;
   ULONG haystack_file_size;
   ULONG haystack_file_size_max;
+  char *haystack_filename_base;
   ULONG haystack_filename_list_char_idx;
   ULONG haystack_filename_list_char_idx_max;
   ULONG haystack_filename_list_char_idx_new;
@@ -159,11 +172,22 @@ main(int argc, char *argv[]){
   ULONG haystack_filename_size_new;
   ULONG haystack_mask_idx_max;
   ULONG haystack_mask_idx_max_max;
+  ULONG haystack_mask_idx_max_parallel;
+  ULONG haystack_mask_idx_max_parallel_channelized;
   u8 *haystack_mask_list_base;
-  char *haystack_filename_base;
+  u32 haystack_mask_max;
+  u32 haystack_mask_max_finalize;
+  u32 haystack_mask_min;
+  u32 joint_mask_max_densify;
+  u32 joint_mask_max_finalize;
+  u32 joint_mask_max_surroundify;
+  u32 joint_mask_min_densify;
+  u32 joint_mask_min_surroundify;
   loggamma_t *loggamma_base;
   u32 mask_max;
   u8 mask_size;
+  ULONG *maskops_bitmap_base;
+  u32 *maskops_u32_list_base;
   ULONG match_count;
   ULONG match_idx;
   ULONG match_idx_max_max;
@@ -183,8 +207,14 @@ main(int argc, char *argv[]){
   ULONG needle_filename_size;
   ULONG needle_filename_size_minus_1;
   ULONG needle_mask_idx_max;
+  ULONG needle_mask_idx_max_parallel;
+  ULONG needle_mask_idx_max_parallel_channelized;
   u8 *needle_mask_list_base;
+  u32 needle_mask_max;
+  u32 needle_mask_max_finalize;
+  u32 needle_mask_min;
   char needle_prefix;
+  u8 needle_sign_status;
   char *out_filename_base;
   char *out_filename_list_base;
   ULONG out_filename_list_char_idx;
@@ -202,12 +232,14 @@ main(int argc, char *argv[]){
   ULONG rank_idx_max_max;
   ULONG rank_idx_min;
   fru128 *rank_list_base;
+  u8 remask_status;
   u128 score;
   ULONG score_idx;
   fru128 score_packed;
   u128 score_threshold;
   u64 score_u64;
   u8 status;
+  u8 surroundify_status;
   ULONG sweep_mask_idx_max;
   ULONG sweep_mask_idx_max_max;
   ULONG sweep_size;
@@ -221,6 +253,7 @@ main(int argc, char *argv[]){
   status=(u8)(status|fracterval_u128_init(FRU128_BUILD_BREAK_COUNT_EXPECTED, 0));
   loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|!loggamma_base);
+  status=(u8)(status|maskops_init(MASKOPS_BUILD_BREAK_COUNT_EXPECTED, 0));
   agnentroprox_base=NULL;
   case_insensitive_status=0;
   dump_u8_list_base=NULL;
@@ -240,6 +273,8 @@ main(int argc, char *argv[]){
   haystack_filename_idx_list_base=NULL;
   haystack_filename_list_base=NULL;
   haystack_mask_list_base=NULL;
+  maskops_bitmap_base=NULL;
+  maskops_u32_list_base=NULL;
   match_u8_idx_list_base=NULL;
   needle_mask_list_base=NULL;
   out_filename_list_base=NULL;
@@ -259,7 +294,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("where all numerical parameters are decimal unless otherwise stated:\n\n");
       DEBUG_PRINT("(needle) is one of the following: (0) a UTF8 text string prefixed with \"@\", and\nsurrounded by single or double quotes if necessary; (1) a series of hex bytes\nstarting with \"+\", for example \"+5cE2\" which means 5C followed by E2; or (2)\nthe name of a file containing the binary data to find. If you don't know some\nof the bytes in the middle, then fake them as plausibly as possible.\n\n");
       DEBUG_PRINT("(haystack) is the file or folder to search for matches (no wildcard characters).\nIn the latter case, all symlinks will be ignored so that no subfolder will be\nprocessed more than once.\n\n");
-      DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bits 2-3: (mode) tells the type of entropy to use when computing the\n  divergence from the distribution inside the sweep window (the sliding window\n  within a given (haystack) file) to (and perhaps also from) (needle):\n\n    00 for divcompressivity (fast approximation of the Kullback-Leibler\n    divergence).\n\n    01 for (1-(normalized Leidich divergence)) (AKA \"negated LD\") (medium\n    speed, weights distributions by file size).\n\n    10 for (1-(normalized Jensen-Shannon divergence)) (AKA \"negated JSD\")\n    (slowest, cares about distributions, not file sizes).\n\n    11 Reserved.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols.\n\n");
+      DEBUG_PRINT("(geometry) is a hex bitmap which controls mask processing:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bit 2: (densify) Set to enable densification (mask utilization footprint\n  minimization) after deltafication.\n\n  bit 3: (surroundify) After densification, subtract the minimum mask from all\n  masks, so as to make the new minimum 0. Then convert all masks to their\n  surround codes relative to their new maximum.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set. If the mask list size isn't a multiple of\n  ((granularity)+1) bytes, then the remainder bytes will remain unchanged.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols. It only affects search -- not preprocessing.\n\n  bits 8-9: (mode) tells the type of entropy to use when computing the\n  divergence from the distribution inside the sweep window (the sliding window\n  within a given (haystack) file) to (and perhaps also from) (needle):\n\n    00 for divcompressivity (fast approximation of the Kullback-Leibler\n    divergence).\n\n    01 for (1-(normalized Leidich divergence)) (AKA \"negated LD\") (medium\n    speed, weights distributions by file size).\n\n    10 for (1-(normalized Jensen-Shannon divergence)) (AKA \"negated JSD\")\n    (slowest, cares about distributions, not file sizes).\n\n    11 Reserved.\n\n");
       DEBUG_PRINT("(sweep) is the nonzero number of masks in the sliding haystack window, except\nfor the following special cases: \"e\" or \"i\" to find only exact matches or\ncase-insensitive exact matches, respectively; or \"n\" or \"h\" to find approximate\nmatches the same size as (needle) or (haystack), respectively. For example, 5\nmeans: a 5-byte window if (granularity)=0, a 10-byte window if (granularity)=1\nand (overlap)=0, or a 7-byte window if (granularity)=2 and (overlap)=1. Prefix\nwith \"+\" to treat the first (sweep) bytes of the file as the entire haystack\nor \"-\" for the same with the last (sweep) masks.\n\n");
       DEBUG_PRINT("(ranks) is the nonzero number of slots in the list of (best) matches. Matches\nwill be reported as 0-based file offsets or filenames when haystack is a file\nor folder, respectively. In either case, results will be sorted in the order\nimplied by granularity, such that lesser offsets and files encountered earlier\nwill prevail in case of a tie. If (ranks) is prefixed with \"@\", then results\nwill be delivered to the folder or file following that symbol. In this case\nthey will be sorted by sweep window base offset, and not by entropy. Each\nresult will be an 8-byte fracterval mean (center) if (precise) is 0, else a\npair of 16-byte fracterval low and high values if (precise) is 1. In this way,\nit's possible to dump the results of an entire entropy transform. If (haystack)\nis a file in this case, then (ranks) will be treated as a file; otherwise it\nwill be treated as a folder.\n\n");
       DEBUG_PRINT("(format) is a hex bitmap which controls output formatting:\n\n  bit 0: (merge) Prevent the reporting of more than 1 match per sweep. This is\n  useful for filtering because usually many matches occur within the same\n  sweep. In either case, a sweep with global minimum or maximum score will be\n  reported at rank 0. Ignored when (haystack) is a folder.\n\n  bit 1: (ascending) Display worst matches first. Either way, ties will be\n  resolved in favor of lower sweep offsets.\n\n  bit 2: (cavalier) Do not report errors encountered after commencing analysis.\n\n  bit 3: (progress) Make verbose comments about compute progress.\n\n  bit 4: (precise) Set to display entropy values as 64.64 fixed-point hex\n  fractervals. Fractervals are displayed as {(A.B), (C.D)} where (A.B) is the\n  lower bound and (C.D) is (1/(2^64)) less than the upper bound.\n\n");
@@ -345,48 +380,48 @@ Don't accept ranks larger than we can fit in the address space, considering that
       }
     }
     rank_idx_max_max=(ULONG)(parameter-1);
-    status=ascii_hex_to_u64_convert(argv[3], &parameter, U8_MAX);
-    status=(u8)(status&&(parameter&~(AGNENTROFIND_GEOMETRY_CHANNELIZE|AGNENTROFIND_GEOMETRY_DELTAS|AGNENTROFIND_GEOMETRY_GRANULARITY|AGNENTROFIND_GEOMETRY_MODE|AGNENTROFIND_GEOMETRY_OVERLAP)));
+    status=ascii_hex_to_u64_convert(argv[3], &parameter, 0x3FF);
     if(status){
       agnentrofind_parameter_error_print("geometry");
       break;
     }
     cavalier_status=0;
-    channel_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_CHANNELIZE_BIT_IDX)&1);
-    delta_count=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX)&3);
-    granularity=(u8)((parameter>>AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)&3);
+    channel_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_CHANNELIZE_BIT_IDX)&AGNENTROFIND_GEOMETRY_CHANNELIZE);
+    delta_count=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX)&AGNENTROFIND_GEOMETRY_DELTAS);
+    densify_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DENSIFY_BIT_IDX)&AGNENTROFIND_GEOMETRY_DENSIFY);
+    granularity=(u8)((parameter>>AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)&AGNENTROFIND_GEOMETRY_GRANULARITY);
+    surroundify_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_SURROUNDIFY_BIT_IDX)&AGNENTROFIND_GEOMETRY_SURROUNDIFY);
     merge_status=0;
-    mode=(u16)((parameter>>AGNENTROFIND_GEOMETRY_MODE_BIT_IDX)&3);
-    if(!mode){
+    mode=(u16)((parameter>>AGNENTROFIND_GEOMETRY_MODE_BIT_IDX)&AGNENTROFIND_GEOMETRY_MODE);
+    if(mode==AGNENTROFIND_GEOMETRY_MODE_DIVENTROPY){
       mode=AGNENTROPROX_MODE_DIVENTROPY;
-    }else if(mode==1){
+    }else if(mode==AGNENTROFIND_GEOMETRY_MODE_LDT){
       mode=AGNENTROPROX_MODE_LDT;
-    }else if(mode==2){
+    }else if(mode==AGNENTROFIND_GEOMETRY_MODE_JSDT){
       mode=AGNENTROPROX_MODE_JSDT;
     }else{
       status=1;
       agnentrofind_parameter_error_print("geometry.mode");
       break;
     }
-    overlap_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)&1);
+    overlap_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)&AGNENTROFIND_GEOMETRY_OVERLAP);
     precise_status=0;
     progress_status=0;
     if(6<argc){
-      status=ascii_hex_to_u64_convert(argv[6], &parameter, U8_MAX);
-      status=(u8)(status||(parameter&~(AGNENTROFIND_FORMAT_ASCENDING|AGNENTROFIND_FORMAT_CAVALIER|AGNENTROFIND_FORMAT_MERGE|AGNENTROFIND_FORMAT_PRECISE|AGNENTROFIND_FORMAT_PROGRESS)));
+      status=ascii_hex_to_u64_convert(argv[6], &parameter, 0x1F);
       if(status){
         agnentrofind_parameter_error_print("format");
         break;
       }
       if(!append_mode){
-        append_mode=(u8)((parameter>>AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX)&1);
+        append_mode=(u8)((parameter>>AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX)&AGNENTROFIND_FORMAT_ASCENDING);
       }
-      cavalier_status=(u8)((parameter>>AGNENTROFIND_FORMAT_CAVALIER_BIT_IDX)&1);
-      merge_status=(u8)((parameter>>AGNENTROFIND_FORMAT_MERGE_BIT_IDX)&1);
-      precise_status=(u8)((parameter>>AGNENTROFIND_FORMAT_PRECISE_BIT_IDX)&1);
-      progress_status=(u8)((parameter>>AGNENTROFIND_FORMAT_PROGRESS_BIT_IDX)&1);
-      if((sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT)&&delta_count&&!cavalier_status){
-        agnentrofind_warning_print("You asked for exact matches with deltafication enabled. That's weird,\nbut OK");
+      cavalier_status=(u8)((parameter>>AGNENTROFIND_FORMAT_CAVALIER_BIT_IDX)&AGNENTROFIND_FORMAT_CAVALIER);
+      merge_status=(u8)((parameter>>AGNENTROFIND_FORMAT_MERGE_BIT_IDX)&AGNENTROFIND_FORMAT_MERGE);
+      precise_status=(u8)((parameter>>AGNENTROFIND_FORMAT_PRECISE_BIT_IDX)&AGNENTROFIND_FORMAT_PRECISE);
+      progress_status=(u8)((parameter>>AGNENTROFIND_FORMAT_PROGRESS_BIT_IDX)&AGNENTROFIND_FORMAT_PROGRESS);
+      if((sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT)&&(delta_count|densify_status|surroundify_status)&&!cavalier_status){
+        agnentrofind_warning_print("(geometry) seems inappropriate given your choice of (sweep), but it's valid");
       }
       if(9<argc){
         status=ascii_decimal_to_u64_convert_negatable(argv[7], &parameter, ULONG_MAX, &dump_delta_sign);
@@ -446,7 +481,6 @@ We need to allocate space for the full dump filename, which will contain the exi
     }
     needle_filename_base=argv[1];
     needle_prefix=needle_filename_base[0];
-    deltafy_mask_idx_max=0;
     needle_file_size=0;
     needle_mask_idx_max=0;
     needle_filename_size=(ULONG)(strlen(needle_filename_base));
@@ -471,8 +505,16 @@ We need to allocate space for the full dump filename, which will contain the exi
       }
     }
     needle_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, needle_file_size, overlap_status);
-    if(delta_count){
-      deltafy_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, needle_file_size, 0);
+    needle_mask_idx_max_parallel=0;
+    if(delta_count|densify_status|surroundify_status){
+      needle_mask_idx_max_parallel=agnentroprox_mask_idx_max_get(granularity, &granularity_status, needle_file_size, 0);
+    }
+    granularity_channelized=granularity;
+    mask_size=(u8)(granularity+1);
+    needle_mask_idx_max_parallel_channelized=needle_mask_idx_max_parallel;
+    if(channel_status){
+      granularity_channelized=U8_BYTE_MAX;
+      needle_mask_idx_max_parallel_channelized=(needle_mask_idx_max_parallel_channelized*mask_size)+granularity;
     }
     if(granularity_status){
       if(needle_mask_idx_max==ULONG_MAX){
@@ -549,7 +591,6 @@ We need to allocate space for the full dump filename, which will contain the exi
     if(status){
       break;
     }
-    mask_size=(u8)(granularity+1);
     status=1;
     if(haystack_file_size_max<mask_size){
       agnentrofind_error_print("All haystack files are smaller than a single (granularity+1)-sized mask");
@@ -627,11 +668,17 @@ If we're in exact match mode, then set match_idx_max_max to ULONG_MAX because we
       match_u8_idx_list_base=agnentroprox_ulong_list_malloc(match_idx_max_max);
       status=(u8)(status|!match_u8_idx_list_base);
     }
+    mask_max=(1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1;
+    if(densify_status){
+      maskops_bitmap_base=maskops_bitmap_malloc((u64)(mask_max));
+      status=(u8)(status|!maskops_bitmap_base);
+      maskops_u32_list_base=maskops_u32_list_malloc((ULONG)(mask_max));
+      status=(u8)(status|!maskops_u32_list_base);
+    }
     if(status){
       agnentrofind_out_of_memory_print();
       break;
     }
-    mask_max=(u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1);
     status=1;
     agnentroprox_base=agnentroprox_init(AGNENTROPROX_BUILD_BREAK_COUNT_EXPECTED, 4, granularity, loggamma_base, haystack_mask_idx_max_max, mask_max, mode, overlap_status, sweep_mask_idx_max_max);
     if(!agnentroprox_base){
@@ -652,7 +699,7 @@ If we're in exact match mode, then set match_idx_max_max to ULONG_MAX because we
           DEBUG_PRINT("3rd");
           break;
         }
-        DEBUG_PRINT(" delta with");
+        DEBUG_PRINT(" delta of needle with");
         if(!channel_status){
           DEBUG_PRINT("out");
         }
@@ -663,8 +710,18 @@ As specified in the help text, any remainder bytes will be unchanged by deltafic
 */
       delta_idx=0;
       do{
-        agnentroprox_mask_list_deltafy(channel_status, 1, granularity, deltafy_mask_idx_max, needle_mask_list_base);
+        maskops_deltafy(channel_status, 1, granularity, needle_mask_idx_max_parallel, needle_mask_list_base);
       }while((delta_idx++)!=delta_count);
+    }
+    joint_mask_max_densify=0;
+    joint_mask_min_densify=0;
+    joint_mask_max_surroundify=0;
+    joint_mask_min_surroundify=0;
+    needle_mask_max=0;
+    needle_mask_min=0;
+    needle_sign_status=0;
+    if(densify_status|surroundify_status){
+      needle_sign_status=maskops_unsign(granularity_channelized, needle_mask_idx_max_parallel_channelized, needle_mask_list_base, &needle_mask_max, &needle_mask_min);
     }
 /*
 If (sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT), then we need to look for exact matches, otherwise approximate ones, using entirely different Agnentroprox functions. In the former case, *rank_list_base will end up containing sorted maximum match counts; in the latter, it will end up containing sorted divcompressivities.
@@ -676,14 +733,13 @@ If (sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT), then we need to look for exa
     U128_SET_ZERO(score);
     U128_FROM_BOOL(score_threshold, append_mode);
     haystack_filename_list_char_idx=0;
-    haystack_filename_idx=0;
+    haystack_filename_idx=0;    
     match_count=0;
     out_filename_list_char_idx=0;
     out_filename_list_char_idx_new=0;
     rank_count=0;
     rank_idx=0;
     do{
-      deltafy_mask_idx_max=0;
       granularity_status=0;
       if(progress_status){
         DEBUG_PRINT("Analyzing ");
@@ -705,8 +761,13 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
       status=1;
       if(!filesys_status){
         haystack_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, overlap_status);
-        if(delta_count){
-          deltafy_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, 0);
+        haystack_mask_idx_max_parallel=0;
+        if(delta_count|densify_status|surroundify_status){
+          haystack_mask_idx_max_parallel=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, 0);
+        }
+        haystack_mask_idx_max_parallel_channelized=haystack_mask_idx_max_parallel;
+        if(channel_status){
+          haystack_mask_idx_max_parallel_channelized=(haystack_mask_idx_max_parallel_channelized*mask_size)+granularity;
         }
         status=(haystack_mask_idx_max==ULONG_MAX);
         if(!status){
@@ -732,7 +793,7 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
                   DEBUG_PRINT("3rd");
                   break;
                 }
-                DEBUG_PRINT(" delta with");
+                DEBUG_PRINT(" delta of haystack with");
                 if(!channel_status){
                   DEBUG_PRINT("out");
                 }
@@ -740,8 +801,47 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
               }
               delta_idx=0;
               do{
-                agnentroprox_mask_list_deltafy(channel_status, 1, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
+                maskops_deltafy(channel_status, 1, granularity, haystack_mask_idx_max_parallel, haystack_mask_list_base);
               }while((delta_idx++)!=delta_count);
+            }
+            if(densify_status|surroundify_status){
+              if(!needle_sign_status){
+                haystack_mask_min=maskops_max_min_get(granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, &haystack_mask_max, 0);
+              }else{
+                haystack_mask_min=maskops_negate(granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, &haystack_mask_max);
+              }
+              joint_mask_max_densify=MAX(haystack_mask_max, needle_mask_max);
+              joint_mask_max_finalize=joint_mask_max_densify;
+              joint_mask_max_surroundify=joint_mask_max_densify;
+              joint_mask_min_densify=MIN(haystack_mask_min, needle_mask_min);
+              joint_mask_min_surroundify=joint_mask_min_densify;
+              if(densify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Densifying needle and haystack...\n");
+                }
+                maskops_densify_bitmap_prepare(maskops_bitmap_base, granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, joint_mask_max_densify, joint_mask_min_densify, 1);
+                maskops_densify_bitmap_prepare(maskops_bitmap_base, granularity_channelized, needle_mask_idx_max_parallel_channelized, needle_mask_list_base, joint_mask_max_densify, joint_mask_min_densify, 0);
+                joint_mask_max_finalize=maskops_densify_remask_prepare(maskops_bitmap_base, 1, joint_mask_max_densify, joint_mask_min_densify, maskops_u32_list_base);
+                joint_mask_max_surroundify=joint_mask_max_finalize;
+                joint_mask_min_surroundify=0;
+                maskops_densify(1, granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, joint_mask_min_densify, maskops_u32_list_base);
+                maskops_densify(1, granularity_channelized, needle_mask_idx_max_parallel_channelized, needle_mask_list_base, joint_mask_min_densify, maskops_u32_list_base);
+              }
+              if(surroundify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Surroundifying needle and haystack...\n");
+                }
+                haystack_mask_max_finalize=maskops_surroundify(channel_status, 1, granularity, haystack_mask_idx_max_parallel, haystack_mask_list_base, joint_mask_max_surroundify, joint_mask_min_surroundify);
+                needle_mask_max_finalize=maskops_surroundify(channel_status, 1, granularity, needle_mask_idx_max_parallel, needle_mask_list_base, joint_mask_max_surroundify, joint_mask_min_surroundify);
+                joint_mask_max_finalize=MAX(haystack_mask_max_finalize, needle_mask_max_finalize);
+              }
+              if(channel_status){
+                joint_mask_max_finalize=(joint_mask_max_finalize+(joint_mask_max_finalize<<U8_BITS)+(joint_mask_max_finalize<<U16_BITS)+(joint_mask_max_finalize<<U24_BITS))&mask_max;
+              }
+              agnentroprox_mask_max_set(agnentroprox_base, joint_mask_max_finalize);
+              if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
+                agnentroprox_needle_mask_list_load(agnentroprox_base, needle_mask_idx_max, needle_mask_list_base);
+              }
             }
             if(progress_status){
               DEBUG_PRINT("Doing ");
@@ -792,6 +892,55 @@ We're guaranteed at least one match, so go ahead and convert it to divcompressiv
               match_count=agnentroprox_match_find(append_mode, case_insensitive_status, granularity, haystack_mask_idx_max, haystack_mask_list_base, match_idx_max_max, match_u8_idx_list_base, needle_mask_idx_max, needle_mask_list_base, overlap_status);
               U128_FROM_U64_HI(score, (u64)(match_count));
               FRU128_FROM_FTD128(entropy, score);
+            }
+            if(densify_status|surroundify_status){
+              agnentroprox_mask_max_reset(agnentroprox_base);
+            }
+            remask_status=0;
+            if(dump_status){
+              if(surroundify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Unsurroundifying haystack...\n");
+                }
+                maskops_surroundify(channel_status, 0, granularity, haystack_mask_idx_max_parallel, haystack_mask_list_base, joint_mask_max_surroundify, joint_mask_min_surroundify);
+              }
+              if(densify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Undensifying haystack...\n");
+                }
+                maskops_densify_remask_prepare(maskops_bitmap_base, 0, joint_mask_max_densify, joint_mask_min_densify, maskops_u32_list_base);
+                remask_status=1;
+                maskops_densify(0, granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, joint_mask_min_densify, maskops_u32_list_base);
+              }
+              if(needle_sign_status){
+                maskops_negate(granularity_channelized, haystack_mask_idx_max_parallel_channelized, haystack_mask_list_base, &haystack_mask_max);
+              }
+              if(delta_count){
+                if(progress_status){
+                  DEBUG_PRINT("Undeltafying haystack...\n");
+                }
+                delta_idx=0;
+                do{
+                  maskops_deltafy(channel_status, 0, granularity, haystack_mask_idx_max_parallel, haystack_mask_list_base);
+                }while((delta_idx++)!=delta_count);
+              }
+            }
+            if(!file_status){
+              if(surroundify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Unsurroundifying needle...\n");
+                }
+                maskops_surroundify(channel_status, 0, granularity, needle_mask_idx_max_parallel, needle_mask_list_base, joint_mask_max_surroundify, joint_mask_min_surroundify);
+              }
+              if(densify_status){
+                if(progress_status){
+                  DEBUG_PRINT("Undensifying needle...\n");
+                }
+                if(!remask_status){
+                  maskops_densify_remask_prepare(maskops_bitmap_base, 0, joint_mask_max_densify, joint_mask_min_densify, maskops_u32_list_base);
+                }
+                maskops_densify(0, granularity_channelized, needle_mask_idx_max_parallel_channelized, needle_mask_list_base, joint_mask_min_densify, maskops_u32_list_base);
+              }
             }
             if(append_mode==2){
               entropy_list_size=match_count<<(U128_SIZE_LOG2+1);
@@ -953,7 +1102,7 @@ Don't warn about incompatible granularity if we have some other error which woul
       out_filename_list_char_idx=out_filename_list_char_idx_new;
       status=0;
     }while(haystack_filename_idx!=haystack_filename_count);
-    if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_HAYSTACK){
+    if(sweep_status==AGNENTROFIND_SWEEP_STATUS_HAYSTACK){
 /*
 Don't attempt to merge ranking sweeps in haystack mode, as there's only one entropy value.
 */
@@ -1042,15 +1191,6 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
             }
           }
           if(dump_status){
-            if(delta_count){
-              if(progress_status){
-                DEBUG_PRINT("Undoing deltafication...\n");
-              }
-              delta_idx=0;
-              do{
-                agnentroprox_mask_list_deltafy(channel_status, 0, granularity, deltafy_mask_idx_max, haystack_mask_list_base);
-              }while((delta_idx++)!=delta_count);
-            }
             if(progress_status){
               DEBUG_PRINT("Dumping requested data...\n");
             }
@@ -1164,6 +1304,8 @@ If (cavalier_status==status==1), we shouldn't report the error because we've bee
     status=0;
   }while(0);
   agnentroprox_free_all(agnentroprox_base);
+  maskops_free(maskops_u32_list_base);
+  maskops_free(maskops_bitmap_base);
   agnentroprox_free(match_u8_idx_list_base);
   agnentroprox_free(haystack_mask_list_base);
   agnentroprox_free(haystack_filename_idx_list_base);

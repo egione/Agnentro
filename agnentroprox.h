@@ -52,8 +52,8 @@ TYPEDEF_START
   ULONG mask_count0;
   ULONG mask_count1;
   u32 mask_max;
+  u32 mask_max_max;
   u32 mask_sign_mask;
-  u8 delta_status;
   u8 ignored_status;
   u8 ld_shift;
   u8 mask_max_msb;

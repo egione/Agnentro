@@ -61,8 +61,9 @@ agnentrofind:
 	make fracterval_u128
 	make fracterval_u64
 	make loggamma
+	make maskops
 	make poissocache
-	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentrofind$(EXE) agnentrofind.c
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentrofind$(EXE) agnentrofind.c
 	@echo You can now run tmp$(SLASH)agnentrofind .
 
 agnentrolog:
@@ -86,7 +87,8 @@ agnentroquant:
 	make filesys
 	make fracterval_u128
 	make fracterval_u64
-	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) -otmp$(SLASH)agnentroquant$(EXE) agnentroquant.c
+	make maskops
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)maskops$(OBJ) -otmp$(SLASH)agnentroquant$(EXE) agnentroquant.c
 	@echo You can now run tmp$(SLASH)agnentroquant .
 
 agnentroscan:
@@ -99,8 +101,9 @@ agnentroscan:
 	make fracterval_u128
 	make fracterval_u64
 	make loggamma
+	make maskops
 	make poissocache
-	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentroscan$(EXE) agnentroscan.c
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentroscan$(EXE) agnentroscan.c
 	@echo You can now run tmp$(SLASH)agnentroscan .
 
 ascii:
@@ -148,6 +151,9 @@ loggamma:
 loggamma_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)loggamma$(OBJ) loggamma.c
 
+maskops:
+	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)maskops$(OBJ) maskops.c
+
 poissocache:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)poissocache$(OBJ) poissocache.c
 
@@ -164,6 +170,7 @@ setidemo:
 	make fracterval_u128
 	make fracterval_u64
 	make loggamma
+	make maskops
 	make poissocache
-	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)setidemo$(EXE) setidemo.c
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)setidemo$(EXE) setidemo.c
 	@echo You can now run tmp$(SLASH)setidemo .
