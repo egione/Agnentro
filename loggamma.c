@@ -427,7 +427,7 @@ Out:
 
   Returns NULL on failure, else the base of (loggamma_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined.
 
-  *loggamma_list_base_base is the base of a list containing (loggamma_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the loggamma of zero, and is therefore saturated to one. The list must be freed via loggamma_free().
+  *loggamma_list_base_base is NULL on failure, else the base of a list containing (loggamma_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the loggamma of zero, and is therefore saturated to one. The list must be freed via loggamma_free().
 */
   fru128 *loggamma_list_base;
   u64 *loggamma_parameter_list_base;
@@ -439,11 +439,11 @@ Out:
     fracterval_u128_u64_list_zero(loggamma_idx_max, loggamma_parameter_list_base);
     FRU128_SET_ONES(one);
     loggamma_list_base[0]=one;
-    *loggamma_list_base_base=loggamma_list_base;
   }else{
     loggamma_parameter_list_base=fracterval_u128_free(loggamma_parameter_list_base);
-    fracterval_u128_free(loggamma_list_base);
+    loggamma_list_base=loggamma_free(loggamma_list_base);
   }
+  *loggamma_list_base_base=loggamma_list_base;
   return loggamma_parameter_list_base;
 }
 
