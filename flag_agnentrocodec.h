@@ -31,7 +31,7 @@ This value is set to the sum of breakage events in the source code of this libra
 When calling the initialization code for this library, always use the corresponding constant ending in "_EXPECTED". This will force a runtime error, in addition to a build error below, if the programmer fails to notice subordinate build breakages which may affect the correctness of transactions with this library.
 */
 #define AGNENTROCODEC_BUILD_BREAK_COUNT (0+BIGUINT_BUILD_BREAK_COUNT+FRU128_BUILD_BREAK_COUNT+LOGGAMMA_BUILD_BREAK_COUNT)
-#define AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED 5
+#define AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED 8
 #if AGNENTROCODEC_BUILD_BREAK_COUNT!=AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED
   #error Agnentrocodec is unaware of the latest non-backward-compatible changes to the libraries that it uses.
 #endif
@@ -46,4 +46,4 @@ This value should NOT be used by any library other than this one; doing so could
 /*
 BUILD_ID must increase with every code release, even if only a comment changes. It allows the user to discern one build from another, but is invisible to other libraries. If this library depends on other libraries, then it should be expressed as the sum of the local build ID plus the build IDs of those libraries, and in any event must increase monotonically even if some of the latter are removed.
 */
-#define AGNENTROCODEC_BUILD_ID (5+BIGUINT_BUILD_ID+FRU128_BUILD_ID+LOGGAMMA_BUILD_ID)
+#define AGNENTROCODEC_BUILD_ID (6+BIGUINT_BUILD_ID+FRU128_BUILD_ID+LOGGAMMA_BUILD_ID)

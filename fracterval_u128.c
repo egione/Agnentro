@@ -795,7 +795,7 @@ Out:
 
   Returns NULL on failure, else the base of (log_idx_max+1) u128 zeroes, all but the first of which indicating that the corresponding cache entry is undefined. This list must be freed via fracterval_u128_free().
 
-  *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
+  *log_list_base_base is NULL on failure, else the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
 */
   fru128 *log_list_base;
   u128 *log_parameter_list_base;
@@ -807,11 +807,11 @@ Out:
     fracterval_u128_u128_list_zero(log_idx_max, log_parameter_list_base);
     FRU128_SET_ZERO(zero);
     log_list_base[0]=zero;
-    *log_list_base_base=log_list_base;
   }else{
     log_parameter_list_base=fracterval_u128_free(log_parameter_list_base);
-    fracterval_u128_free(log_list_base);
+    log_list_base=fracterval_u128_free(log_list_base);
   }
+  *log_list_base_base=log_list_base;
   return log_parameter_list_base;
 }
 
@@ -936,7 +936,7 @@ Out:
 
   Returns NULL on failure, else the base of (log_idx_max+1) u64 zeroes, all but the first of which indicating that the corresponding cache entry is undefined. This list must be freed via fracterval_u128_free().
 
-  *log_list_base_base is the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
+  *log_list_base_base is NULL on failure, else the base of a list containing (log_idx_max+1) undefined (fru128)s, except for the first one, which corresponds to the log of zero, and is therefore saturated to zero. The list must be freed via fracterval_u128_free().
 */
   fru128 *log_list_base;
   u64 *log_parameter_list_base;
@@ -948,11 +948,11 @@ Out:
     fracterval_u128_u64_list_zero(log_idx_max, log_parameter_list_base);
     FRU128_SET_ZERO(zero);
     log_list_base[0]=zero;
-    *log_list_base_base=log_list_base;
   }else{
     log_parameter_list_base=fracterval_u128_free(log_parameter_list_base);
-    fracterval_u128_free(log_list_base);
+    log_list_base=fracterval_u128_free(log_list_base);
   }
+  *log_list_base_base=log_list_base;
   return log_parameter_list_base;
 }
 

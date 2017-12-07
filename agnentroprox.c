@@ -1797,8 +1797,8 @@ Out:
   ULONG loggamma_idx_max;
   fru128 *loggamma_list_base;
   u64 *loggamma_parameter_list_base;
-  ULONG mask_count_max_max;
-  ULONG mask_count_plus_span_max_max;
+  ULONG mask_count_max;
+  ULONG mask_count_plus_span_max;
   u32 mask_sign_mask;
   u64 mask_span;
   fru128 mask_span_log;
@@ -1819,11 +1819,11 @@ Out:
   status=(u8)(status|(AGNENTROPROX_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|(build_break_count!=AGNENTROPROX_BUILD_BREAK_COUNT));
   status=(u8)(status|(!mask_max_max));
-  mask_count_max_max=mask_idx_max_max+1;
-  status=(u8)(status|(!mask_count_max_max));
+  mask_count_max=mask_idx_max_max+1;
+  status=(u8)(status|(!mask_count_max));
   mask_span=(u64)(mask_max_max)+1;
-  mask_count_plus_span_max_max=(ULONG)(mask_count_max_max+mask_span);
-  status=(u8)(status|(mask_count_plus_span_max_max<=mask_span));
+  mask_count_plus_span_max=(ULONG)(mask_count_max+mask_span);
+  status=(u8)(status|(mask_count_plus_span_max<=mask_span));
   status=(u8)(status|(U32_BYTE_MAX<granularity));
   granularity=(u8)(granularity&U32_BYTE_MAX);
   status=(u8)(status|((u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1)<mask_max_max));
@@ -1844,20 +1844,23 @@ Technically, we should use sweep_mask_idx_max_max instead of mask_idx_max_max, b
 
 And finally, it's good enough to find N which is one less than a power of 2, which is simple and fast. In fact, this is required for the correct operation of Poissocache, as well as all the result caches which inherit poissocache_item_idx_max as their maximum index.
 */
-  n=U32_MAX;
-  do{
-    n_minus_2=n-2;
-    if((n_minus_2<=mask_max_max)&&((((((u64)(n_minus_2)+1)*n_minus_2)>>1)+n_minus_2)<(mask_idx_max_max+1))){
-      break;
-    }
-    n>>=1;
-  }while(1<n);
-  status=(u8)(status|(n==U32_MAX));
+  poissocache_item_idx_max=0;
+  if(mode_bitmap&AGNENTROPROX_MODE_LOGFREEDOM){
+    n=U32_MAX;
+    do{
+      n_minus_2=n-2;
+      if((n_minus_2<=mask_max_max)&&((((((u64)(n_minus_2)+1)*n_minus_2)>>1)+n_minus_2)<(mask_idx_max_max+1))){
+        break;
+      }
+      n>>=1;
+    }while(1<n);
+    status=(u8)(status|(n==U32_MAX));
 /*
 N was shifted to the right by one bit too many (unless perhaps (N==3), in which case we might as well double it anyway). Roll back one shift. We will then use it to allocate a Poisson cache below.
 */
-  n=(n<<1)+1;
-  poissocache_item_idx_max=n;
+    n=(n<<1)+1;
+    poissocache_item_idx_max=n;
+  }
   if(!status){
 /*
 Allocate private storage. We need to use calloc() instead of malloc() because if there's an allocation failure, we'll free all the list bases below. If one of those bases happens to be uninitialized, then it had better be zero (NULL) so as not to cause an instruction fault. (Technically, NULL can be nonzero, but try finding one platform where that was ever the case.)
@@ -1884,9 +1887,11 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
       freq_list_base1=agnentroprox_ulong_list_malloc((ULONG)(mask_max_max));
       status=(u8)(status|!freq_list_base1);
       agnentroprox_base->freq_list_base1=freq_list_base1;
-      poissocache_base=poissocache_init(POISSOCACHE_BUILD_BREAK_COUNT_EXPECTED, 0, poissocache_item_idx_max);
-      status=(u8)(status|!poissocache_base);
-      agnentroprox_base->poissocache_base=poissocache_base;
+      if(mode_bitmap&AGNENTROPROX_MODE_LOGFREEDOM){
+        poissocache_base=poissocache_init(POISSOCACHE_BUILD_BREAK_COUNT_EXPECTED, 0, poissocache_item_idx_max);
+        status=(u8)(status|!poissocache_base);
+        agnentroprox_base->poissocache_base=poissocache_base;
+      }
       if(!status){
 /*
 Allocate math caches for previously computed log, log delta, and loggamma fractervals. Start with the maximum reasonable expectation of the number of unique results we would need to recall at any given time, which is essentially the greater of poissocache_item_idx_max and sweep_mask_idx_max_max, then back off exponentially until we succeed. cache_idx_max will be one less than this value. We must set it to one less than a power of 2 because the cache functions will use it as an index AND mask.
@@ -1900,8 +1905,8 @@ Caches which are not required shall have single-item allocations just to satisfy
           msb--;
         }
         cache_idx_max=(ULONG)((2ULL<<msb)-1);
-        log_idx_max=0;
         log_delta_idx_max=0;
+        log_idx_max=0;
         log_u128_idx_max=0;
         loggamma_idx_max=0;
         if(mode_bitmap&(AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_LDT|AGNENTROPROX_MODE_LET|AGNENTROPROX_MODE_SHANNON)){
@@ -1970,15 +1975,20 @@ Convert from 6.122 to 6.64 fixed-point.
 /*
 Shrink one of the caches by a factor of 2, ordered so as to cause minimal performance degradation.
 */
-            if(log_delta_idx_max==loggamma_idx_max){
+            cache_idx_max=MAX(log_delta_idx_max, log_idx_max);
+            cache_idx_max=MAX(cache_idx_max, log_u128_idx_max);
+            cache_idx_max=MAX(cache_idx_max, loggamma_idx_max);
+            if(cache_idx_max==loggamma_idx_max){
               loggamma_idx_max>>=1;
-            }else if(log_delta_idx_max==log_idx_max){
+            }else if(cache_idx_max==log_idx_max){
               log_idx_max>>=1;
+            }else if(cache_idx_max==log_u128_idx_max){
+              log_u128_idx_max>>=1;
             }else{
               log_delta_idx_max>>=1;
             }
           }
-        }while(log_delta_idx_max|log_idx_max|loggamma_idx_max);
+        }while(log_delta_idx_max|log_idx_max|log_u128_idx_max|loggamma_idx_max);
       }
       if(!status){
         agnentroprox_ulong_list_zero((ULONG)(mask_max_max), freq_list_base0);
