@@ -1915,7 +1915,7 @@ Caches which are not required shall have single-item allocations just to satisfy
         if(mode_bitmap&(AGNENTROPROX_MODE_AGNENTROPY|AGNENTROPROX_MODE_DIVENTROPY|AGNENTROPROX_MODE_EXOELASTICITY|AGNENTROPROX_MODE_EXOENTROPY|AGNENTROPROX_MODE_LDT|AGNENTROPROX_MODE_LET|AGNENTROPROX_MODE_LOGFREEDOM|AGNENTROPROX_MODE_SHANNON)){
           log_idx_max=cache_idx_max;
         }
-        if(mode_bitmap&AGNENTROPROX_MODE_JSDT){
+        if(mode_bitmap&(AGNENTROPROX_MODE_JSDT|AGNENTROPROX_MODE_JSET)){
 /*
 Due to the way that the Jensen-Shannon divergence works, we end up taking the logs of pairs of frequencies, which means that in theory the result cache could require the square as many items as with other transforms. Grab whatever we can get, up to that ceiling.
 */
