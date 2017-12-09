@@ -47,7 +47,6 @@ Entropy Scanner and Weirdness Finder
 #include "maskops.h"
 #include "maskops_xtrn.h"
 #include "poissocache.h"
-#include "poissocache_xtrn.h"
 #include "agnentroprox.h"
 #include "agnentroprox_xtrn.h"
 #include "ascii_xtrn.h"
@@ -322,7 +321,7 @@ main(int argc, char *argv[]){
       DEBUG_U32("build_id_in_hex", AGNENTROSCAN_BUILD_ID);
       DEBUG_PRINT("Scan for anomalies using various entropy metrics.\n\n");
       DEBUG_PRINT("Syntax:\n\n");
-      DEBUG_PRINT("agnentroscan mode haystack geometry sweep ranks [format [dump_delta dump_size\n");
+      DEBUG_PRINT("  agnentroscan mode haystack geometry sweep ranks [format [dump_delta dump_size\n");
       DEBUG_PRINT("  dump_filename]]\n\n");
       DEBUG_PRINT("where all numerical parameters are decimal unless otherwise stated:\n\n");
       DEBUG_PRINT("(mode) is the type of entropy to compute in nats (bits times log(2)): \"A\" for\nagnentropy, \"E\" for exoentropy, \"L\" for logfreedom, or \"S\" for Shannon entropy.\nLowercase letters will compute the corresponding inverse normalized quantity,\ni.e. a 64-bit fraction on [0, 1] where greater values correspond to less\nentropy: \"a\" for compressivity, \"e\" for exocompressivity, \"l\" for\ndyspoissonism, or \"s\" for shannonism. Use \"j\" for Jensen-Shannon\nexodivergence, \"i\" for Leidich exodivergence, or \"x\" for exoelasticity, all of\nwhich being inherently normalized.\n\n");

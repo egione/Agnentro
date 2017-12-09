@@ -66,6 +66,12 @@ Agnentro Scan is a general purpose weirdness detector. Look for anomalous signal
 
 Type "make agnentroscan" to build, then run "tmp/agnentroscan" to display the help text. (The slash goes the other way in Windows.)
 
+Agnentro Zorb
+-------------
+Agnentro Zorb (as in "absorb") absorbs masks lists into a progressively accrued frequency list (effectively, probability distribution) stored in a Zorb (ZRB) file, then issues alerts whenever a given mask list is more, or less, "weird" than some threshold, relative to said frequency list.
+
+Type "make agnentrozorb" to build, then run "tmp/agnentrozorb" to display the help text. (The slash goes the other way in Windows.)
+
 SETI Demo
 ---------
 I wrote this little demo to measure Agnentro's performance on real data from the Search for Extraterrestrial Intelligence. If you want to test it yourself, you'll need some SETI data files from the address given in the help text.

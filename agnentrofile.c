@@ -47,7 +47,6 @@ Agnentropy Proof of Concept
 #include "agnentrocodec.h"
 #include "agnentrocodec_xtrn.h"
 #include "poissocache.h"
-#include "poissocache_xtrn.h"
 #include "agnentroprox.h"
 #include "agnentroprox_xtrn.h"
 #include "ascii_xtrn.h"
@@ -205,7 +204,7 @@ main(int argc, char *argv[]){
       DEBUG_U32("build_id_in_hex", AGNENTROFILE_BUILD_ID);
       DEBUG_PRINT("Analyze or compress a file using Agnentro.\n\n");
       DEBUG_PRINT("Syntax:\n\n");
-      DEBUG_PRINT("agnentrofile mode input_file automask granularity [output_file]\n\n");
+      DEBUG_PRINT("  agnentrofile mode input_file automask granularity [output_file]\n\n");
       DEBUG_PRINT("where:\n\n");
       DEBUG_PRINT("(mode) is one of the following:\n\n  0. Analyze the input file and display its agnentropy and its implied\n     compressed size in bits (error +/-2). Fast! \n  1. Analyze the input file and display the exact compressed size in bits based\n     on agnentropic encoding. Slow!\n  2. Compress the input file. The output file shall consist of a bitwise\n     concatenation of: (a) a logplex giving the maximum input mask index, (b)\n     a logplex giving the maximum input mask value actually observed, and\n     finally (c) the agnentropic code of the input padded with high zero bits\n     to maintain byte granularity.\n  3. Decompress the input file which was compressed with the same granularity.\n  4. Pseudorandomly shuffle the (granularity+1)-byte chunks of the input file\n     to form the output file. This is done to eliminate all contextual\n     compressiblity, so that direct comparison can be made against other\n     compression apps.\n  5. Invert the shuffling performed in #4 just to prove that it's reversible.\n\n");
       DEBUG_PRINT("(input_file) is the name of the file to analyze or compress.\n\n");

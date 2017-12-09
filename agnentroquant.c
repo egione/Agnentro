@@ -28,6 +28,7 @@ Mask Quantization Utility
 #include "flag_filesys.h"
 #include "flag_fracterval_u128.h"
 #include "flag_fracterval_u64.h"
+#include "flag_maskops.h"
 #include "flag_agnentroquant.h"
 #include <stdint.h>
 #include <string.h>
@@ -167,7 +168,7 @@ main(int argc, char *argv[]){
       DEBUG_U32("build_id_in_hex", AGNENTROQUANT_BUILD_ID);
       DEBUG_PRINT("Mask list quantization utility.\n\n");
       DEBUG_PRINT("Syntax:\n\n");
-      DEBUG_PRINT("agnentroquant mode granularity mask_max input output\n\n");
+      DEBUG_PRINT("  agnentroquant mode granularity mask_max input output\n\n");
       DEBUG_PRINT("(mode) controls behavior.\n\n  Agnentro Quant converts up-to-64-bit (un)signed integers into a stream of\n  whole numbers optimized for analysis by Agnentro. Its pipeline operates as\n  follows, where each stage can be enabled or disabled at your option. Note\n  that some parts of the pipeline can also be done at runtime by Agnentro\n  Find or Agnentro Scan, which could be more or less efficient, depending on\n  the situation.\n\n    Deltafy -> Saturate -> Densify -> Surroundify\n\n  where all of the stages above are documented in the papers available at the\n  webpage above.\n\n  bit 0: (densify) Set to enable densification (mask utilization footprint\n  minimization).\n\n  bit 1: (surroundify) First subtract the minimum mask from all masks, so as to\n  make the new minimum 0. Then convert all masks to their surround codes\n  relative to their new maximum.\n\n  bit 2-3: (saturate) controls how masks are to be clipped:\n\n    00: Normalization: Scales the actual range of minimum to maximum input mask\n    to [0, mask_max], rounding down to the nearest output mask.\n\n    01: Positive saturation: All input masks greater than mask_max will be set\n    to mask_max.\n\n    10: Signed saturation: First compute (N=ceiling(mask_max/2)). Add N to\n    every signed mask. If the result with infinite precision is negative,\n    replace it with 0; else if it exceeds mask_max, replace it with mask_max.\n\n    11: Modulo saturation: Replace the mask (or its delta) with itself modulo\n    (mask_max+1).\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication and surroundification, if enabled, to occur on parallel bytes.\n  In any event, densification, if enabled, will be executed on a serial byte\n  list, as though (granularity) were 0.\n\n");
       DEBUG_PRINT("(granularity) is one less than the number of bytes per input mask, on [0, 7].\n\n");
       DEBUG_PRINT("(mask_max) is a nonzero hex value up to 32 bits wide which is the maximum\nmask that this program will output. All output masks will have the minimum\npossible granularity required to store this value.\n\n");

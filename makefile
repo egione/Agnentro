@@ -106,6 +106,22 @@ agnentroscan:
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)agnentroscan$(EXE) agnentroscan.c
 	@echo You can now run tmp$(SLASH)agnentroscan .
 
+agnentrozorb:
+	make ascii
+	make agnentroprox
+	make biguint
+	make bitscan
+	make debug
+	make filesys
+	make fracterval_u128
+	make fracterval_u64
+	make loggamma
+	make maskops
+	make poissocache
+	make zorb
+	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) tmp$(SLASH)zorb$(OBJ) -otmp$(SLASH)agnentrozorb$(EXE) agnentrozorb.c
+	@echo You can now run tmp$(SLASH)agnentrozorb .
+
 ascii:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)ascii$(OBJ) ascii.c
 
@@ -174,3 +190,9 @@ setidemo:
 	make poissocache
 	$(CC) -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) tmp$(SLASH)agnentroprox$(OBJ) tmp$(SLASH)ascii$(OBJ) tmp$(SLASH)biguint$(OBJ) tmp$(SLASH)bitscan$(OBJ) tmp$(SLASH)debug$(OBJ) tmp$(SLASH)filesys$(OBJ) tmp$(SLASH)fracterval_u128$(OBJ) tmp$(SLASH)fracterval_u64$(OBJ) tmp$(SLASH)loggamma$(OBJ) tmp$(SLASH)maskops$(OBJ) tmp$(SLASH)poissocache$(OBJ) -otmp$(SLASH)setidemo$(EXE) setidemo.c
 	@echo You can now run tmp$(SLASH)setidemo .
+
+zorb:
+	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)zorb$(OBJ) zorb.c
+
+zorb_debug:
+	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)zorb$(OBJ) zorb.c

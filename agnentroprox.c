@@ -47,6 +47,45 @@ Fixed-Point Entropy Approximation Kernel
 #include "agnentroprox.h"
 #include "agnentroprox_xtrn.h"
 
+u8
+agnentroprox_capacity_check(agnentroprox_t *agnentroprox_base, u8 freq_list_idx, ULONG mask_idx_max, u8 mode){
+/*
+Determine whether it would be safe too add a particular number of additional masks to a particular frequency list, given the constraints previously imposed during agnentroprox_init().
+
+In:
+
+  agnentroprox_base is the return value of agnentroprox_init().
+
+  freq_list_idx is zero to check for sufficient capacity in frequency list zero (the needle) or one to check frequency list one (the haystack).
+
+  mask_idx_max is one less than the total frequency to add to the indicated frequency list.
+
+  mode is zero to verify that mask_idx_max does not exceed mask_idx_max_max that was passed to agnentroprox_init(); one to verify the same after increasing mask_idx_max by the total frequency contained in the indicated frequency list; or 2 to verify the same after decreasing mask_idx_max by the same.
+*/
+  ULONG mask_count;
+  u8 status;
+
+  mask_count=0;
+  status=0;
+  if(mode){
+    mask_count=agnentroprox_base->mask_count0;
+    if(freq_list_idx){
+      mask_count=agnentroprox_base->mask_count1;
+    }
+    if(mode==1){
+      mask_idx_max+=mask_count;
+      status=(mask_idx_max<mask_count);
+    }else{
+      status=(mask_count<=mask_idx_max);
+      mask_idx_max=mask_count-mask_idx_max-1;
+    }
+  }
+  if(!status){
+    status=(agnentroprox_base->mask_idx_max_max<mask_idx_max);
+  }
+  return status;
+}
+
 fru128
 agnentroprox_compressivity_get(fru128 entropy, fru128 entropy_raw){
 /*
@@ -109,7 +148,7 @@ In:
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
-  *haystack_mask_list_base is the haystack.
+  *haystack_mask_list_base is the haystack. If NULL, then it will be presumed that the haystack frequency list has already been loaded via agnentroprox_mask_list_accrue().
 
   *overflow_status_base is the OR-cummulative fracterval overflow status.
 
@@ -141,9 +180,11 @@ Out:
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   mask_max=agnentroprox_base->mask_max;
   overflow_status=*overflow_status_base;
-  agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
-  agnentroprox_base->mask_count1=0;
-  agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  if(haystack_mask_list_base){
+    agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
+    agnentroprox_base->mask_count1=0;
+    agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  }
   log_idx_max=agnentroprox_base->log_idx_max;
   log_list_base=agnentroprox_base->log_list_base;
   log_parameter_list_base=agnentroprox_base->log_parameter_list_base;
@@ -766,7 +807,7 @@ In:
 
   *match_u8_idx_list_base is NULL if the sweep base indexes associated with matches can be discarded, else the base of (match_idx_max_max+1) undefined items to hold such indexes.
 
-  mode is AGNENTROPROX_MODE_AGNENTROPY, AGNENTROPROX_MODE_KURTOSIS, AGNENTROPROX_MODE_JSET, AGNENTROPROX_MODE_LET, AGNENTROPROX_MODE_LOGFREEDOM, AGNENTROPROX_MODE_SHANNON, or AGNENTROPROX_MODE_VARIANCE to compute the agnentropy, obtuse kurtosis, (1-(normalized Jensen-Shannon exodivergence)), (1-(normalized Leidich exodivergence)), logfreedom, Shannon, or obtuse variance entropy transform, respectively. For AGNENTROPROX_MODE_KURTOSIS and AGNENTROPROX_MODE_VARIANCE, the global mean must have been precomputed by agnentroprox_mask_list_mean_get().
+  mode is AGNENTROPROX_MODE_AGNENTROPY, AGNENTROPROX_MODE_KURTOSIS, AGNENTROPROX_MODE_JSET, AGNENTROPROX_MODE_LET, AGNENTROPROX_MODE_LOGFREEDOM, AGNENTROPROX_MODE_SHANNON, or AGNENTROPROX_MODE_VARIANCE to compute the agnentropy, obtuse kurtosis, (1-(normalized Jensen-Shannon exodivergence)), (1-(Leidich exodivergence)), logfreedom, Shannon, or obtuse variance entropy transform, respectively. For AGNENTROPROX_MODE_KURTOSIS and AGNENTROPROX_MODE_VARIANCE, the global mean must have been precomputed by agnentroprox_mask_list_mean_get().
 
   *overflow_status_base is the OR-cummulative fracterval overflow status.
 
@@ -902,7 +943,7 @@ In cases where ignored_status is used, overflows are safe to ignore because the 
       agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base1);
       agnentroprox_base->mask_count1=0;
       agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, mask_list_base);
-      agnentroprox_mask_list_subtract(agnentroprox_base);
+      agnentroprox_freq_list_subtract(agnentroprox_base);
       exo_mask_count=agnentroprox_base->mask_count1;
       exo_mask_count_plus_span=exo_mask_count+mask_max+1;
 /*
@@ -1025,7 +1066,7 @@ The agnentropy difference, dA, is:
         break;
       case AGNENTROPROX_MODE_JSET_BIT_IDX:
 /*
-Compute (1-(normalized Jensen-Shannon exodivergence)) delta according to the method described for JSET(H, J, N, Z) in http://vixra.org/abs/1710.0261 with division by (2QnQs) already built into the coefficients.
+Compute the delta in (1-(normalized Jensen-Shannon exodivergence)) according to the method described for JSET in http://vixra.org/abs/1710.0261 with division by (2QnQs) already built into the coefficients.
 */
         exo_freq=freq_list_base1[mask];
         exo_freq_old=freq_list_base1[mask_old];
@@ -1131,35 +1172,35 @@ Compute (1-(normalized Jensen-Shannon exodivergence)) delta according to the met
         break;
       case AGNENTROPROX_MODE_LET_BIT_IDX:
 /*
-Compute (1-(normalized Leidich exodivergence)) delta according to the method described for LET(H, J, N, Z) in http://vixra.org/abs/1710.0261 .
+Compute the delta in (1-(Leidich exodivergence)) according to the method described for the LET in http://vixra.org/abs/1710.0261 . Overflow is almost certainly impossible, so we ignore all overflow status returns.
 */
         exo_freq=freq_list_base1[mask];
         exo_freq_old=freq_list_base1[mask_old];
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exo_freq));
-        FRU128_ADD_FRU64_LO_SELF(entropy, log, overflow_status);
+        FRU128_ADD_FRU64_LO_SELF(entropy, log, ignored_status);
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
-        FRU128_ADD_FRU64_LO_SELF(entropy, log, overflow_status);
+        FRU128_ADD_FRU64_LO_SELF(entropy, log, ignored_status);
         exo_freq--;
         if(exo_freq){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exo_freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(exo_freq));
-          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
+          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, ignored_status);
         }
         freq_list_base1[mask]=exo_freq;
         if(freq_old_minus_1){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old_minus_1));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(freq_old_minus_1));
-          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, overflow_status);
+          FRU128_ADD_FRU128_SELF(entropy, entropy_delta, ignored_status);
         }
         if(exo_freq_old){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(exo_freq_old));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(exo_freq_old));
-          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
+          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, ignored_status);
         }
         if(freq){
           FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
           FRU128_FROM_FRU64_MULTIPLY_U64(entropy_delta, log, (u64)(freq));
-          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, overflow_status);
+          FRU128_SUBTRACT_FRU128_SELF(entropy, entropy_delta, ignored_status);
         }
         exo_freq_old++;
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(exo_freq_old));
@@ -1401,7 +1442,7 @@ This is done in a manner analagous to the variance and kurtosis bits of agnentro
   match_idx=0;
   if(mode_bit_idx==AGNENTROPROX_MODE_JSET_BIT_IDX){
     log2_recip_half=agnentroprox_base->log2_recip_half;
-    do{      
+    do{
       entropy=entropy_list_base[match_idx];
 /*
 These finalization operations are the same as in agnentroprox_jsd_get(), but for an additional 2 shifts to compensate for all the right shifts above.
@@ -1414,14 +1455,16 @@ These finalization operations are the same as in agnentroprox_jsd_get(), but for
   }else if(mode_bit_idx==AGNENTROPROX_MODE_LET_BIT_IDX){
     ld_coeff=agnentroprox_base->ld_coeff;
     ld_shift=agnentroprox_base->ld_shift;
-    do{      
+    do{
       entropy=entropy_list_base[match_idx];
+      FRU128_NOT_SELF(entropy);
 /*
 These finalization operations are the same as in agnentroprox_ld_get().
 */
       FRU128_SHIFT_LEFT_SELF(entropy, ld_shift, ignored_status);
       FRU128_MULTIPLY_FRU128_SELF(entropy, ld_coeff);
-      FRU128_SHIFT_LEFT_SELF(entropy, 2, ignored_status);
+      FRU128_SHIFT_LEFT_SELF(entropy, 1, ignored_status);
+      FRU128_NOT_SELF(entropy);
       entropy_list_base[match_idx]=entropy;
       match_idx++;
     }while(match_idx!=match_count);
@@ -1526,7 +1569,7 @@ Out:
   agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base1);
   agnentroprox_base->mask_count1=0;
   agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, mask_list_base);
-  agnentroprox_mask_list_subtract(agnentroprox_base);
+  agnentroprox_freq_list_subtract(agnentroprox_base);
   mask_count=agnentroprox_base->mask_count1;
   mask_count_plus_span=mask_count+mask_max+1;
 /*
@@ -1751,6 +1794,74 @@ Out:
   return agnentroprox_base;
 }
 
+void
+agnentroprox_freq_list_add(agnentroprox_t *agnentroprox_base){
+/*
+Add the cummulative frequency list at index zero to the cummulative frequency list at index one.
+
+In:
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+Out:
+
+  The sum of the cummulative frequency lists has been computed and saved internally, as stated in the summary.
+*/
+  ULONG freq0;
+  ULONG freq1;
+  ULONG *freq_list_base0;
+  ULONG *freq_list_base1;
+  u32 mask;
+  u32 mask_max;
+
+  freq_list_base0=agnentroprox_base->freq_list_base0;
+  freq_list_base1=agnentroprox_base->freq_list_base1;
+  mask=0;
+  mask_max=agnentroprox_base->mask_max;
+  do{
+    freq0=freq_list_base0[mask];
+    freq1=freq_list_base1[mask];
+    freq1+=freq0;
+    freq_list_base1[mask]=freq1;
+  }while((mask++)!=mask_max);
+  agnentroprox_base->mask_count1+=agnentroprox_base->mask_count0;
+  return;
+}
+
+void
+agnentroprox_freq_list_subtract(agnentroprox_t *agnentroprox_base){
+/*
+Subtract the cummulative frequency list at index zero from the cummulative frequency list at index one.
+
+In:
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+Out:
+
+  The difference of the cummulative frequency lists has been computed and saved internally, as stated in the summary.
+*/
+  ULONG freq0;
+  ULONG freq1;
+  ULONG *freq_list_base0;
+  ULONG *freq_list_base1;
+  u32 mask;
+  u32 mask_max;
+
+  freq_list_base0=agnentroprox_base->freq_list_base0;
+  freq_list_base1=agnentroprox_base->freq_list_base1;
+  mask=0;
+  mask_max=agnentroprox_base->mask_max;
+  do{
+    freq0=freq_list_base0[mask];
+    freq1=freq_list_base1[mask];
+    freq1-=freq0;
+    freq_list_base1[mask]=freq1;
+  }while((mask++)!=mask_max);
+  agnentroprox_base->mask_count1-=agnentroprox_base->mask_count0;
+  return;
+}
+
 agnentroprox_t *
 agnentroprox_init(u32 build_break_count, u32 build_feature_count, u8 granularity, loggamma_t *loggamma_base, ULONG mask_idx_max_max, u32 mask_max_max, u16 mode_bitmap, u8 overlap_status, ULONG sweep_mask_idx_max_max){
 /*
@@ -1874,6 +1985,7 @@ Allocate private storage. We need to use calloc() instead of malloc() because if
       mask_sign_mask=1U<<msb;
       mean_shift=(u8)(U128_BIT_MAX-msb);
       agnentroprox_base->loggamma_base=loggamma_base;
+      agnentroprox_base->mask_idx_max_max=mask_idx_max_max;
       agnentroprox_base->mask_max=mask_max_max;
       agnentroprox_base->mask_max_max=mask_max_max;
       agnentroprox_base->mask_max_msb=msb;
@@ -2016,7 +2128,7 @@ In:
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
-  *haystack_mask_list_base is the haystack.
+  *haystack_mask_list_base is the haystack. If NULL, then it will be presumed that the haystack frequency list has already been loaded via agnentroprox_mask_list_accrue().
 
 Out:
 
@@ -2056,11 +2168,13 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   mask_max=agnentroprox_base->mask_max;
   ignored_status=0;
-  agnentroprox_base->mask_count1=0;
-  agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
-  agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  if(haystack_mask_list_base){
+    agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
+    agnentroprox_base->mask_count1=0;
+    agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  }
   if(exo_status){
-    agnentroprox_mask_list_subtract(agnentroprox_base);
+    agnentroprox_freq_list_subtract(agnentroprox_base);
   }
   haystack_mask_count=agnentroprox_base->mask_count1;
   log_u128_idx_max=agnentroprox_base->log_u128_idx_max;
@@ -2268,7 +2382,7 @@ Increment the u8 indexes now, so that if we get a match, u8_idx_old will be the 
     u8_idx_old+=u8_idx_delta;
     if(mask!=mask_old){
 /*
-Compute (1-(normalized Jensen-Shannon divergence)) delta according to the method described for JSDT(H, J, N, Z) in http://vixra.org/abs/1710.0261 with division by (2QnQs) already built into the coefficients.
+Compute the detla in (1-(normalized Jensen-Shannon divergence)) according to the method described for JSDT in http://vixra.org/abs/1710.0261 with division by (2QnQs) already built into the coefficients.
 */
       needle_freq=needle_freq_list_base[mask];
       needle_freq_old=needle_freq_list_base[mask_old];
@@ -2377,7 +2491,7 @@ Compute (1-(normalized Jensen-Shannon divergence)) delta according to the method
     }
   }
   match_idx=0;
-  do{      
+  do{
     jsd=jsd_list_base[match_idx];
 /*
 These finalization operations are the same as in agnentroprox_jsd_get(), but for an additional shift to compensate for all the right shifts above.
@@ -2397,7 +2511,7 @@ Write ignored_status to prevent the compiler from complaining about it not being
 fru128
 agnentroprox_ld_get(agnentroprox_t *agnentroprox_base, u8 exo_status, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base){
 /*
-Compute (1-(normalized Leidich divergence)) between needle and haystack frequency lists. (It's commutative so the terms "needle" and "haystack" are only used for the sake of consistency with other functions in which direction matters.)
+Compute (1-(Leidich divergence)) between needle and haystack frequency lists. (It's commutative so the terms "needle" and "haystack" are only used for the sake of consistency with other functions in which direction matters.)
 
 In:
 
@@ -2409,11 +2523,11 @@ In:
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
-  *haystack_mask_list_base is the haystack.
+  *haystack_mask_list_base is the haystack. If NULL, then it will be presumed that the haystack frequency list has already been loaded via agnentroprox_mask_list_accrue().
 
 Out:
 
-  Returns (1-(normalized Leidich divergence)) between a needle and a haystack.
+  Returns (1-(Leidich divergence)) between a needle and a haystack.
 */
   fru128 coeff;
   ULONG freq;
@@ -2444,11 +2558,13 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
   haystack_freq_list_base=agnentroprox_base->freq_list_base1;
   mask_max=agnentroprox_base->mask_max;
   ignored_status=0;
-  agnentroprox_base->mask_count1=0;
-  agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
-  agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  if(haystack_mask_list_base){
+    agnentroprox_ulong_list_zero((ULONG)(mask_max), haystack_freq_list_base);
+    agnentroprox_base->mask_count1=0;
+    agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
+  }
   if(exo_status){
-    agnentroprox_mask_list_subtract(agnentroprox_base);
+    agnentroprox_freq_list_subtract(agnentroprox_base);
   }
   haystack_mask_count=agnentroprox_base->mask_count1;
   log_idx_max=agnentroprox_base->log_idx_max;
@@ -2457,7 +2573,7 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
   needle_freq_list_base=agnentroprox_base->freq_list_base0;
   needle_mask_count=agnentroprox_base->mask_count0;
 /*
-Compute (1-(normalized Leidich divergence)) according to the method described for LD(N, S, Z) in http://vixra.org/abs/1710.0261 .
+Compute (1-(Leidich divergence)) according to the method described for LD(N, S, Z) in http://vixra.org/abs/1710.0261 .
 */
   mask_count=(u64)(haystack_mask_count)+needle_mask_count;
   shift=2;
@@ -2467,17 +2583,21 @@ Compute (1-(normalized Leidich divergence)) according to the method described fo
   shift--;
   mask_count_numerator=1ULL<<shift;
 /*
-The most we can shift to the left without overflow is (U64_BIT_MAX+U64_BITS_LOG2-shift). The U64_BITS_LOG2 comes from the fact that all the logs we compute are 6.58 fixed-point, and we're ultimately looking to produce a fracterval result of the form 0.128. The conversion from fru64 logs to a fru128 result actually requires a left shift by (U64_BITS-shift), not (U64_BIT_MAX-shift), but the former could cause overflow due to interval uncertainty, and we're better off not dealing with the complexities of saturation, even though they would produce the correct result. So this means that we need to shift left by one at the last step. But then coeff will be multiplied by log2_recip_half, when it should really be multiplied by twice that value. So in total, we'll need to shift left by 2 at the last step.
+The most we can shift coeff (below) to the left without overflow is (U64_BITS+U64_BITS_LOG2-shift). The U64_BITS_LOG2 comes from the fact that all the logs we compute are 6.58 fixed-point, and we're ultimately looking to produce a fracterval result of the form 0.128. The conversion from fru64 logs to a fru128 result then requires a left shift by (U64_BITS-shift). But then coeff is (1/(2 log(2))), when in fact we need it to be double that, hence the left shift by one at the last step (below the loop) prior to the result.
 */
-  shift=(u8)(U64_BIT_MAX+U64_BITS_LOG2-shift);
+  shift=(u8)(U64_BITS+U64_BITS_LOG2-shift);
   agnentroprox_base->ld_shift=shift;
   FRU128_RATIO_U64_SATURATE(coeff, mask_count_numerator, mask_count, ignored_status);
   log2_recip_half=agnentroprox_base->log2_recip_half;
   FRU128_MULTIPLY_FTD128_SELF(coeff, log2_recip_half);
   agnentroprox_base->ld_coeff=coeff;
-  FRU128_SET_ZERO(ld);
-  FRU128_SET_ZERO(ld_minus);
-  FRU128_SET_ZERO(ld_plus);
+  FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(mask_count));
+  FRU128_FROM_FRU64_MULTIPLY_U64(ld_plus, log, (u64)(mask_count));
+  FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(haystack_mask_count));
+  FRU128_FROM_FRU64_MULTIPLY_U64(ld_minus, log, (u64)(haystack_mask_count));
+  FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(needle_mask_count));
+  FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(needle_mask_count));
+  FRU128_ADD_FRU128_SELF(ld_minus, term, ignored_status);
   mask=0;
   do{
     haystack_freq=haystack_freq_list_base[mask];
@@ -2486,27 +2606,33 @@ The most we can shift to the left without overflow is (U64_BIT_MAX+U64_BITS_LOG2
       if(haystack_freq){
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(haystack_freq));
         FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(haystack_freq));
-        FRU128_ADD_FRU128_SELF(ld_minus, term, ignored_status);
+        FRU128_ADD_FRU128_SELF(ld_plus, term, ignored_status);
       }
       if(needle_freq){
         FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(needle_freq));
         FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(needle_freq));
-        FRU128_ADD_FRU128_SELF(ld_minus, term, ignored_status);
+        FRU128_ADD_FRU128_SELF(ld_plus, term, ignored_status);
       }
       freq=haystack_freq+needle_freq;
       FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
       FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq));
-      FRU128_ADD_FRU128_SELF(ld_plus, term, ignored_status);
+      FRU128_ADD_FRU128_SELF(ld_minus, term, ignored_status);
     }
   }while((mask++)!=mask_max);
   FRU128_SUBTRACT_FRU128(ld, ld_plus, ld_minus, ignored_status);
+/*
+We need to return the negated LD, not the actual LD, so NOT accordingly.
+*/
+  FRU128_NOT_SELF(ld);
   agnentroprox_base->entropy=ld;
 /*
-See the comments above about why shift is what it is, and why we need the extra shift by 2.
+See the comments above about why shift is what it is, and why we need the extra left shift.
 */
+  FRU128_NOT_SELF(ld);
   FRU128_SHIFT_LEFT_SELF(ld, shift, ignored_status);
   FRU128_MULTIPLY_FRU128_SELF(ld, coeff);
-  FRU128_SHIFT_LEFT_SELF(ld, 2, ignored_status);
+  FRU128_SHIFT_LEFT_SELF(ld, 1, ignored_status);
+  FRU128_NOT_SELF(ld);
 /*
 Write ignored_status to prevent the compiler from complaining about it not being used.
 */
@@ -2517,7 +2643,7 @@ Write ignored_status to prevent the compiler from complaining about it not being
 ULONG
 agnentroprox_ld_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *ld_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, ULONG sweep_mask_idx_max){
 /*
-Compute the (1-(normalized Leidich divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
+Compute the (1-(Leidich divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
 
 In:
 
@@ -2547,6 +2673,7 @@ Out:
 */
   fru128 coeff;
   ULONG freq;
+  ULONG freq_old;
   u8 granularity;
   u8 ignored_status;
   fru128 ld;
@@ -2639,7 +2766,7 @@ Increment the u8 indexes now, so that if we get a match, u8_idx_old will be the 
     u8_idx_old+=u8_idx_delta;
     if(mask!=mask_old){
 /*
-Compute (1-(normalized Leidich divergence)) delta according to the method described for LDT(H, J, N, Z) in http://vixra.org/abs/1710.0261 .
+Compute the delta in (1-(Leidich divergence)) according to the method described for LDT in http://vixra.org/abs/1710.0261 . Overflow is almost certainly impossible, so we ignore all overflow status returns.
 */
       needle_freq=needle_freq_list_base[mask];
       needle_freq_old=needle_freq_list_base[mask_old];
@@ -2647,21 +2774,21 @@ Compute (1-(normalized Leidich divergence)) delta according to the method descri
       sweep_freq_old=sweep_freq_list_base[mask_old];
       FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(sweep_freq_old));
       FRU128_FROM_FRU64_LO(ld_delta_plus, log);
-      freq=needle_freq_old+sweep_freq_old;
-      FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
+      freq_old=needle_freq_old+sweep_freq_old;
+      FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq_old));
       FRU128_FROM_FRU64_LO(ld_delta_minus, log);
       freq=sweep_freq+1;
+      sweep_freq_list_base[mask]=freq;
       FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
       FRU128_ADD_FRU64_LO_SELF(ld_delta_minus, log, ignored_status);
       freq+=needle_freq;
-      sweep_freq_list_base[mask]=sweep_freq;
       FRU64_LOG_U64_NONZERO_CACHED(log, log_idx_max, log_list_base, log_parameter_list_base, (u64)(freq));
       FRU128_ADD_FRU64_LO_SELF(ld_delta_plus, log, ignored_status);
-      freq=sweep_freq_old-1;
-      sweep_freq_list_base[mask_old]=freq;
+      freq_old=sweep_freq_old-1;
+      sweep_freq_list_base[mask_old]=freq_old;
       if(freq){
-        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
-        FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old));
+        FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq_old));
         FRU128_ADD_FRU128_SELF(ld_delta_plus, term, ignored_status);
       }
       if(sweep_freq){
@@ -2669,10 +2796,10 @@ Compute (1-(normalized Leidich divergence)) delta according to the method descri
         FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(sweep_freq));
         FRU128_ADD_FRU128_SELF(ld_delta_minus, term, ignored_status);
       }
-      freq=needle_freq_old+sweep_freq_old-1;
+      freq_old=needle_freq_old+sweep_freq_old-1;
       if(freq){
-        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq));
-        FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq));
+        FRU64_LOG_DELTA_U64_NONZERO_CACHED(log, log_delta_idx_max, log_delta_list_base, log_delta_parameter_list_base, (u64)(freq_old));
+        FRU128_FROM_FRU64_MULTIPLY_U64(term, log, (u64)(freq_old));
         FRU128_ADD_FRU128_SELF(ld_delta_minus, term, ignored_status);
       }
       freq=needle_freq+sweep_freq;
@@ -2715,14 +2842,16 @@ Compute (1-(normalized Leidich divergence)) delta according to the method descri
   coeff=agnentroprox_base->ld_coeff;
   shift=agnentroprox_base->ld_shift;
   match_idx=0;
-  do{      
+  do{
     ld=ld_list_base[match_idx];
+    FRU128_NOT_SELF(ld);
 /*
 These finalization operations are the same as in agnentroprox_ld_get().
 */
     FRU128_SHIFT_LEFT_SELF(ld, shift, ignored_status);
     FRU128_MULTIPLY_FRU128_SELF(ld, coeff);
-    FRU128_SHIFT_LEFT_SELF(ld, 2, ignored_status);
+    FRU128_SHIFT_LEFT_SELF(ld, 1, ignored_status);
+    FRU128_NOT_SELF(ld);
     ld_list_base[match_idx]=ld;
     match_idx++;
   }while(match_idx!=match_count);
@@ -2752,7 +2881,7 @@ Out:
 
   Returns ULONG_MAX if (granularity<=mask_list_size), in order to defeat downstream mask list allocation attempts; otherwise the index of the maximum safely addressable mask. If overlap_status is one, then this is a byte-granular index; otherwise it's a (granularity+1)-byte-granular index.
 
-  *granularity_status_base is one if mask_list_size is a nonzero multiple of (granularity+1), else one.
+  *granularity_status_base is one if overlap_status is zero and mask_list_size is a nonzero multiple of (granularity+1), else one.
 */
   ULONG mask_count;
   ULONG mask_idx_max;
@@ -3061,40 +3190,6 @@ Ensure that the allocated size in bits can be described in 64 bits.
     }
   }
   return list_base;
-}
-
-void
-agnentroprox_mask_list_subtract(agnentroprox_t *agnentroprox_base){
-/*
-Subtract the cummulative frequency list at index zero from the cummulative frequency list at index one.
-
-In:
-
-  agnentroprox_base is the return value of agenentroprox_init().
-
-Out:
-
-  The difference of the cummulative frequency lists has been computed and saved internally, as stated in the summary.
-*/
-  ULONG freq0;
-  ULONG freq1;
-  ULONG *freq_list_base0;
-  ULONG *freq_list_base1;
-  u32 mask;
-  u32 mask_max;
-
-  freq_list_base0=agnentroprox_base->freq_list_base0;
-  freq_list_base1=agnentroprox_base->freq_list_base1;
-  mask=0;
-  mask_max=agnentroprox_base->mask_max;
-  do{
-    freq0=freq_list_base0[mask];
-    freq1=freq_list_base1[mask];
-    freq1-=freq0;
-    freq_list_base1[mask]=freq1;
-  }while((mask++)!=mask_max);
-  agnentroprox_base->mask_count1-=agnentroprox_base->mask_count0;
-  return;
 }
 
 void

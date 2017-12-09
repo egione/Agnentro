@@ -51,6 +51,7 @@ TYPEDEF_START
   ULONG loggamma_idx_max;
   ULONG mask_count0;
   ULONG mask_count1;
+  ULONG mask_idx_max_max;
   u32 mask_max;
   u32 mask_max_max;
   u32 mask_sign_mask;

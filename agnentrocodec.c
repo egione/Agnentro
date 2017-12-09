@@ -606,8 +606,8 @@ Out:
   ULONG *freq_idx_min_list_base;
   ULONG *freq_tree_base;
   u32 mask;
-  ULONG mask_count_max_max;
-  ULONG mask_count_plus_span_max_max;
+  ULONG mask_count_max;
+  ULONG mask_count_plus_span_max;
   u64 mask_span;
   ULONG pochhammer_chunk_idx_max_max;
   ULONG *pochhammer_chunk_list_base;
@@ -622,11 +622,11 @@ Out:
   status=(u8)(status|(AGNENTROCODEC_BUILD_FEATURE_COUNT<build_feature_count));
   status=(u8)(status|(build_break_count!=AGNENTROCODEC_BUILD_BREAK_COUNT));
   status=(u8)(status|(!mask_max));
-  mask_count_max_max=mask_idx_max_max+1;
-  status=(u8)(status|(!mask_count_max_max));
+  mask_count_max=mask_idx_max_max+1;
+  status=(u8)(status|(!mask_count_max));
   mask_span=(u64)(mask_max)+1;
-  mask_count_plus_span_max_max=(ULONG)(mask_count_max_max+mask_span);
-  status=(u8)(status|(mask_count_plus_span_max_max<=mask_span));
+  mask_count_plus_span_max=(ULONG)(mask_count_max+mask_span);
+  status=(u8)(status|(mask_count_plus_span_max<=mask_span));
   status=(u8)(status|(U32_BYTE_MAX<granularity));
   granularity=(u8)(granularity&U32_BYTE_MAX);
   status=(u8)(status|((u32)((1U<<(granularity<<U8_BITS_LOG2)<<U8_BITS)-1)<mask_max));
