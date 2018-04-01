@@ -59,12 +59,6 @@ Mask List Comparison and Absorption Utility
 #include "zorb.h"
 #include "zorb_xtrn.h"
 
-#define AGNENTROZORB_GEOMETRY_ABSORB 3U
-#define AGNENTROZORB_GEOMETRY_ABSORB_ADD 1U
-#define AGNENTROZORB_GEOMETRY_ABSORB_ADD_MUNDANE 3U
-#define AGNENTROZORB_GEOMETRY_ABSORB_BIT_IDX 9U
-#define AGNENTROZORB_GEOMETRY_ABSORB_REPORT 0U
-#define AGNENTROZORB_GEOMETRY_ABSORB_SUBTRACT 2U
 #define AGNENTROZORB_GEOMETRY_CHANNELIZE 1U
 #define AGNENTROZORB_GEOMETRY_CHANNELIZE_BIT_IDX 6U
 #define AGNENTROZORB_GEOMETRY_DELTAS 3U
@@ -75,10 +69,20 @@ Mask List Comparison and Absorption Utility
 #define AGNENTROZORB_GEOMETRY_GRANULARITY_BIT_IDX 0U
 #define AGNENTROZORB_GEOMETRY_OVERLAP 1U
 #define AGNENTROZORB_GEOMETRY_OVERLAP_BIT_IDX 7U
-#define AGNENTROZORB_GEOMETRY_POLARITY 1U
-#define AGNENTROZORB_GEOMETRY_POLARITY_BIT_IDX 8U
 #define AGNENTROZORB_GEOMETRY_SURROUNDIFY 1U
 #define AGNENTROZORB_GEOMETRY_SURROUNDIFY_BIT_IDX 3U
+#define AGNENTROZORB_MODE_ABSORB 3U
+#define AGNENTROZORB_MODE_ABSORB_ADD 1U
+#define AGNENTROZORB_MODE_ABSORB_ADD_MUNDANE 3U
+#define AGNENTROZORB_MODE_ABSORB_BIT_IDX 1U
+#define AGNENTROZORB_MODE_ABSORB_REPORT 0U
+#define AGNENTROZORB_MODE_ABSORB_SUBTRACT 2U
+#define AGNENTROZORB_MODE_NLD 1U
+#define AGNENTROZORB_MODE_NLD_BIT_IDX 4U
+#define AGNENTROZORB_MODE_POLARITY 1U
+#define AGNENTROZORB_MODE_POLARITY_BIT_IDX 0U
+#define AGNENTROZORB_MODE_RESET 1U
+#define AGNENTROZORB_MODE_RESET_BIT_IDX 3U
 #define AGNENTROZORB_STATUS_ALERT_BIT_IDX 2U
 #define AGNENTROZORB_STATUS_ERROR_BIT_IDX 0U
 #define AGNENTROZORB_STATUS_WARNING_BIT_IDX 1U
@@ -148,6 +152,9 @@ main(int argc, char *argv[]){
   u8 mask_size;
   ULONG *maskops_bitmap_base;
   u32 *maskops_u32_list_base;
+  ULONG match_u8_idx;
+  u64 match_u8_idx_u64;
+  u8 nld_status;
   u8 overlap_status;
   u64 parameter;
   u8 polarity_status;
@@ -155,6 +162,8 @@ main(int argc, char *argv[]){
   u64 score;
   u8 status;
   u8 surroundify_status;
+  ULONG sweep_mask_count;
+  ULONG sweep_mask_idx_max;
   u64 threshold;
   ULONG threshold_digit_count;
   u8 warning_status;
@@ -186,7 +195,7 @@ main(int argc, char *argv[]){
       agnentrozorb_error_print("Outdated source code");
       break;
     }
-    if((argc!=4)&&(argc!=5)){
+    if((argc!=5)&&(argc!=6)&&(argc!=7)){
       DEBUG_PRINT("Agnentrozorb\nCopyright 2017 Russell Leidich\nhttp://agnentropy.blogspot.com\n");
       DEBUG_U32("build_id_in_hex", AGNENTROZORB_BUILD_ID);
       DEBUG_PRINT("Mask list comparison and absorption utility.\n\n");
@@ -194,10 +203,14 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("  Reports the (normalized) negated Jensen-Shannon divergence (NJSD, which is\n  one minus the Jensen-Shannon divergence) between a frequency list and a mask\n  list, then optionally adds or subtracts the frequency list implied by the\n  latter to or from the former.\n\n");
       DEBUG_PRINT("Returns:\n\n  bit 0: Set if and only if an error occurred.\n\n  bit 1: Set if and only if a warning occurred.\n\n  bit 2: Set if and only if the result was out-of-bounds (as defined by\n  (threshold)).\n\n");
       DEBUG_PRINT("Syntax:\n\n");
-      DEBUG_PRINT("  agnentrozorb geometry zorbfile masklist [threshold]\n\n");
-      DEBUG_PRINT("  (geometry) is a hex bitmap which controls mask processing. Do NOT use the\n  same (zorbfile) with different (geometry) values:\n\n  bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n  requires 64GiB of memory.\n\n  bit 2: (densify) Set to enable densification (mask utilization footprint\n  minimization) after deltafication.\n\n  bit 3: (surroundify) After densification, subtract the minimum mask from all\n  masks, so as to make the new minimum 0. Then convert all masks to their\n  surround codes relative to their new maximum.\n\n  bit 4-5: (deltas) The number of times to compute the delta (discrete\n  derivative) of the mask list prior to considering (overlap). Each delta, if\n  any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n  for improving the entropy contrast of signals containing masks which\n  represent magnitudes, as opposed to merely symbols. Experiment to find the\n  optimum value for your data set.\n\n  bit 6: (channelize) Set if masks consist of parallel byte channels, for\n  example the red, green, and blue bytes of 24-bit pixels. This will cause\n  deltafication, if enabled, to occur on individual bytes, prior to considering\n  (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning 6 bytes)\n  would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n  bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n  (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes, with\n  the low bytes being A0 and A1) would be processed as though it were\n  {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality in\n  cases where context matters, as opposed to merely the frequency distribution\n  of symbols. It only affects search -- not preprocessing.\n\n  bit 8: (polarity) is zero if (threshold) is the maximum NJSD which is to be\n  considered mundane, else one if (threshold) is the minimum such value.\n\n  bits 9-10: (absorb) tells how to integrate (masklist) into (zorbfile), if at\n  all. For the purposes of said integration, (masklist) will be presumed to\n  contain up to 256 masks if (channelize) is one, else (256^(granularity+1)).\n  If (zorbfile) doesn't exist, then no alert will be raised, and 01, 10, and\n  11 will all be treated as 01.\n\n    00 to simply report the NJSD.\n\n    01 to report the NJSD, compute the frequency list implied by (masklist),\n    then add it to the frequency list contained in (zorbfile). If (zorbfile)\n    doesn't exist, then the NJSD will be reported as (polarity) and (zorbfile)\n    will be initialized in a manner consistent with the frequency list\n    corresponding to (masklist).\n\n    10 to report the NJSD, compute the frequency list implied by (masklist),\n    then subtract it from the frequency list contained in (zorbfile). If\n    (zorbfile) doesn't exist, then behavior will be the same as with (01).\n\n    11 is like 01, but only mundane signals will be added to the frequency\n    list. This prevents anomalies from being gradually subsumed into\n    expectation.\n\n");
+      DEBUG_PRINT("  agnentrozorb geometry mode zorbfile masklist [sweep [threshold]]\n\n");
+      DEBUG_PRINT("  (geometry) is a hex bitmap which controls mask processing. Do NOT use the\n  same (zorbfile) with different (geometry) values:\n\n");
+      DEBUG_PRINT("    bits 0-1: (granularity) Mask size minus 1. Note that 3 (32 bits per mask)\n    requires 64GiB of memory.\n\n    bit 2: (densify) Set to enable densification (mask utilization footprint\n    minimization) after deltafication.\n\n    bit 3: (surroundify) After densification, subtract the minimum mask from\n    all masks, so as to make the new minimum 0. Then convert all masks to their\n    surround codes relative to their new maximum.\n\n    bit 4-5: (deltas) The number of times to compute the delta (discrete\n    derivative) of the mask list prior to considering (overlap). Each delta, if\n    any, will transform {A, B, C...} to  {A, (B-A), (C-B)...}. This is useful\n    for improving the entropy contrast of signals containing masks which\n    represent magnitudes, as opposed to merely symbols. Experiment to find the\n    optimum value for your data set.\n\n    bit 6: (channelize) Set if masks consist of parallel byte channels, for\n    example the red, green, and blue bytes of 24-bit pixels. This will cause\n    deltafication, if enabled, to occur on individual bytes, prior to\n    considering (overlap). For example, {A0:B0, A1:B1, A2:B2} (3 masks spanning\n    6 bytes) would be transformed to {A0:B0, (A1-A0):(B1-B0), (A2-A1):(B2-B1)}.\n\n    bit 7: (overlap) Overlap masks on byte boundaries. For example, if\n    (granularity) is 2, then {A0:B0:C0, A1:B1:C1} (2 masks spanning 6 bytes,\n    with the low bytes being A0 and A1) would be processed as though it were\n    {A0:B0:C0, B0:C0:A1, C0:A1:B1, A1:B1:C1}. This can improve search quality\n    in cases where context matters, as opposed to merely the frequency\n    distribution of symbols. It only affects search -- not preprocessing.\n\n");
+      DEBUG_PRINT("  (mode) is a hex bitmap which controls statistical analysis:\n\n");
+      DEBUG_PRINT("    bit 0: (polarity) is zero if (threshold) is the maximum NJSD which is to be\n    considered mundane, else one if (threshold) is the minimum such value.\n\n    bits 1-2: (absorb) tells how to integrate (masklist) into (zorbfile), if at\n    all. For the purposes of said integration, (masklist) will be presumed to\n    contain up to 256 masks if (channelize) is one, else (256^(granularity+1)).\n    If (zorbfile) doesn't exist, then no alert will be raised, and 01, 10, and\n    11 will all be treated as 01.\n\n      00 to simply report the NJSD.\n\n      01 to report the NJSD, compute the frequency list implied by (masklist),\n      then add it to the frequency list contained in (zorbfile). If (zorbfile)\n      doesn't exist, then the NJSD will be reported as (polarity) and\n      (zorbfile) will be initialized in a manner consistent with the frequency\n      list corresponding to (masklist).\n\n      10 to report the NJSD, compute the frequency list implied by (masklist),\n      then subtract it from the frequency list contained in (zorbfile). If\n      (zorbfile) doesn't exist, then behavior will be the same as with (01).\n\n      11 is like 01, but only mundane signals will be added to the frequency\n      list. This prevents anomalies from being gradually subsumed into\n      expectation.\n\n    bit 3: (reset) Reinitialize (zorbfile) by forgetting its entire history.\n\n    bit 4: (nld) Use a negated Leidich divergence in place of the NJSD. In\n    order to avoid ordering bias, this bit may only e set if (absorb) is zero.\n\n");
       DEBUG_PRINT("  (zorbfile) will be created if it doesn't exist. Otherwise, it's the output of\n  previous Agnentrozorb sessions created with the same (geometry) settings.\n\n");
       DEBUG_PRINT("  (masklist) is an input file which will be preprocessed according to\n  (geometry) prior to comparison with and integration into with (zorbfile), as\n  specified by (absorb).\n\n");
+      DEBUG_PRINT("  (sweep) is an optional decimal value which specifies the number of masks in\n  the sweep window to slide across the haystack given by (masklist); or zero\n  if the sweep window is identical to the haystack itself, in which case no\n  sliding can occur. For example, 5 means: a 5-byte window if (granularity)=0,\n  a 10-byte window if (granularity)=1 and (overlap)=0, or a 7-byte window if\n  (granularity)=2 and (overlap)=1. This value must not be nonzero if (absorb)\n  is nonzero. If nonzero, this value will cause an additional parameter to be\n  displayed after the NJSD, which is the hex base offset of the sweep window\n  with the greatest or least NJSD if (polarity) is zero or one, respectively.\n  Ties will be resolved in favor of lesser base offset.\n\n");
       DEBUG_PRINT("  (threshold) is an optional hex value up to 64-bits which specifies the\n  maximum (if (polarity) is zero) or minimum (if (polarity) is one) mundane\n  NJSD. If fewer than 16 hex digits are provided, then the provided digits will\n  be interpreted as the most significant, with the rest being zeroes. Values\n  which are not mundane will contain a \"*\" after their reported NJSD. The NJSD\n  itself is of course transcendental irrational, so for these purposes the NJSD\n  is deemed to equal the mean of the interval on which it is known to exist. If\n  not specified, this value will be presumed to be zero.\n\n");
       break;
     }
@@ -212,37 +225,63 @@ main(int argc, char *argv[]){
     if(status){
       break;
     }
+    sweep_mask_count=0;
     threshold=0;
-    if(4<argc){
-      threshold_digit_count=(ULONG)(strlen(argv[4]));
-      status=((U64_BITS>>2)<threshold_digit_count);
-      if(!status){
-        status=ascii_hex_to_u64_convert(argv[4], &threshold, U64_MAX);
-      }
+    if(5<argc){
+      status=ascii_decimal_to_u64_convert(argv[5], &parameter, ULONG_MAX);
+      sweep_mask_count=(ULONG)(parameter);
       if(status){
-        agnentrozorb_parameter_error_print("threshold");
+        agnentrozorb_parameter_error_print("sweep");
         break;
       }
+      if(6<argc){
+        threshold_digit_count=(ULONG)(strlen(argv[6]));
+        status=ascii_hex_to_u64_convert(argv[6], &threshold, U64_MAX);
+        if(status){
+          agnentrozorb_parameter_error_print("threshold");
+          break;
+        }
 /*
 By definition, (threshold) digits are aligned high, so shift left accordingly.
 */
-      threshold<<=U64_BITS-(threshold_digit_count<<2);
+        threshold<<=U64_BITS-(threshold_digit_count<<2);
+      }
     }
-    status=ascii_hex_to_u64_convert(argv[1], &parameter, 0x7FF);
+    status=ascii_hex_to_u64_convert(argv[1], &parameter, 0xFF);
     if(status){
       agnentrozorb_parameter_error_print("geometry");
       break;
     }
-    absorb_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_ABSORB_BIT_IDX)&AGNENTROZORB_GEOMETRY_ABSORB);
     channel_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_CHANNELIZE_BIT_IDX)&AGNENTROZORB_GEOMETRY_CHANNELIZE);
     delta_count=(u8)((parameter>>AGNENTROZORB_GEOMETRY_DELTAS_BIT_IDX)&AGNENTROZORB_GEOMETRY_DELTAS);
     densify_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_DENSIFY_BIT_IDX)&AGNENTROZORB_GEOMETRY_DENSIFY);
     granularity=(u8)((parameter>>AGNENTROZORB_GEOMETRY_GRANULARITY_BIT_IDX)&AGNENTROZORB_GEOMETRY_GRANULARITY);
     overlap_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_OVERLAP_BIT_IDX)&AGNENTROZORB_GEOMETRY_OVERLAP);
-    polarity_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_POLARITY_BIT_IDX)&AGNENTROZORB_GEOMETRY_POLARITY);
     surroundify_status=(u8)((parameter>>AGNENTROZORB_GEOMETRY_SURROUNDIFY_BIT_IDX)&AGNENTROZORB_GEOMETRY_SURROUNDIFY);
-    zorb_filename_base=argv[2];
+    status=ascii_hex_to_u64_convert(argv[2], &parameter, 0x1F);
+    if(status){
+      agnentrozorb_parameter_error_print("mode");
+      break;
+    }
+    absorb_status=(u8)((parameter>>AGNENTROZORB_MODE_ABSORB_BIT_IDX)&AGNENTROZORB_MODE_ABSORB);
+    nld_status=(u8)((parameter>>AGNENTROZORB_MODE_NLD_BIT_IDX)&AGNENTROZORB_MODE_NLD);
+    polarity_status=(u8)((parameter>>AGNENTROZORB_MODE_POLARITY_BIT_IDX)&AGNENTROZORB_MODE_POLARITY);
+    reset_status=(u8)((parameter>>AGNENTROZORB_MODE_RESET_BIT_IDX)&AGNENTROZORB_MODE_RESET);
     status=1;
+    if(absorb_status!=AGNENTROZORB_MODE_ABSORB_REPORT){
+      if(nld_status){
+        agnentrozorb_error_print("(nld) must be zero with nonzero (absorb) bits");
+        break;
+      }else if(sweep_mask_count){
+        agnentrozorb_error_print("(sweep) must be zero with nonzero (absorb) bits");
+        break;
+      }
+    }
+    if(reset_status&(absorb_status!=AGNENTROZORB_MODE_ABSORB_ADD)){
+      agnentrozorb_error_print("(reset) is one but the (absorb) bits are not 01. That makes no sense");
+      break;
+    }
+    zorb_filename_base=argv[3];
     zorb_filename_char_idx_max=(ULONG)(strlen(zorb_filename_base));
     if(4<zorb_filename_char_idx_max){
       if(zorb_filename_base[zorb_filename_char_idx_max-4]=='.'){
@@ -265,8 +304,9 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
       agnentrozorb_error_print("Insufficient memory to support (zorbfile) consistent with (granularity)");
       break;
     }
-    mask_list_filename_base=argv[3];
+    mask_list_filename_base=argv[4];
     filesys_status=filesys_file_size_ulong_get(&mask_list_file_size, mask_list_filename_base);
+    status=1;
     if(filesys_status){
       agnentrozorb_error_print("(masklist) not found");
       break;
@@ -279,6 +319,14 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
       }else{
         agnentrozorb_error_print("(masklist) is too small to contain even one mask");
         break;
+      }
+    }
+    sweep_mask_idx_max=mask_idx_max;
+    if(sweep_mask_count){
+      sweep_mask_idx_max=sweep_mask_count-1;
+      if(mask_idx_max<sweep_mask_idx_max){
+        agnentrozorb_error_print("(haystack) contains fewer than (sweep) masks");
+        break;            
       }
     }
     mask_list_base=agnentroprox_mask_list_malloc(granularity, mask_idx_max, overlap_status);
@@ -308,9 +356,14 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
     }
     if(densify_status){
       maskops_bitmap_base=maskops_bitmap_malloc((u64)(mask_max));
-      status=(u8)(status|!maskops_bitmap_base);
+      status=!maskops_bitmap_base;
       maskops_u32_list_base=maskops_u32_list_malloc((ULONG)(mask_max));
       status=(u8)(status|!maskops_u32_list_base);
+      if(status){
+        agnentrozorb_out_of_memory_print();
+        break;
+      }
+      status=1;
     }
 /*
 Set mask_idx_max_max to the largest value it could be without wrapping so that Agnentroprox will just continue to allow us to accumulate mask frequencies for a long time over multiple instances of this app.
@@ -325,12 +378,11 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
       agnentrozorb_error_print("Agnentroprox init failed, probably due to huge (granularity)");
       break;
     }
-    reset_status=0;
     score=0;
-    if(filesys_status){
-      if((absorb_status!=AGNENTROZORB_GEOMETRY_ABSORB_REPORT)&(filesys_status==FILESYS_STATUS_NOT_FOUND)){
+    if(filesys_status|reset_status){
+      if(((absorb_status!=AGNENTROZORB_MODE_ABSORB_REPORT)&(filesys_status==FILESYS_STATUS_NOT_FOUND))|reset_status){
         zorb_reset(agnentroprox_base, zorb_base);
-        absorb_status=AGNENTROZORB_GEOMETRY_ABSORB_ADD;
+        absorb_status=AGNENTROZORB_MODE_ABSORB_ADD;
         reset_status=1;
         score=0;
         score-=polarity_status;
@@ -404,12 +456,16 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
         agnentrozorb_error_print("(zorbfile) frequencies are too big to handle");
         break;
       }
-      jsd=agnentroprox_jsd_get(agnentroprox_base, 0, zorb_mask_idx_max, NULL);
+      if(!nld_status){
+        agnentroprox_jsd_transform(agnentroprox_base, polarity_status, mask_idx_max, mask_list_base, &jsd, 0, &match_u8_idx, sweep_mask_idx_max);
+      }else{
+        agnentroprox_ld_transform(agnentroprox_base, polarity_status, mask_idx_max, mask_list_base, &jsd, 0, &match_u8_idx, sweep_mask_idx_max);
+      }
       FRU128_MEAN_TO_FTD128(jsd_mean, jsd);
       U128_TO_U64_HI(score, jsd_mean);
     }
-    if(!(((absorb_status==AGNENTROZORB_GEOMETRY_ABSORB_ADD_MUNDANE)&alert_status)|(absorb_status==AGNENTROZORB_GEOMETRY_ABSORB_REPORT))){
-      if(absorb_status!=AGNENTROZORB_GEOMETRY_ABSORB_SUBTRACT){
+    if(!(((absorb_status==AGNENTROZORB_MODE_ABSORB_ADD_MUNDANE)&alert_status)|(absorb_status==AGNENTROZORB_MODE_ABSORB_REPORT))){
+      if(absorb_status!=AGNENTROZORB_MODE_ABSORB_SUBTRACT){
         status=zorb_freq_list_add(agnentroprox_base);
         if(status){
           agnentrozorb_error_print("(zorbfile) can't absorb any more data. Please report");
@@ -442,6 +498,11 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
     DEBUG_U64("", score);
     if(alert_status){
       DEBUG_PRINT("*");
+    }
+    if(sweep_mask_count){
+      DEBUG_PRINT(" ");
+      match_u8_idx_u64=match_u8_idx;
+      DEBUG_U64("", match_u8_idx_u64);
     }
     DEBUG_PRINT(" ");
     DEBUG_PRINT(mask_list_filename_base);

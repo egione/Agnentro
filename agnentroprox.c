@@ -65,7 +65,6 @@ In:
   ULONG mask_count;
   u8 status;
 
-  mask_count=0;
   status=0;
   if(mode){
     mask_count=agnentroprox_base->mask_count0;
@@ -142,7 +141,7 @@ Compute the diventropy of a preloaded needle frequency list with respect to a ha
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
@@ -235,7 +234,7 @@ Compute the diventropy transform of a haystack with respect to a preloaded needl
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
@@ -795,7 +794,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
+  append_mode is 2 to append entropies one at at time to *entropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by entropy, or zero to sort descending.
 
   *entropy_list_base contains (match_idx_max_max+1) undefined items.
     
@@ -943,7 +942,7 @@ In cases where ignored_status is used, overflows are safe to ignore because the 
       agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base1);
       agnentroprox_base->mask_count1=0;
       agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, mask_list_base);
-      agnentroprox_freq_list_subtract(agnentroprox_base);
+      agnentroprox_freq_list_subtract(agnentroprox_base, 0);
       exo_mask_count=agnentroprox_base->mask_count1;
       exo_mask_count_plus_span=exo_mask_count+mask_max+1;
 /*
@@ -1486,7 +1485,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
+  append_mode is 2 to append exoelasticities one at at time to *exoelasticity_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by exoelasticity, or zero to sort descending.
 
   *exoelasticity_list_base contains (match_idx_max_max+1) undefined items.
     
@@ -1569,7 +1568,7 @@ Out:
   agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base1);
   agnentroprox_base->mask_count1=0;
   agnentroprox_mask_list_accrue(agnentroprox_base, 1, mask_idx_max, mask_list_base);
-  agnentroprox_freq_list_subtract(agnentroprox_base);
+  agnentroprox_freq_list_subtract(agnentroprox_base, 0);
   mask_count=agnentroprox_base->mask_count1;
   mask_count_plus_span=mask_count+mask_max+1;
 /*
@@ -1795,13 +1794,15 @@ Out:
 }
 
 void
-agnentroprox_freq_list_add(agnentroprox_t *agnentroprox_base){
+agnentroprox_freq_list_add(agnentroprox_t *agnentroprox_base, u8 reverse_status){
 /*
-Add the cummulative frequency list at index zero to the cummulative frequency list at index one.
+Add the cummulative frequency list at index zero/one to the cummulative frequency list at index one/zero.
 
 In:
 
   agnentroprox_base is the return value of agenentroprox_init().
+
+  reverse_status is zero to add frequency list zero to list one, else one for the reverse.
 
 Out:
 
@@ -1811,31 +1812,40 @@ Out:
   ULONG freq1;
   ULONG *freq_list_base0;
   ULONG *freq_list_base1;
+  ULONG *freq_list_base2;
   u32 mask;
   u32 mask_max;
 
   freq_list_base0=agnentroprox_base->freq_list_base0;
   freq_list_base1=agnentroprox_base->freq_list_base1;
+  if(!reverse_status){
+    freq_list_base2=freq_list_base1;
+    agnentroprox_base->mask_count1+=agnentroprox_base->mask_count0;
+  }else{
+    freq_list_base2=freq_list_base0;
+    agnentroprox_base->mask_count0+=agnentroprox_base->mask_count1;
+  }
   mask=0;
   mask_max=agnentroprox_base->mask_max;
   do{
     freq0=freq_list_base0[mask];
     freq1=freq_list_base1[mask];
     freq1+=freq0;
-    freq_list_base1[mask]=freq1;
+    freq_list_base2[mask]=freq1;
   }while((mask++)!=mask_max);
-  agnentroprox_base->mask_count1+=agnentroprox_base->mask_count0;
   return;
 }
 
 void
-agnentroprox_freq_list_subtract(agnentroprox_t *agnentroprox_base){
+agnentroprox_freq_list_subtract(agnentroprox_t *agnentroprox_base, u8 reverse_status){
 /*
-Subtract the cummulative frequency list at index zero from the cummulative frequency list at index one.
+Subtract the cummulative frequency list at index zero/one from the cummulative frequency list at index one/zero.
 
 In:
 
   agnentroprox_base is the return value of agenentroprox_init().
+
+  reverse_status is zero to subtract frequency list zero from list one, else one for the reverse.
 
 Out:
 
@@ -1845,20 +1855,27 @@ Out:
   ULONG freq1;
   ULONG *freq_list_base0;
   ULONG *freq_list_base1;
+  ULONG *freq_list_base2;
   u32 mask;
   u32 mask_max;
 
   freq_list_base0=agnentroprox_base->freq_list_base0;
   freq_list_base1=agnentroprox_base->freq_list_base1;
+  if(!reverse_status){
+    freq_list_base2=freq_list_base1;
+    agnentroprox_base->mask_count1-=agnentroprox_base->mask_count0;
+  }else{
+    freq_list_base2=freq_list_base0;
+    agnentroprox_base->mask_count0-=agnentroprox_base->mask_count1;
+  }
   mask=0;
   mask_max=agnentroprox_base->mask_max;
   do{
     freq0=freq_list_base0[mask];
     freq1=freq_list_base1[mask];
     freq1-=freq0;
-    freq_list_base1[mask]=freq1;
+    freq_list_base2[mask]=freq1;
   }while((mask++)!=mask_max);
-  agnentroprox_base->mask_count1-=agnentroprox_base->mask_count0;
   return;
 }
 
@@ -2120,7 +2137,7 @@ Compute (1-(normalized Jensen-Shannon divergence)) between needle and haystack f
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
@@ -2174,7 +2191,7 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
     agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
   }
   if(exo_status){
-    agnentroprox_freq_list_subtract(agnentroprox_base);
+    agnentroprox_freq_list_subtract(agnentroprox_base, 0);
   }
   haystack_mask_count=agnentroprox_base->mask_count1;
   log_u128_idx_max=agnentroprox_base->log_u128_idx_max;
@@ -2248,15 +2265,15 @@ Write ignored_status to prevent the compiler from complaining about it not being
 ULONG
 agnentroprox_jsd_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *jsd_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, ULONG sweep_mask_idx_max){
 /*
-Compute the (1-(normalized Jensen-Shannon divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
+Compute the (1-(normalized Jensen-Shannon divergence)) ("negated JSD") transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
+  append_mode is 2 to append negated JSDs one at at time to *jsd_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by negated JSD, or zero to sort descending.
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
@@ -2272,7 +2289,7 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max), where sweep_mask_idx_max is just agnentroprox_needle_mask_list_load():In:mask_idx_max.
+  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max), where sweep_mask_idx_max is just agnentroprox_mask_list_load():In:mask_idx_max when (freq_list_idx==0).
 
   *jsd_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 */
@@ -2515,7 +2532,7 @@ Compute (1-(Leidich divergence)) between needle and haystack frequency lists. (I
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
@@ -2564,7 +2581,7 @@ In this function, we ignore returned overflow status (via ignored_status) becaus
     agnentroprox_mask_list_accrue(agnentroprox_base, 1, haystack_mask_idx_max, haystack_mask_list_base);
   }
   if(exo_status){
-    agnentroprox_freq_list_subtract(agnentroprox_base);
+    agnentroprox_freq_list_subtract(agnentroprox_base, 0);
   }
   haystack_mask_count=agnentroprox_base->mask_count1;
   log_idx_max=agnentroprox_base->log_idx_max;
@@ -2643,15 +2660,15 @@ Write ignored_status to prevent the compiler from complaining about it not being
 ULONG
 agnentroprox_ld_transform(agnentroprox_t *agnentroprox_base, u8 append_mode, ULONG haystack_mask_idx_max, u8 *haystack_mask_list_base, fru128 *ld_list_base, ULONG match_idx_max_max, ULONG *match_u8_idx_list_base, ULONG sweep_mask_idx_max){
 /*
-Compute the (1-(Leidich divergence)) transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
+Compute the (1-(Leidich divergence))  ("negated LD") transform of a haystack with respect to a preloaded needle frequency list, given a particular sweep.
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  append_mode is 2 to append diventropies one at at time to *diventropy_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by diventropy, or zero to sort descending.
+  append_mode is 2 to append negated LDs one at at time to *ld_list_base, ordered ascending by the base index of the sweep window. Else one to sort results ascending by negated LD, or zero to sort descending.
 
   haystack_mask_idx_max is one less than the number of masks in the haystack, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
@@ -2667,7 +2684,7 @@ In:
 
 Out:
 
-  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max), where sweep_mask_idx_max is just agnentroprox_needle_mask_list_load():In:mask_idx_max.
+  Returns the number of matches found, which is simply (MIN((haystack_mask_idx_max-sweep_mask_idx_max))+1, match_idx_max_max), where sweep_mask_idx_max is just agnentroprox_mask_list_load():In:mask_idx_max when (freq_list_idx==0).
 
   *ld_list_base contains (return value) items which represent the matches identified during the search, sorted according to append_mode.
 */
@@ -2914,7 +2931,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  freq_list_idx is the index of the frequency list, which is just zero or one.
+  freq_list_idx is the index of the frequency list, which is just zero for the needle or one for the haystack.
 
   mask_idx_max is one less than the number of masks in the mask list, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
@@ -2969,6 +2986,41 @@ Out:
   }else{
     agnentroprox_base->mask_count1+=mask_count;
   }
+  return;
+}
+
+void
+agnentroprox_mask_list_load(agnentroprox_t *agnentroprox_base, u8 freq_list_idx, ULONG mask_idx_max, u8 *mask_list_base){
+/*
+Copy the frequencies of masks in a needle to an internal frequency list, in preparation for a series of bivalent entropy transforms.
+
+In:
+
+  agnentroprox_base is the return value of agenentroprox_init().
+
+  freq_list_idx is the index of the frequency list, which is just zero for the needle or one for the haystack. While not prohibited, haystack loading is generally not done because it occurs organically during an entropy transform.
+
+  mask_idx_max is one less than the number of masks in the mask list, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
+
+  *mask_list_base is the needle.
+
+Out:
+
+  The mask frequencies implied by *mask_list_base have been copied to the indicated internal frequency list.
+*/
+  ULONG *freq_list_base;
+  u32 mask_max;
+
+  if(!freq_list_idx){
+    freq_list_base=agnentroprox_base->freq_list_base0;
+    agnentroprox_base->mask_count0=0;
+  }else{
+    freq_list_base=agnentroprox_base->freq_list_base1;
+    agnentroprox_base->mask_count1=0;
+  }
+  mask_max=agnentroprox_base->mask_max;
+  agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base);
+  agnentroprox_mask_list_accrue(agnentroprox_base, freq_list_idx, mask_idx_max, mask_list_base);
   return;
 }
 
@@ -3037,7 +3089,7 @@ In:
 
 Out:
 
-  The effect of any previous call to agnentroprox_needle_mask_list_load() has been destroyed.
+  The effect of any previous call to agnentroprox_mask_list_load() with (freq_list_idx==0) has been destroyed.
 
   The internal representation of the mean is stored at maximum accuracy, as required for interval math validity. A 64.64 fixed-point approximation is returned for display.
 
@@ -3201,7 +3253,7 @@ In:
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  freq_list_idx is the index of the frequency list, which is just zero or one.
+  freq_list_idx is the index of the frequency list, which is just zero for the needle or one for the haystack.
 
   mask_idx_max is one less than the number of masks in the mask list, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
 
@@ -3432,34 +3484,6 @@ Out:
   return match_idx;
 }
 
-void
-agnentroprox_needle_mask_list_load(agnentroprox_t *agnentroprox_base, ULONG mask_idx_max, u8 *mask_list_base){
-/*
-Copy the frequencies of masks in a needle to an internal frequency list, in preparation for a series of bivalent entropy transforms.
-
-In:
-
-  agnentroprox_base is the return value of agenentroprox_init().
-
-  mask_idx_max is one less than the number of masks in the mask list, such that if agnentroprox_init():In:overlap_status was one, then this value would need to be increased in order to account for mask overlap. For example, if the sweep contains 5 of 3-byte masks, then this value would be 4 _without_ overlap, or 12 _with_ overlap. Must not exceed agnentroprox_init():In:mask_idx_max_max. See also agnentroprox_mask_idx_max_get().
-
-  *mask_list_base is the needle.
-
-Out:
-
-  The mask frequencies in the needle have been copied to an internal frequency list.
-*/
-  ULONG *freq_list_base;
-  u32 mask_max;
-
-  freq_list_base=agnentroprox_base->freq_list_base0;
-  mask_max=agnentroprox_base->mask_max;
-  agnentroprox_ulong_list_zero((ULONG)(mask_max), freq_list_base);
-  agnentroprox_base->mask_count0=0;
-  agnentroprox_mask_list_accrue(agnentroprox_base, 0, mask_idx_max, mask_list_base);
-  return;
-}
-
 fru128
 agnentroprox_shannon_entropy_get(agnentroprox_t *agnentroprox_base, u8 freq_list_idx, u8 *overflow_status_base){
 /*
@@ -3467,11 +3491,11 @@ Compute the Shannon entropy of a preloaded frequency list.
 
 In:
 
-  The needle frequency list must have been preloaded with agnentroprox_mask_list_accrue() or agnentroprox_needle_mask_list_load() prior to calling this function, with no intervening alterations.
+  The needle frequency list must have been preloaded with agnentroprox_mask_list_accrue() or agnentroprox_mask_list_load() prior to calling this function, with no intervening alterations.
 
   agnentroprox_base is the return value of agenentroprox_init().
 
-  freq_list_idx is the index of the frequency list, which is just zero or one.
+  freq_list_idx is the index of the frequency list, which is just zero for the needle or one for the haystack.
 
   *overflow_status_base is the OR-cummulative fracterval overflow status.
 

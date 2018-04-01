@@ -23,6 +23,12 @@ License version 3 along with the Zorb Library (filename
 Frequency List Absorption Functions
 */
 #include "flag.h"
+#include "flag_fracterval_u128.h"
+#include "flag_fracterval_u64.h"
+#include "flag_biguint.h"
+#include "flag_loggamma.h"
+#include "flag_poissocache.h"
+#include "flag_agnentroprox.h"
 #include "flag_zorb.h"
 #include <stdint.h>
 #include <stdlib.h>
@@ -95,7 +101,7 @@ Out:
   ULONG mask_idx_max;
   u32 mask_max;
 
-  mask_idx_max=agnentroprox_base->mask_count1-1;
+  mask_idx_max=agnentroprox_base->mask_count0-1;
   mask_max=agnentroprox_base->mask_max;
   zorb_base->mask_idx_max=mask_idx_max;
   zorb_base->mask_max=mask_max;
@@ -128,7 +134,7 @@ Out:
 u8
 zorb_freq_list_add(agnentroprox_t *agnentroprox_base){
 /*
-After verifying that it's safe to do so, add Agnentroprox's frequency list zero to its frequency list one.
+After verifying that it's safe to do so, add Agnentroprox's frequency list one to its frequency list zero.
 
 In:
 
@@ -136,18 +142,18 @@ In:
 
 Out:
 
-  agnentroprox_base has been referenced for the sake of augmenting its frequency list one as described in the summary.
+  agnentroprox_base has been referenced for the sake of augmenting its frequency list zero as described in the summary.
 */
   ULONG mask_idx_max;
   u8 status;
 
-  mask_idx_max=agnentroprox_base->mask_count0;
+  mask_idx_max=agnentroprox_base->mask_count1;
   status=1;
   if(mask_idx_max){
     mask_idx_max--;
     status=agnentroprox_capacity_check(agnentroprox_base, 0, mask_idx_max, 1);
     if(!status){
-      agnentroprox_freq_list_add(agnentroprox_base);
+      agnentroprox_freq_list_add(agnentroprox_base, 1);
     }
   }
   return status;
@@ -166,7 +172,7 @@ In:
 
 Out:
 
-  agnentroprox_base has been referenced for the sake of copying its frequency list one from the frequency list in the Zorb file.
+  agnentroprox_base has been referenced for the sake of copying its frequency list zero from the frequency list in the Zorb file.
 */
   ULONG *freq_list_base;
   u32 mask;
@@ -179,14 +185,14 @@ Out:
   if(mask_max==zorb_base->mask_max){
     status=zorb_mask_idx_max_get(&mask_idx_max, zorb_base);
     if(!status){
-      status=agnentroprox_capacity_check(agnentroprox_base, 1, mask_idx_max, 0);
+      status=agnentroprox_capacity_check(agnentroprox_base, 0, mask_idx_max, 0);
       if(!status){
-        freq_list_base=agnentroprox_base->freq_list_base1;
+        freq_list_base=agnentroprox_base->freq_list_base0;
         mask=0;
         do{
           freq_list_base[mask]=(ULONG)(zorb_base->freq_list[mask]);
         }while((mask++)!=mask_max);
-        agnentroprox_base->mask_count1=mask_idx_max+1;
+        agnentroprox_base->mask_count0=mask_idx_max+1;
       }
     }
   }
@@ -196,7 +202,7 @@ Out:
 u8
 zorb_freq_list_import(agnentroprox_t *agnentroprox_base, zorb_t *zorb_base){
 /*
-Copy frequency list one from an Agnentroprox instance to a Zorb file.
+Copy frequency list zero from an Agnentroprox instance to a Zorb file.
 
 In:
 
@@ -206,7 +212,7 @@ In:
 
 Out:
 
-  agnentroprox_base has been referenced for the sake of copying its frequency list one to the frequency list in the Zorb file.
+  agnentroprox_base has been referenced for the sake of copying its frequency list zero to the frequency list in the Zorb file.
 */
   ULONG *freq_list_base;
   u32 mask;
@@ -217,7 +223,7 @@ Out:
   status=1;
   if(mask_max==zorb_base->mask_max){
     status=0;
-    freq_list_base=agnentroprox_base->freq_list_base1;
+    freq_list_base=agnentroprox_base->freq_list_base0;
     mask=0;
     do{
       zorb_base->freq_list[mask]=freq_list_base[mask];
@@ -229,7 +235,7 @@ Out:
 u8
 zorb_freq_list_subtract(agnentroprox_t *agnentroprox_base){
 /*
-After verifying that it's safe to do so, subtract Agnentroprox's frequency list zero from its frequency list one.
+After verifying that it's safe to do so, subtract Agnentroprox's frequency list one from its frequency list zero.
 
 In:
 
@@ -237,18 +243,18 @@ In:
 
 Out:
 
-  agnentroprox_base has been referenced for the sake of reducing its frequency list one as described in the summary.
+  agnentroprox_base has been referenced for the sake of reducing its frequency list zero as described in the summary.
 */
   ULONG mask_idx_max;
   u8 status;
 
-  mask_idx_max=agnentroprox_base->mask_count0;
+  mask_idx_max=agnentroprox_base->mask_count1;
   status=1;
   if(mask_idx_max){
     mask_idx_max--;
     status=agnentroprox_capacity_check(agnentroprox_base, 0, mask_idx_max, 2);
     if(!status){
-      agnentroprox_freq_list_subtract(agnentroprox_base);
+      agnentroprox_freq_list_subtract(agnentroprox_base, 1);
     }
   }
   return status;
@@ -393,7 +399,7 @@ Out:
 u8
 zorb_mask_list_load(agnentroprox_t *agnentroprox_base, u8 *mask_list_base, ULONG mask_list_size){
 /*
-After checking for sufficient capacity, copy the frequencies of masks in a mask list to the internal needle frequency list of an Agnentroprox instance.
+After checking for sufficient capacity, copy the frequencies of masks in a mask list to the internal haystack frequency list of an Agnentroprox instance.
 
 In:
 
@@ -409,16 +415,16 @@ Out:
 
   Returns one if: (1) agnentroprox_init() was called with overlap_status of zero, but mask_list_size is not a nonzero multiple of the mask size; (2) agnentroprox_init() was called with a mask_idx_max_max which is less than the mask_idx_max implied by mask_list_size. Else zero.
 
-  The mask frequencies implied by *mask_list_base have been copied to frequency list zero (the needle frequency list) of the indicated Agnentroprox instance.
+  The mask frequencies implied by *mask_list_base have been copied to frequency list one (the haystack frequency list) of the indicated Agnentroprox instance.
 */
   ULONG mask_idx_max;
   u8 status;
 
   mask_idx_max=agnentroprox_mask_idx_max_get(agnentroprox_base->granularity, &status, mask_list_size, agnentroprox_base->overlap_status);
   if(!status){
-    status=agnentroprox_capacity_check(agnentroprox_base, 0, mask_idx_max, 0);
+    status=agnentroprox_capacity_check(agnentroprox_base, 1, mask_idx_max, 0);
     if(!status){
-      agnentroprox_needle_mask_list_load(agnentroprox_base, mask_idx_max, mask_list_base);
+      agnentroprox_mask_list_load(agnentroprox_base, 1, mask_idx_max, mask_list_base);
     }
   }
   return status;
@@ -443,7 +449,7 @@ Out:
   u32 mask_max;
   ULONG zorb_size;
 
-  mask_idx_max=agnentroprox_base->mask_count1-1;
+  mask_idx_max=agnentroprox_base->mask_count0-1;
   mask_max=agnentroprox_base->mask_max;
   zorb_size=(ULONG)(sizeof(zorb_t))+(((ULONG)(mask_max)+1)<<U64_SIZE_LOG2);
   memset(zorb_base, 0, (size_t)(zorb_size));

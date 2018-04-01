@@ -725,7 +725,7 @@ As specified in the help text, any remainder bytes will be unchanged by deltafic
 If (sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT), then we need to look for exact matches, otherwise approximate ones, using entirely different Agnentroprox functions. In the former case, *rank_list_base will end up containing sorted maximum match counts; in the latter, it will end up containing sorted divcompressivities.
 */
     if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
-      agnentroprox_needle_mask_list_load(agnentroprox_base, needle_mask_idx_max, needle_mask_list_base);
+      agnentroprox_mask_list_load(agnentroprox_base, 0, needle_mask_idx_max, needle_mask_list_base);
     }
     entropy_raw=agnentroprox_entropy_raw_get(agnentroprox_base, needle_mask_idx_max, &overflow_status);
     U128_SET_ZERO(score);
@@ -838,7 +838,7 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
               }
               agnentroprox_mask_max_set(agnentroprox_base, joint_mask_max_finalize);
               if(sweep_status!=AGNENTROFIND_SWEEP_STATUS_EXACT){
-                agnentroprox_needle_mask_list_load(agnentroprox_base, needle_mask_idx_max, needle_mask_list_base);
+                agnentroprox_mask_list_load(agnentroprox_base, 0, needle_mask_idx_max, needle_mask_list_base);
               }
             }
             if(progress_status){
