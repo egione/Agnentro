@@ -37,9 +37,9 @@ agnentrocodec_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)agnentrocodec$(OBJ) agnentrocodec.c
 
 agnentrofile:
-	make ascii
 	make agnentrocodec
 	make agnentroprox
+	make ascii
 	make biguint
 	make bitscan
 	make debug
@@ -52,8 +52,8 @@ agnentrofile:
 	@echo You can now run tmp$(SLASH)agnentrofile .
 
 agnentrofind:
-	make ascii
 	make agnentroprox
+	make ascii
 	make biguint
 	make bitscan
 	make debug
@@ -92,8 +92,8 @@ agnentroquant:
 	@echo You can now run tmp$(SLASH)agnentroquant .
 
 agnentroscan:
-	make ascii
 	make agnentroprox
+	make ascii
 	make biguint
 	make bitscan
 	make debug
@@ -107,8 +107,8 @@ agnentroscan:
 	@echo You can now run tmp$(SLASH)agnentroscan .
 
 agnentrozorb:
-	make ascii
 	make agnentroprox
+	make ascii
 	make biguint
 	make bitscan
 	make debug
@@ -168,6 +168,9 @@ loggamma_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)loggamma$(OBJ) loggamma.c
 
 maskops:
+	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG_OFF $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)maskops$(OBJ) maskops.c
+
+maskops_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)maskops$(OBJ) maskops.c
 
 poissocache:
@@ -177,8 +180,8 @@ poissocache_debug:
 	$(CC) -c -fpic -D_$(BITS)_ -DDEBUG $(BASICFLAGS) $(OPTIMIZEFLAGS) $(WARNFLAGS) -otmp$(SLASH)poissocache$(OBJ) poissocache.c
 
 setidemo:
-	make ascii
 	make agnentroprox
+	make ascii
 	make biguint
 	make bitscan
 	make debug
