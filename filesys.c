@@ -242,7 +242,7 @@ In:
 
 Out:
 
-  Returns zero on success, else FILESYS_STATUS_NOT_FOUND.
+  Returns zero on success, else FILESYS_STATUS_NOT_FOUND or FILESYS_STATUS_TOO_BIG.
 
   *file_size base is the size of the file.
 */
