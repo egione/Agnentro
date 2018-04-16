@@ -386,8 +386,11 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
         reset_status=1;
         score=0;
         score-=polarity_status;
-      }else{ 
-        agnentrozorb_error_print("Can't find or read (zorbfile)");
+      }else if((absorb_status==AGNENTROZORB_MODE_ABSORB_REPORT)&(filesys_status==FILESYS_STATUS_NOT_FOUND)){
+        agnentrozorb_error_print("You set (absorb) to zero, but (zorbfile) doesn't yet exist. So you're trying\nto compare (masklist) to a distribution that doesn't exist yet. Either you\nmisspelled the (zorbfile) or you need to set (absorb) to one");
+        break;
+      }else{
+        agnentrozorb_error_print("Can't open (zorbfile). Check your spelling");
         break;
       }
     }else{
