@@ -233,7 +233,7 @@ Include all the masks in a list in an evolving mask utilization footprint, in pr
 
 In:
 
-  *bitmap_base is the nonnull return value of maskops_bitmap_malloc((u64)(mask_max-mask_min)) if reset_status is one, else unchanged from the previous return value.
+  *bitmap_base is the nonNULL return value of maskops_bitmap_malloc((u64)(mask_max-mask_min)) if reset_status is one, else unchanged from the previous return value.
 
   granularity is one less than the number of bytes per mask, on [0, U32_BYTE_MAX].
 
@@ -318,7 +318,7 @@ In:
 
   mask_min is maskops_densify_bitmap_prepare():In:mask_min, regardless of direction_status.
 
-  *remask_list_base is the nonnull return value of maskops_u32_list_malloc((ULONG)(mask_max-mask_min)).
+  *remask_list_base is the nonNULL return value of maskops_u32_list_malloc((ULONG)(mask_max-mask_min)).
 
 Out:
 

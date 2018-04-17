@@ -1095,7 +1095,7 @@ Out:
 
   *chunk_idx_max_base0 is its updated value.
 
-  *chunk_list_base0 is zero if (In:*chunk_list_base1) was zero. Else the remainder or quotient of ((In:*chunk_list_base0)/(In:*chunk_list_base1)) if chunk_list_base2 is NULL or nonnull, respectively.
+  *chunk_list_base0 is zero if (In:*chunk_list_base1) was zero. Else the remainder or quotient of ((In:*chunk_list_base0)/(In:*chunk_list_base1)) if chunk_list_base2 is NULL or nonNULL, respectively.
 
   *chunk_list_base2 is unchanged if chunk_list_base2 is NULL, or ignored if it equals chunk_list_base0. Else zero if (In:*chunk_list_base1) was zero. Else ((In:*chunk_list_base0)%(In:*chunk_list_base1)).
 */

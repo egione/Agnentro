@@ -256,7 +256,7 @@ Convert an allegedly ASCII hexadecimal string to a list of (u8)s.
 
 In:
 
-  digit_idx_max is the maximum index of *digit_list_base which does not contain NULL.
+  digit_idx_max is the maximum index of *digit_list_base which does not contain null.
 
   digit_idx_min is the index of *digit_list_base at which to start reading, on [0, digit_idx_max].
   

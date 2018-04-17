@@ -568,7 +568,7 @@ Reallocate memory using autocorruption and canary signatures for the detection o
 
 In:
 
-  base is the nonnull return value from debug_malloc_paranoid().
+  base is the nonNULL return value from debug_malloc_paranoid().
 
   size is the nonzero number of (u8)s in the new allocation.
 

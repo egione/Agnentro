@@ -71,7 +71,7 @@ In:
 
   *file_size_max_base is the maximum size to read, such that if the file size exceeds this value, then FILESYS_STATUS_TOO_BIG will be returned.
 
-  *filename_base is the NULL-terminated path and filename.
+  *filename_base is the null-terminated path and filename.
 
   *void_list_base is undefined and writable for *file_size_max_base bytes.
 
@@ -100,7 +100,7 @@ In:
 
   file_size is the size to read, such that if the file size exceeds this value, then FILESYS_STATUS_TOO_BIG will be returned.
 
-  *filename_base is the NULL-terminated path and filename.
+  *filename_base is the null-terminated path and filename.
 
   *void_list_base is undefined and writable for *file_size_max_base bytes.
 
@@ -134,7 +134,7 @@ In:
 
   *filename_idx_base is the base index of the filename at filename_list_base.
 
-  *filename_list_base is a concatenation of NULL-terminated filenames.
+  *filename_list_base is a concatenation of null-terminated filenames.
 
   *void_list_base is undefined and writable for *file_size_max_base bytes.
 
@@ -188,7 +188,7 @@ In:
 
   *file_size_base is undefined.
 
-  *filename_base is the NULL-terminated path and filename.
+  *filename_base is the null-terminated path and filename.
 
 Out:
 
@@ -238,7 +238,7 @@ In:
 
   *file_size_base is undefined.
 
-  *filename_base is the NULL-terminated path and filename.
+  *filename_base is the null-terminated path and filename.
 
 Out:
 
@@ -272,7 +272,7 @@ In:
 
   file_size is the size to write.
 
-  *filename_base is the NULL-terminated path and filename.
+  *filename_base is the null-terminated path and filename.
 
   *void_list_base contains the file_size bytes to write.
 
@@ -312,7 +312,7 @@ In:
 
   *filename_idx_base is the base index of the filename at filename_list_base.
 
-  *filename_list_base is a writable concatenation of NULL-terminated filenames. It will be unchanged upon return.
+  *filename_list_base is a writable concatenation of null-terminated filenames. It will be unchanged upon return.
 
   *void_list_base contains the file_size bytes to write.
 
@@ -342,7 +342,7 @@ In:
 
   file_size is the size to write.
 
-  *filename_base is the writable NULL-terminated path and filename. It will be unchanged upon return.
+  *filename_base is the writable null-terminated path and filename. It will be unchanged upon return.
 
   *void_list_base contains the file_size bytes to write.
 
@@ -444,13 +444,13 @@ In:
 
   *filename_idx_min_base is the base index of the full path to a file, within filename_list_base.
 
-  *filename_list_base is a concatenation of NULL-terminated filenames.
+  *filename_list_base is a concatenation of null-terminated filenames.
 
 Out:
 
-  Returns the size of the filename alone, excluding its terminating NULL.
+  Returns the size of the filename alone, excluding its terminating null.
 
-  *filename_idx_min_base is the base of the filename. If the alleged filename ends in FILESYS_PATH_SEPARATOR, or is NULL, then NULL will be returned. In any event, NULL will be the last character, at index (return value).
+  *filename_idx_min_base is the base of the filename. If the alleged filename ends in FILESYS_PATH_SEPARATOR, or is null, then zero will be returned. In any event, null will be the last character, at index (return value).
 */
   ULONG filename_idx;
   ULONG filename_idx_min;
@@ -492,13 +492,13 @@ In:
 
 Out:
 
-  Returns the number of items at *filename_list_base, all of which being NULL-terminated. Zero implies that *target_base was not found.
+  Returns the number of items at *filename_list_base, all of which being null-terminated. Zero implies that *target_base was not found.
 
   *file_size_max_base is the maximum file size encountered.
 
   *file_status is one if *target_base is a file, else zero if it's a folder; and likewise for equivalent links.
 
-  *filename_list_base is just a copy of *target_base if it's a file that exists, else a concatenation of (return value) NULL-terminated relative paths and filenames subordinate to *target_base.
+  *filename_list_base is just a copy of *target_base if it's a file that exists, else a concatenation of (return value) null-terminated relative paths and filenames subordinate to *target_base.
 
   *filename_list_size_max_base is at least the defined size at filename_list_base. It has been inflated by filesys_hull_size_get() in order to prevent trivial changes to the folder tree from indefinitely delaying the successful completion of this process; it should complete successfully within O(log(N)) attempts -- and usually just one -- given N files.
 */
@@ -691,7 +691,7 @@ In:
 
   *source_filename_list_base is filesys_filename_list_get():Out:*filename_list_base.
 
-  *target_base is analogous to *source_base, and is also NULL-terminated. It indicates the target folder which is to replace the source folder in all pathnames within *source_filename_list_base.
+  *target_base is analogous to *source_base, and is also null-terminated. It indicates the target folder which is to replace the source folder in all pathnames within *source_filename_list_base.
 
   *target_filename_list_base is undefined and writable for the size given by the return value of filesys_filename_list_morph_size_get().
 
@@ -748,7 +748,7 @@ In:
 
   *source_filename_list_base is filesys_filename_list_get():Out:*filename_list_base.
 
-  *target_base is analogous to *source_base, and is also NULL-terminated. It indicates the target folder which is to replace the source folder in all pathnames within *source_filename_list_base.
+  *target_base is analogous to *source_base, and is also null-terminated. It indicates the target folder which is to replace the source folder in all pathnames within *source_filename_list_base.
 
 Out:
 
@@ -883,7 +883,7 @@ In:
 
   *filename_idx_base is the base index of the filename at filename_list_base.
 
-  *filename_list_base is a concatenation of NULL-terminated filenames.
+  *filename_list_base is a concatenation of null-terminated filenames.
 
   read_size is the size to read. For the sake of consistent behavior, a value of zero will still hit the OS in the same manner as with a nonzero value.
 
