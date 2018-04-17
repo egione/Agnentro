@@ -829,7 +829,7 @@ Out:
 ULONG
 filesys_hull_size_get(ULONG size_projected){
 /*
-Compute MAX(MIN(4, 2^(ceil(log2(size_projected))+1)), ULONG_MAX). This enables exponential backoff of projected allocation needs, which will terminate in tractable time because the extra incrementation prevents hysteresis jitter near powers of 2. The lower bound of 4 isn't magical; it's just convenient and not worth optimizing down.
+Compute MAX(MIN(4, (2^ceil(log2(size_projected))), ULONG_MAX). This enables exponential backoff of projected allocation needs, which will terminate in tractable time because going slightly above a power of 2 will result in approximately double the allocation size required. The lower bound of 4 isn't magical; it's just convenient and not worth optimizing down.
 
 In:
 
@@ -841,11 +841,11 @@ Out:
 */
   ULONG hull_size;
 
-  hull_size=2;
-  do{
+  hull_size=4;
+  while(4<size_projected){
     size_projected>>=1;
     hull_size<<=1;
-  }while(size_projected);
+  }
   hull_size-=!hull_size;
   return hull_size;
 }
