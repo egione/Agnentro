@@ -250,7 +250,7 @@ main(int argc, char *argv[]){
     if(status==FILESYS_STATUS_TOO_BIG){
       agnentrofile_error_print("input_file exceeds memory size");
       break;
-    }else if(status||(!status&&(!input_file_size))){
+    }else if(status||((!status)&&(!input_file_size))){
       status=1;
       agnentrofile_error_print("Cannot determine size of input_file");
       break;
