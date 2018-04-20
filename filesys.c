@@ -194,7 +194,7 @@ Out:
 
   Returns zero on success, else FILESYS_STATUS_NOT_FOUND.
 
-  *file_size base is the size of the file.
+  *file_size base is the size of the file, which is set to zero on failure.
 */
   u64 file_size;
   #ifndef WINDOWS
@@ -204,6 +204,7 @@ Out:
   #endif
   u8 status;
 
+  file_size=0;
   status=FILESYS_STATUS_NOT_FOUND;
   #ifndef WINDOWS
     if(!lstat(filename_base, &file_stat)){
@@ -222,9 +223,7 @@ Out:
       fclose(handle);
     }
   #endif
-  if(!status){
-    *file_size_base=file_size;
-  }
+  *file_size_base=file_size;
   return status;
 }
 
@@ -244,21 +243,22 @@ Out:
 
   Returns zero on success, else FILESYS_STATUS_NOT_FOUND or FILESYS_STATUS_TOO_BIG.
 
-  *file_size base is the size of the file.
+  *file_size base is the size of the file, which is set to zero on failure.
 */
     ULONG file_size;
     u64 file_size_u64;
     u8 status;
 
     status=filesys_file_size_get(&file_size_u64, filename_base);
+    file_size=0;
     if(!status){
       file_size=(ULONG)(file_size_u64);
       status=FILESYS_STATUS_TOO_BIG;
       if(file_size==file_size_u64){
         status=0;
-        *file_size_base=file_size;
       }
     }
+    *file_size_base=file_size;
     return status;
   }
 #endif
@@ -494,13 +494,13 @@ Out:
 
   Returns the number of items at *filename_list_base, all of which being null-terminated. Zero implies that *target_base was not found.
 
-  *file_size_max_base is the maximum file size encountered.
+  *file_size_max_base is the maximum file size encountered, which is zero if the return value is zero.
 
-  *file_status is one if *target_base is a file, else zero if it's a folder; and likewise for equivalent links.
+  *file_status is one if *target_base is a file or the return value is zero, else zero if it's a folder; and likewise for equivalent links.
 
-  *filename_list_base is just a copy of *target_base if it's a file that exists, else a concatenation of (return value) null-terminated relative paths and filenames subordinate to *target_base.
+  *filename_list_base is just a copy of *target_base if it's a file that exists, else a concatenation of (return value) null-terminated relative paths and filenames subordinate to *target_base. Points to a null character if the return value is zero.
 
-  *filename_list_size_max_base is at least the defined size at filename_list_base. It has been inflated by filesys_hull_size_get() in order to prevent trivial changes to the folder tree from indefinitely delaying the successful completion of this process; it should complete successfully within O(log(N)) attempts -- and usually just one -- given N files.
+  *filename_list_size_max_base is at least the defined size at filename_list_base. It has been inflated by filesys_hull_size_get() in order to prevent trivial changes to the folder tree from indefinitely delaying the successful completion of this process; it should complete successfully within O(log(N)) attempts -- and usually just one -- given N files. This value is zero if the return value is zero.
 */
   u8 continue_status;
   DIR *dir_handle;
@@ -540,6 +540,7 @@ Out:
   while((1<filename_size)&&(target_base[filename_size-1]==FILESYS_PATH_SEPARATOR)){
     filename_size--;
   }
+  filename_list_base[0]=0;
   target_base[filename_size]=0;
   if(filename_size&&(filename_size<=(FILESYS_PATHNAME_CHAR_IDX_MAX+1))){
     filename_size++;
