@@ -112,7 +112,6 @@ main(int argc, char *argv[]){
   u8 mask_bit_count_in;
   u8 mask_bit_count_out;
   u8 mask_bit_idx;
-  ULONG mask_idx_max;
   ULONG mask_idx_max_channelized;
   u32 mask_max;
   u32 mask_max_new;
@@ -457,13 +456,9 @@ There's one ambiguous case, namely where the fraction bits of mask_u64 are all o
           memcpy(&in_u8_list_base[out_u8_idx], &mask, (size_t)(mask_size_out_channelized));
           out_u8_idx+=mask_size_out_channelized;
         }while(in_u8_idx<=in_u8_idx_max);
-        granularity=(u8)(mask_size_out-1);
-        mask_idx_max=(out_u8_idx/mask_size_out)-1;
+        mask_idx_max_channelized=(out_u8_idx/mask_size_out)-1;
         if(densify_status){
-          granularity_channelized=granularity;
-          mask_idx_max_channelized=mask_idx_max;
           if(channel_status){
-            granularity_channelized=U8_BYTE_MAX;
             mask_idx_max_channelized=out_u8_idx-1;
           }
           granularity_channelized=(u8)(mask_size_out_channelized-1);
@@ -473,7 +468,10 @@ There's one ambiguous case, namely where the fraction bits of mask_u64 are all o
           mask_min_new=0;
         }
         if(surroundify_status){
-          maskops_surroundify(channel_status, 1, granularity, mask_idx_max, in_u8_list_base, mask_max_new, mask_min_new);
+          if(channel_status){
+            mask_idx_max_channelized=(out_u8_idx/(u8)(granularity+1))-1;            
+          }
+          maskops_surroundify(channel_status, 1, granularity, mask_idx_max_channelized, in_u8_list_base, mask_max_new, mask_min_new);
         }
         out_filename_char_idx_new=out_filename_char_idx;
         filesys_status=filesys_file_write_next_obnoxious(out_u8_idx, &out_filename_char_idx_new, out_filename_list_base, in_u8_list_base);
@@ -516,7 +514,7 @@ There's one ambiguous case, namely where the fraction bits of mask_u64 are all o
     }while(in_file_idx!=in_file_count);
   }while(0);
   filesys_free(out_filename_list_base);
-  DEBUG_FREE_PARANOID(in_u8_list_base);
+  maskops_free(in_u8_list_base);
   filesys_free(in_filename_list_base);
   maskops_free(maskops_u32_list_base);
   maskops_free(maskops_bitmap_base);
