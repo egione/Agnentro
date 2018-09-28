@@ -270,7 +270,6 @@ main(int argc, char *argv[]){
     in_filename_list_size=U16_MAX;
     mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
     mask_span_in=0;
-    status=0;
     do{
       in_filename_list_char_idx_max=in_filename_list_size-1;
       in_filename_list_base=filesys_char_list_malloc(in_filename_list_char_idx_max);
@@ -515,8 +514,8 @@ There's one ambiguous case, namely where the fraction bits of mask_u64 are all o
       in_filename_list_char_idx=in_filename_list_char_idx_new;
       in_file_idx++;
       out_filename_char_idx=out_filename_char_idx_new;
-      status=0;
     }while(in_file_idx!=in_filename_count);
+    status=0;
   }while(0);
   filesys_free(out_filename_list_base);
   maskops_free(in_u8_list_base);

@@ -245,12 +245,12 @@ main(int argc, char *argv[]){
     }
     status=!mode_bitmap;
     if(status){
-      setidemo_error_print("mode_bitmap says nothing to do");
+      setidemo_error_print("(mode_bitmap) says nothing to do");
       break;
     }
     if(densify_status&&(mode_bitmap&(AGNENTROPROX_MODE_KURTOSIS|AGNENTROPROX_MODE_VARIANCE))){
       status=1;
-      setidemo_error_print("Mask span minimization foot disallowed with kurtosis and variance");
+      setidemo_error_print("Mask span minimization disallowed with kurtosis and variance");
       break;
     }
     status=ascii_decimal_to_u64_convert(argv[3], &seed, U64_MAX);

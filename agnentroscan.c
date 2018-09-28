@@ -540,8 +540,8 @@ Verify that the user understands that Jensen-Shannon exodivergence is normalized
             agnentroscan_error_print("More than one \"@\" in (dump_filename)");
             break;
           }else if(dump_filename_replacement_char_idx==ULONG_MAX){
-            status=1;
             agnentroscan_error_print("You need \"@\" in (dump_filename)");
+            status=1;
             break;
           }
 /*
@@ -598,7 +598,7 @@ We need to allocate space for the full dump filename, which will contain the exi
     }
     status=1;
     if(haystack_file_size_max<mask_size){
-      agnentroscan_error_print("All haystack files are smaller than a single (granularity+1)-sized mask");
+      agnentroscan_error_print("All (haystack) files are smaller than a single (granularity+1)-sized mask");
       break;
     }
 /*
@@ -1033,8 +1033,8 @@ Don't warn about incompatible granularity if we have some other error which woul
       haystack_filename_list_char_idx=haystack_filename_list_char_idx_new;
       haystack_filename_idx++;
       out_filename_list_char_idx=out_filename_list_char_idx_new;
-      status=0;
     }while(haystack_filename_idx!=haystack_filename_count);
+    status=1;
     if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
 /*
 Don't attempt to merge ranking sweeps in haystack mode, as there's only one entropy value.
@@ -1199,7 +1199,7 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
                     DEBUG_PRINT("failed.\n");
                   }else{
 /*
-If (cavalier_status==status==1), we shouldn't report the error because we've been told not to, which is probably because the user expects a predictable output format for subsequent parsing. So don't report it.
+We shouldn't report the error because we've been told not to, which is probably because the user expects a predictable output format for subsequent parsing. So don't report it.
 */
                     DEBUG_PRINT("done.\n");
                   }
@@ -1212,7 +1212,6 @@ If (cavalier_status==status==1), we shouldn't report the error because we've bee
         }
       }
     }
-    status=1;
     if(overflow_status){
       if(!cavalier_status){
         agnentroscan_error_print("Fracterval precision was exhausted. Please report");

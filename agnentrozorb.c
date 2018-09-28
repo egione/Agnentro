@@ -310,6 +310,7 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
       break;
     }
     mask_list_filename_base=argv[4];
+    status=1;
     filesys_status=filesys_file_size_ulong_get(&mask_list_file_size, mask_list_filename_base);
     if(filesys_status){
       agnentrozorb_error_print("(masklist) not found");
@@ -367,6 +368,7 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
         agnentrozorb_out_of_memory_print();
         break;
       }
+      status=1;
     }
 /*
 Set mask_idx_max_max to the largest value it could be without wrapping so that Agnentroprox will just continue to allow us to accumulate mask frequencies for a long time over multiple instances of this app.

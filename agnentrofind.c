@@ -462,8 +462,8 @@ Don't accept ranks larger than we can fit in the address space, considering that
             agnentrofind_error_print("More than one \"@\" in (dump_filename)");
             break;
           }else if(dump_filename_replacement_char_idx==ULONG_MAX){
-            status=1;
             agnentrofind_error_print("You need \"@\" in (dump_filename)");
+            status=1;
             break;
           }
 /*
@@ -490,7 +490,7 @@ We need to allocate space for the full dump filename, which will contain the exi
     needle_filename_size_minus_1=needle_filename_size-1;
     if(needle_prefix=='+'){
       if(needle_filename_size_minus_1&1){
-        agnentrofind_error_print("needle must contain an even number of nybbles");
+        agnentrofind_error_print("(needle) must contain an even number of nybbles");
         break;
       }
       needle_file_size=needle_filename_size_minus_1>>1;
@@ -598,7 +598,7 @@ We need to allocate space for the full dump filename, which will contain the exi
     }
     status=1;
     if(haystack_file_size_max<mask_size){
-      agnentrofind_error_print("All haystack files are smaller than a single (granularity+1)-sized mask");
+      agnentrofind_error_print("All (haystack) files are smaller than a single (granularity+1)-sized mask");
       break;
     }
 /*
@@ -764,7 +764,6 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
       }else{
         filesys_status=filesys_file_read_next(&haystack_file_size, &haystack_filename_list_char_idx_new, haystack_filename_list_base, haystack_mask_list_base);
       }
-      status=1;
       if(!filesys_status){
         haystack_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, overlap_status);
         haystack_mask_idx_max_parallel=0;
@@ -1106,8 +1105,8 @@ Don't warn about incompatible granularity if we have some other error which woul
       haystack_filename_list_char_idx=haystack_filename_list_char_idx_new;
       haystack_filename_idx++;
       out_filename_list_char_idx=out_filename_list_char_idx_new;
-      status=0;
     }while(haystack_filename_idx!=haystack_filename_count);
+    status=1;
     if(sweep_status==AGNENTROFIND_SWEEP_STATUS_HAYSTACK){
 /*
 Don't attempt to merge ranking sweeps in haystack mode, as there's only one entropy value.
@@ -1287,7 +1286,7 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
                     DEBUG_PRINT("failed.\n");
                   }else{
 /*
-If (cavalier_status==status==1), we shouldn't report the error because we've been told not to, which is probably because the user expects a predictable output format for subsequent parsing. So don't report it.
+We shouldn't report the error because we've been told not to, which is probably because the user expects a predictable output format for subsequent parsing. So don't report it.
 */
                     DEBUG_PRINT("done.\n");
                   }
@@ -1300,7 +1299,6 @@ If (cavalier_status==status==1), we shouldn't report the error because we've bee
         }
       }
     }
-    status=1;
     if(overflow_status){
       if(!cavalier_status){
         agnentrofind_error_print("Fracterval precision was exhausted. Please report");

@@ -241,8 +241,8 @@ main(int argc, char *argv[]){
       in_filename_list_char_idx=in_filename_list_char_idx_new;
       in_file_idx++;
       out_filename_char_idx=out_filename_char_idx_new;
-      status=0;
     }while(in_file_idx!=in_filename_count);
+    status=0;
   }while(0);
   filesys_free(out_filename_list_base);
   DEBUG_FREE_PARANOID(in_u8_list_base);

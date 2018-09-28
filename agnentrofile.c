@@ -261,20 +261,20 @@ main(int argc, char *argv[]){
     status=1;
     if((mode!=AGNENTROFILE_MODE_ESTIMATE)&&(mode!=AGNENTROFILE_MODE_EXACT)){
       if(argc!=6){
-        agnentrofile_error_print("output_file not specified");
+        agnentrofile_error_print("(output_file) not specified");
         break;
       }
     }else if(argc!=5){
-      agnentrofile_error_print("output_file not allowed in analysis mode");
+      agnentrofile_error_print("(output_file) not allowed in analysis mode");
       break;
     }
     input_filename_base=argv[2];
     filesys_status=filesys_file_size_ulong_get(&input_file_size, input_filename_base);
     if(filesys_status==FILESYS_STATUS_TOO_BIG){
-      agnentrofile_error_print("input_file exceeds memory size");
+      agnentrofile_error_print("(input_file) exceeds memory size");
       break;
     }else if(filesys_status||!input_file_size){
-      agnentrofile_error_print("Cannot determine size of input_file");
+      agnentrofile_error_print("Cannot determine size of (input_file)");
       break;
     }
     DEBUG_U64("input_file_size", input_file_size);
@@ -288,11 +288,11 @@ main(int argc, char *argv[]){
       mask_count=input_file_size/mask_size;
       mask_remainder=input_file_size%mask_size;
       if(mask_remainder){
-        agnentrofile_error_print("input_file size is not a multiple of (granularity+1) bytes");
+        agnentrofile_error_print("(input_file) size is not a multiple of (granularity+1) bytes");
         break;
       }
       if(input_file_size!=(mask_count*mask_size)){
-        agnentrofile_error_print("input_file size exeeds machine address space");
+        agnentrofile_error_print("(input_file) size exeeds machine address space");
         break;
       }
       mask_idx_max=mask_count-1;
@@ -311,7 +311,7 @@ main(int argc, char *argv[]){
     }else{
       zip_chunk_idx_max_max=input_file_size>>ULONG_SIZE_LOG2;
       if((input_file_size>>ULONG_SIZE_LOG2)!=zip_chunk_idx_max_max){
-        agnentrofile_error_print("input_file size exeeds machine address space");
+        agnentrofile_error_print("(input_file) size exeeds machine address space");
         break;
       }
       zip_chunk_list_base=biguint_malloc(zip_chunk_idx_max_max);
@@ -330,7 +330,7 @@ Convert the compressed ("zip") file we just imported into a canonical biguint.
       }
     }
     if(status){
-      agnentrofile_error_print("input_file read or import failed");
+      agnentrofile_error_print("(input_file) read or import failed");
       break;
     }
     status=1;
@@ -341,7 +341,7 @@ Convert the compressed ("zip") file we just imported into a canonical biguint.
       }
       agnentrofile_mask_max_print(granularity, mask_max);
       if(!mask_max){
-        agnentrofile_error_print("Unsupported configuration: input_file is all zeroes");
+        agnentrofile_error_print("Unsupported configuration: (input_file) is all zeroes");
         break;
       }
 /*
@@ -367,13 +367,13 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
         if(mode==AGNENTROFILE_MODE_ESTIMATE){
           agnentroprox_base=agnentroprox_init(AGNENTROPROX_BUILD_BREAK_COUNT_EXPECTED, 2, granularity, loggamma_base, mask_idx_max, mask_max, AGNENTROPROX_MODE_AGNENTROPY, 0, mask_idx_max);
           if(!agnentroprox_base){
-            agnentrofile_error_print("Agnentroprox initialization failed.\nTry reducing granularity or file size");
+            agnentrofile_error_print("Agnentroprox initialization failed.\nTry reducing (granularity) or file size");
             break;
           }
         }else{
           agnentrocodec_base=agnentrocodec_init(AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED, 0, granularity, loggamma_base, mask_idx_max, mask_max);
           if(!agnentrocodec_base){
-            agnentrofile_error_print("Agnentro initialization failed.\nTry reducing granularity or file size");
+            agnentrofile_error_print("Agnentro initialization failed.\nTry reducing (granularity) or file size");
             break;
           }
         }
@@ -530,7 +530,7 @@ Convert the canonical biguint at zip_chunk_list_base into a bitmap ready for exp
         status=!!filesys_status;
       }
       if(status){
-        agnentrofile_error_print("output_file export or write failed");
+        agnentrofile_error_print("(output_file) export or write failed");
         break;
       }
     }
