@@ -280,8 +280,6 @@ main(int argc, char *argv[]){
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 4));
   status=(u8)(status|fracterval_u128_init(FRU128_BUILD_BREAK_COUNT_EXPECTED, 0));
-  loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|!loggamma_base);
   status=(u8)(status|maskops_init(MASKOPS_BUILD_BREAK_COUNT_EXPECTED, 0));
   agnentroprox_base=NULL;
   dump_u8_list_base=NULL;
@@ -302,6 +300,7 @@ main(int argc, char *argv[]){
   haystack_filename_idx_list_base=NULL;
   haystack_filename_list_base=NULL;
   haystack_mask_list_base=NULL;
+  loggamma_base=NULL;
   maskops_bitmap_base=NULL;
   maskops_u32_list_base=NULL;
   match_u8_idx_list_base=NULL;
@@ -347,6 +346,12 @@ main(int argc, char *argv[]){
     if(status){
       break;
     }
+    loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
+    status=!loggamma_base;
+    if(status){
+      agnentroscan_out_of_memory_print();
+      break;
+    }
     sweep_text_base=argv[4];
     sweep_status=(u8)(sweep_text_base[0]);
     clip_mode=0;
@@ -380,6 +385,7 @@ main(int argc, char *argv[]){
       agnentroscan_parameter_error_print("sweep");
       break;
     }
+    status=1;
     if(clip_mode){
       sweep_status=AGNENTROSCAN_SWEEP_STATUS_HAYSTACK;
     }
@@ -389,7 +395,6 @@ main(int argc, char *argv[]){
     if((1<out_filename_size)&&(out_filename_base[0]=='@')){
       if(out_filename_base[1]=='~'){
         agnentroscan_error_print("Path after \"@\" cannot begin with \"~\"; use /home/username/... instead");
-        status=1;
         break;
       }
       append_mode=2;
@@ -416,6 +421,7 @@ Don't accept ranks larger than we can fit in the address space, considering that
     densify_status=(u8)((parameter>>AGNENTROSCAN_GEOMETRY_DENSIFY_BIT_IDX)&AGNENTROSCAN_GEOMETRY_DENSIFY);
     granularity=(u8)((parameter>>AGNENTROSCAN_GEOMETRY_GRANULARITY_BIT_IDX)&AGNENTROSCAN_GEOMETRY_GRANULARITY);
     overlap_status=(u8)((parameter>>AGNENTROSCAN_GEOMETRY_OVERLAP_BIT_IDX)&AGNENTROSCAN_GEOMETRY_OVERLAP);
+    status=1;
     surroundify_status=(u8)((parameter>>AGNENTROSCAN_GEOMETRY_SURROUNDIFY_BIT_IDX)&AGNENTROSCAN_GEOMETRY_SURROUNDIFY);
     if(strlen(mode_text_base)==1){
       mode=(u8)(mode_text_base[0]);
@@ -469,7 +475,6 @@ Verify that the user understands that Jensen-Shannon exodivergence is normalized
     }
     if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
       if(((mode==AGNENTROPROX_MODE_EXOENTROPY)&&normalized_status)||(mode==AGNENTROPROX_MODE_JSET)||(mode==AGNENTROPROX_MODE_LET)){
-        status=1;
         DEBUG_PRINT("ERROR: By definition, ");
         agnentroscan_mode_text_print(mode, normalized_status);
         DEBUG_PRINT(" in haystack mode is ");
@@ -493,6 +498,7 @@ Verify that the user understands that Jensen-Shannon exodivergence is normalized
         agnentroscan_parameter_error_print("format");
         break;
       }
+      status=1;
       if(!append_mode){
         append_mode=(u8)((parameter>>AGNENTROSCAN_FORMAT_ASCENDING_BIT_IDX)&AGNENTROSCAN_FORMAT_ASCENDING);
       }
@@ -545,8 +551,8 @@ We need to allocate space for the full dump filename, which will contain the exi
         }
       }
     }
+    status=1;
     if((append_mode==2)&&(dump_status|merge_status)){
-      status=1;
       agnentroscan_error_print("Dumping or merging is not allowed when (ranks) is prefixed with \"@\"");
       break;
     }
@@ -559,7 +565,6 @@ We need to allocate space for the full dump filename, which will contain the exi
     haystack_file_size_max=0;
     haystack_filename_count=0;
     haystack_filename_list_size=U16_MAX;
-    status=1;
     sweep_size=(sweep_mask_idx_max_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
     do{
       haystack_filename_list_char_idx_max=haystack_filename_list_size-1;
@@ -604,10 +609,10 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
       agnentroscan_error_print("All (haystack) files contain fewer masks than sweep would require");
       break;
     }
-    status=0;
     if(sweep_status==AGNENTROSCAN_SWEEP_STATUS_HAYSTACK){
       sweep_mask_idx_max_max=haystack_mask_idx_max_max;
     }
+    status=0;
     if(append_mode==2){
       out_filename_list_size=filesys_filename_list_morph_size_get(haystack_filename_count, haystack_filename_base, haystack_filename_list_base, &out_filename_base[1]);
       out_filename_list_char_idx_max=out_filename_list_size-1;
@@ -696,6 +701,7 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
     rank_idx=0;
     do{
       granularity_status=0;
+      status=1;
       if(progress_status){
         DEBUG_PRINT("Analyzing ");
         DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_list_char_idx]);
@@ -713,7 +719,6 @@ Assume that the haystack is large enough to contain at least one sweep. If not, 
       }else{
         filesys_status=filesys_file_read_next(&haystack_file_size, &haystack_filename_list_char_idx_new, haystack_filename_list_base, haystack_mask_list_base);
       }
-      status=1;
       if(!filesys_status){
         haystack_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, haystack_file_size, overlap_status);
         haystack_mask_idx_max_parallel=0;
@@ -1185,12 +1190,12 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
                   dump_filename_base[dump_filename_char_idx]=(char)(digit);
                   dump_filename_char_idx++;
                 }while(digit_shift<=U64_BIT_MAX);
-                status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
-                if(((!cavalier_status)&status)|progress_status){
+                filesys_status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
+                if(((!cavalier_status)&&filesys_status)|progress_status){
                   DEBUG_PRINT("  Saving to ");
                   DEBUG_PRINT(dump_filename_base);
                   DEBUG_PRINT("... ");
-                  if((!cavalier_status)&status){
+                  if((!cavalier_status)&&filesys_status){
                     DEBUG_PRINT("failed.\n");
                   }else{
 /*

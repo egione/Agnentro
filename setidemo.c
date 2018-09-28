@@ -71,6 +71,14 @@ setidemo_out_of_memory_print(void){
   return;
 }
 
+void
+setidemo_parameter_error_print(char *char_list_base){
+  DEBUG_PRINT("Invalid parameter: (");
+  DEBUG_PRINT(char_list_base);
+  DEBUG_PRINT("). For help, run without parameters.\n");
+  return;
+}
+
 int
 main(int argc, char *argv[]){
   agnentroprox_t *agnentroprox_base;
@@ -93,6 +101,7 @@ main(int argc, char *argv[]){
   ULONG file_size;
   u64 file_size_u64;
   char *filename_base;
+  u8 filesys_status;
   u128 fourier_score;
   u8 fourier_status;
   u64 fourier_sum;
@@ -150,11 +159,10 @@ main(int argc, char *argv[]){
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 0));
   status=(u8)(status|fracterval_u128_init(FRU128_BUILD_BREAK_COUNT_EXPECTED, 0));
-  loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|!loggamma_base);
   status=(u8)(status|maskops_init(MASKOPS_BUILD_BREAK_COUNT_EXPECTED, 0));
   agnentroprox_base=NULL;
   file_mask_list_base=NULL;
+  loggamma_base=NULL;
   mask_list_base=NULL;
   maskops_bitmap_base=NULL;
   maskops_u32_list_base=NULL;
@@ -187,6 +195,12 @@ main(int argc, char *argv[]){
     if(status){
       break;
     }
+    loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
+    status=!loggamma_base;
+    if(status){
+      setidemo_out_of_memory_print();
+      break;
+    }
     granularity=U8_BYTE_MAX;
     mask_count=SETIDEMO_MASK_IDX_MAX+1;
     mask_idx_max=mask_count-1;
@@ -194,7 +208,7 @@ main(int argc, char *argv[]){
     status=ascii_hex_to_u64_convert(argv[2], &parameter, 0x1FFF);
     status=(u8)(status|!parameter);
     if(status){
-      setidemo_error_print("Invalid mode_bitmap");
+      setidemo_parameter_error_print("mode_bitmap");
       break;
     }
     deltafy_status=(u8)((parameter>>8)&1);
@@ -241,13 +255,13 @@ main(int argc, char *argv[]){
     }
     status=ascii_decimal_to_u64_convert(argv[3], &seed, U64_MAX);
     if(status){
-      setidemo_error_print("Invalid seed");
+      setidemo_parameter_error_print("seed");
       break;
     }
     status=ascii_decimal_to_u64_convert(argv[4], &parameter, SETIDEMO_SWEEP_IDX_MAX_MAX+1);
     status=(u8)(status|!parameter);
     if(status){
-      setidemo_error_print("sweep must be on [1, (2^20)]");
+      setidemo_error_print("(sweep) must be on [1, (2^20)]");
       break;
     }
     sweep_mask_count=(ULONG)(parameter);
@@ -287,7 +301,8 @@ It's safe to ignore the status return from agnentroprox_mask_idx_max_get() when 
     DEBUG_PRINT("Reading ");
     DEBUG_PRINT(filename_base);
     DEBUG_PRINT("...\n");
-    status=filesys_file_read_exact(file_size, filename_base, file_mask_list_base);
+    filesys_status=filesys_file_read_exact(file_size, filename_base, file_mask_list_base);
+    status=!!filesys_status;
     status=(u8)(status|(file_size!=file_size_u64));
     if(status){
       setidemo_error_print("File read failed");

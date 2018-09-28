@@ -176,6 +176,7 @@ main(int argc, char *argv[]){
   agnentroprox_base=NULL;
   alert_status=0;
   error_status=1;
+  loggamma_base=NULL;
   mask_list_base=NULL;
   mask_max_densify=0;
   mask_min_densify=0;
@@ -188,8 +189,6 @@ main(int argc, char *argv[]){
   zorb_base=NULL;
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 0));
-  loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|!loggamma_base);
   do{
     if(status){
       agnentrozorb_error_print("Outdated source code");
@@ -223,6 +222,12 @@ main(int argc, char *argv[]){
       }
     }while((++arg_idx)<(ULONG)(argc));
     if(status){
+      break;
+    }
+    loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
+    status=!loggamma_base;
+    if(status){
+      agnentrozorb_out_of_memory_print();
       break;
     }
     sweep_mask_count=0;
@@ -306,7 +311,6 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
     }
     mask_list_filename_base=argv[4];
     filesys_status=filesys_file_size_ulong_get(&mask_list_file_size, mask_list_filename_base);
-    status=1;
     if(filesys_status){
       agnentrozorb_error_print("(masklist) not found");
       break;
@@ -363,7 +367,6 @@ By definition, (threshold) digits are aligned high, so shift left accordingly.
         agnentrozorb_out_of_memory_print();
         break;
       }
-      status=1;
     }
 /*
 Set mask_idx_max_max to the largest value it could be without wrapping so that Agnentroprox will just continue to allow us to accumulate mask frequencies for a long time over multiple instances of this app.
@@ -400,8 +403,8 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
         break;
       }
     }
-    mask_idx_max_parallel=0;
     granularity_channelized=granularity;
+    mask_idx_max_parallel=0;
     mask_size=(u8)(granularity+1);
     if(channel_status){
       granularity_channelized=U8_BYTE_MAX;

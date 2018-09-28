@@ -202,8 +202,8 @@ main(int argc, char *argv[]){
       break;
     }
     granularity=(u8)(parameter);
+    status=1;
     if(channel_status&&(granularity==U8_BYTE_MAX)){
-      status=1;
       agnentroquant_parameter_error_print("(channelize) does nothing when (granularity) is 0");
       break;
     }
@@ -217,6 +217,7 @@ main(int argc, char *argv[]){
     mask_max=(u32)(parameter);
     mask_span_out=parameter+1;
     mask_size_out=U8_SIZE;
+    status=1;
     if(parameter>>U8_BITS){
       mask_size_out++;
       if(parameter>>U16_BITS){
@@ -233,7 +234,6 @@ main(int argc, char *argv[]){
       mask_size_out_channelized=mask_size_in_channelized;
     }
     if(mask_size_in_channelized<mask_size_out){
-      status=1;
       if(channel_status){
         agnentroquant_error_print("mask_max can't exceed FF with (channelize) enabled");
       }else{
@@ -261,6 +261,7 @@ main(int argc, char *argv[]){
         agnentroquant_out_of_memory_print();
         break;
       }
+      status=1;
     }
     in_filename_base=argv[4];
     out_filename_base=argv[5];
@@ -269,7 +270,7 @@ main(int argc, char *argv[]){
     in_filename_list_size=U16_MAX;
     mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
     mask_span_in=0;
-    status=1;
+    status=0;
     do{
       in_filename_list_char_idx_max=in_filename_list_size-1;
       in_filename_list_base=filesys_char_list_malloc(in_filename_list_char_idx_max);

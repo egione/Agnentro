@@ -95,6 +95,14 @@ agnentrofile_out_of_memory_print(void){
   return;
 }
 
+void
+agnentrofile_parameter_error_print(char *char_list_base){
+  DEBUG_PRINT("Invalid parameter: (");
+  DEBUG_PRINT(char_list_base);
+  DEBUG_PRINT("). For help, run without parameters.\n");
+  return;
+}
+
 ULONG
 agnentrofile_random_get(u64 *random_seed_base, ULONG random_span){
 /*
@@ -145,8 +153,10 @@ main(int argc, char *argv[]){
   u64 agnentropy_bit_count;
   u64 agnentropy_bit_idx_max;
   fru128 agnentropy_bits;
+  ULONG arg_idx;
   u8 automask_status;
   u64 bit_idx;
+  u8 filesys_status;
   u8 granularity;
   ULONG input_file_size;
   char *input_filename_base;
@@ -213,29 +223,42 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("(output_file) is the name of the file to overwrite, for (mode>1).\n\n");
       break;
     }
+    arg_idx=0;
+    do{
+      status=ascii_utf8_string_verify(argv[arg_idx]);
+      if(status){
+        agnentrofile_error_print("One or more parameters is encoded using invalid UTF8");
+        break;
+      }
+    }while((++arg_idx)<(ULONG)(argc));
+    if(status){
+      break;
+    }
     loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
-    if(!loggamma_base){
-      agnentrofile_error_print("Loggamma initialization failed");
+    status=!loggamma_base;
+    if(status){
+      agnentrofile_out_of_memory_print();
       break;
     }
     status=ascii_decimal_to_u64_convert(argv[3], &parameter, 1);
     if(status){
-      agnentrofile_error_print("Invalid automask");
+      agnentrofile_parameter_error_print("automask");
       break;
     }
     automask_status=(u8)(parameter);
     status=ascii_decimal_to_u64_convert(argv[4], &parameter, U32_BYTE_MAX);
     if(status){
-      agnentrofile_error_print("Invalid granularity");
+      agnentrofile_parameter_error_print("granularity");
       break;
     }
     granularity=(u8)(parameter);
     status=ascii_decimal_to_u64_convert(argv[1], &parameter, AGNENTROFILE_MODE_UNSHUFFLE);
     if(status){
-      agnentrofile_error_print("Invalid mode");
+      agnentrofile_parameter_error_print("mode");
       break;
     }
     mode=(u8)(parameter);
+    status=1;
     if((mode!=AGNENTROFILE_MODE_ESTIMATE)&&(mode!=AGNENTROFILE_MODE_EXACT)){
       if(argc!=6){
         agnentrofile_error_print("output_file not specified");
@@ -246,12 +269,11 @@ main(int argc, char *argv[]){
       break;
     }
     input_filename_base=argv[2];
-    status=filesys_file_size_ulong_get(&input_file_size, input_filename_base);
-    if(status==FILESYS_STATUS_TOO_BIG){
+    filesys_status=filesys_file_size_ulong_get(&input_file_size, input_filename_base);
+    if(filesys_status==FILESYS_STATUS_TOO_BIG){
       agnentrofile_error_print("input_file exceeds memory size");
       break;
-    }else if(status||!input_file_size){
-      status=1;
+    }else if(filesys_status||!input_file_size){
       agnentrofile_error_print("Cannot determine size of input_file");
       break;
     }
@@ -259,7 +281,6 @@ main(int argc, char *argv[]){
     mask_count=0;
     mask_idx_max=0;
     mask_size=(u8)(granularity+1);
-    status=1;
     transfer_size=input_file_size;
     zip_chunk_idx_max=0;
     zip_chunk_idx_max_max=0;
@@ -285,7 +306,8 @@ main(int argc, char *argv[]){
         agnentrofile_out_of_memory_print();
         break;
       }
-      status=filesys_file_read(&transfer_size, input_filename_base, mask_list_base);
+      filesys_status=filesys_file_read(&transfer_size, input_filename_base, mask_list_base);
+      status=!!filesys_status;
     }else{
       zip_chunk_idx_max_max=input_file_size>>ULONG_SIZE_LOG2;
       if((input_file_size>>ULONG_SIZE_LOG2)!=zip_chunk_idx_max_max){
@@ -297,7 +319,8 @@ main(int argc, char *argv[]){
         agnentrofile_out_of_memory_print();
         break;
       }
-      status=filesys_file_read(&transfer_size, input_filename_base, zip_chunk_list_base);
+      filesys_status=filesys_file_read(&transfer_size, input_filename_base, zip_chunk_list_base);
+      status=!!filesys_status;
       if(!status){
 /*
 Convert the compressed ("zip") file we just imported into a canonical biguint.
@@ -310,6 +333,7 @@ Convert the compressed ("zip") file we just imported into a canonical biguint.
       agnentrofile_error_print("input_file read or import failed");
       break;
     }
+    status=1;
     if((mode==AGNENTROFILE_MODE_ESTIMATE)||(mode==AGNENTROFILE_MODE_EXACT)||(mode==AGNENTROFILE_MODE_COMPRESS)){
       mask_max=(u32)(((u32)(1U<<(granularity<<U8_BITS_LOG2))<<U8_BITS)-1);
       if(automask_status){
@@ -390,6 +414,7 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
             break;
           }
           output_bit_count=bit_idx+agnentropy_bit_count;
+          status=1;
           DEBUG_U64("output_bit_count", output_bit_count);
         }
         output_file_size=ULONG_MAX;
@@ -455,6 +480,7 @@ An additional 128 bits will more than suffice for the logplex encodings of mask_
           agnentrofile_error_print("agnentrocodec_code_import() failed");
           break;
         }
+        status=1;
         agnentrocodec_decode(agnentrocodec_base, mask_idx_max, mask_list_base);
         output_file_size=(ULONG)(((u64)(mask_idx_max)+1)*mask_size);
       }
@@ -496,10 +522,12 @@ Convert the canonical biguint at zip_chunk_list_base into a bitmap ready for exp
         transfer_bit_idx_max=((u64)(output_file_size)<<U8_BITS_LOG2)-1;
         status=biguint_bitmap_export(transfer_bit_idx_max, zip_chunk_idx_max, zip_chunk_idx_max_max, zip_chunk_list_base);
         if(!status){
-          status=filesys_file_write(output_file_size, output_filename_base, zip_chunk_list_base);
+          filesys_status=filesys_file_write(output_file_size, output_filename_base, zip_chunk_list_base);
+          status=!!filesys_status;
         }
       }else{
-        status=filesys_file_write(output_file_size, output_filename_base, mask_list_base);
+        filesys_status=filesys_file_write(output_file_size, output_filename_base, mask_list_base);
+        status=!!filesys_status;
       }
       if(status){
         agnentrofile_error_print("output_file export or write failed");

@@ -250,8 +250,6 @@ main(int argc, char *argv[]){
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 4));
   status=(u8)(status|fracterval_u128_init(FRU128_BUILD_BREAK_COUNT_EXPECTED, 0));
-  loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|!loggamma_base);
   status=(u8)(status|maskops_init(MASKOPS_BUILD_BREAK_COUNT_EXPECTED, 0));
   agnentroprox_base=NULL;
   case_insensitive_status=0;
@@ -272,6 +270,7 @@ main(int argc, char *argv[]){
   haystack_filename_idx_list_base=NULL;
   haystack_filename_list_base=NULL;
   haystack_mask_list_base=NULL;
+  loggamma_base=NULL;
   maskops_bitmap_base=NULL;
   maskops_u32_list_base=NULL;
   match_u8_idx_list_base=NULL;
@@ -311,6 +310,12 @@ main(int argc, char *argv[]){
       }
     }while((++arg_idx)<(ULONG)(argc));
     if(status){
+      break;
+    }
+    loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
+    status=!loggamma_base;
+    if(status){
+      agnentrofind_out_of_memory_print();
       break;
     }
     sweep_text_base=argv[4];
@@ -353,6 +358,7 @@ main(int argc, char *argv[]){
       agnentrofind_parameter_error_print("sweep");
       break;
     }
+    status=1;
     if(clip_mode){
       sweep_status=AGNENTROFIND_SWEEP_STATUS_HAYSTACK;
     }
@@ -362,7 +368,6 @@ main(int argc, char *argv[]){
     if((1<out_filename_size)&&(out_filename_base[0]=='@')){
       if(out_filename_base[1]=='~'){
         agnentrofind_error_print("Path after \"@\" cannot begin with \"~\"; use /home/username/... instead");
-        status=1;
         break;
       }
       append_mode=2;
@@ -388,10 +393,11 @@ Don't accept ranks larger than we can fit in the address space, considering that
     delta_count=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DELTAS_BIT_IDX)&AGNENTROFIND_GEOMETRY_DELTAS);
     densify_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_DENSIFY_BIT_IDX)&AGNENTROFIND_GEOMETRY_DENSIFY);
     granularity=(u8)((parameter>>AGNENTROFIND_GEOMETRY_GRANULARITY_BIT_IDX)&AGNENTROFIND_GEOMETRY_GRANULARITY);
-    overlap_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)&AGNENTROFIND_GEOMETRY_OVERLAP);
-    surroundify_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_SURROUNDIFY_BIT_IDX)&AGNENTROFIND_GEOMETRY_SURROUNDIFY);
     merge_status=0;
     mode=(u16)((parameter>>AGNENTROFIND_GEOMETRY_MODE_BIT_IDX)&AGNENTROFIND_GEOMETRY_MODE);
+    overlap_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_OVERLAP_BIT_IDX)&AGNENTROFIND_GEOMETRY_OVERLAP);
+    status=1;
+    surroundify_status=(u8)((parameter>>AGNENTROFIND_GEOMETRY_SURROUNDIFY_BIT_IDX)&AGNENTROFIND_GEOMETRY_SURROUNDIFY);
     if(mode==AGNENTROFIND_GEOMETRY_MODE_DIVENTROPY){
       mode=AGNENTROPROX_MODE_DIVENTROPY;
     }else if(mode==AGNENTROFIND_GEOMETRY_MODE_LDT){
@@ -399,7 +405,6 @@ Don't accept ranks larger than we can fit in the address space, considering that
     }else if(mode==AGNENTROFIND_GEOMETRY_MODE_JSDT){
       mode=AGNENTROPROX_MODE_JSDT;
     }else{
-      status=1;
       agnentrofind_parameter_error_print("geometry.mode");
       break;
     }
@@ -411,6 +416,7 @@ Don't accept ranks larger than we can fit in the address space, considering that
         agnentrofind_parameter_error_print("format");
         break;
       }
+      status=1;
       if(!append_mode){
         append_mode=(u8)((parameter>>AGNENTROFIND_FORMAT_ASCENDING_BIT_IDX)&AGNENTROFIND_FORMAT_ASCENDING);
       }
@@ -436,6 +442,7 @@ Don't accept ranks larger than we can fit in the address space, considering that
         }
         dump_template_filename_base=argv[9];
         dump_size=(ULONG)(parameter);
+        status=1;
         if(!strcmp(dump_template_filename_base, "+")){
           dump_status=1;
         }else if(!strcmp(dump_template_filename_base, "@")){
@@ -468,11 +475,9 @@ We need to allocate space for the full dump filename, which will contain the exi
     }
     if(append_mode==2){
       if(dump_status|merge_status){
-        status=1;
         agnentrofind_error_print("Dumping or merging is not allowed when (ranks) is prefixed with \"@\"");
         break;
       }else if(sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT){
-        status=1;
         agnentrofind_error_print("Exact matching is not allowed when (ranks) is prefixed with \"@\"");
         break;
       }
@@ -483,7 +488,6 @@ We need to allocate space for the full dump filename, which will contain the exi
     needle_mask_idx_max=0;
     needle_filename_size=(ULONG)(strlen(needle_filename_base));
     needle_filename_size_minus_1=needle_filename_size-1;
-    status=1;
     if(needle_prefix=='+'){
       if(needle_filename_size_minus_1&1){
         agnentrofind_error_print("needle must contain an even number of nybbles");
@@ -493,13 +497,15 @@ We need to allocate space for the full dump filename, which will contain the exi
     }else if(needle_prefix=='@'){
       needle_file_size=needle_filename_size_minus_1;
     }else{
-      status=filesys_file_size_ulong_get(&needle_file_size, needle_filename_base);
-      if(status==FILESYS_STATUS_TOO_BIG){
-        agnentrofind_error_print("(needle) size exceeds memory size");
-        break;
-      }else if(status){
-        agnentrofind_error_print("Cannot determine (needle) size");
-        break;
+      filesys_status=filesys_file_size_ulong_get(&needle_file_size, needle_filename_base);
+      if(filesys_status){
+        if(filesys_status==FILESYS_STATUS_TOO_BIG){
+          agnentrofind_error_print("(needle) size exceeds memory size");
+          break;
+        }else{
+          agnentrofind_error_print("Cannot determine (needle) size");
+          break;
+        }
       }
     }
     needle_mask_idx_max=agnentroprox_mask_idx_max_get(granularity, &granularity_status, needle_file_size, overlap_status);
@@ -516,14 +522,12 @@ We need to allocate space for the full dump filename, which will contain the exi
     }
     if(granularity_status){
       if(needle_mask_idx_max==ULONG_MAX){
-        status=1;
         agnentrofind_error_print("(needle) size is less than (granularity+1) bytes");
         break;
       }else if(!cavalier_status){
         agnentrofind_warning_print("(needle) size isn't a multiple of (granularity+1), so tail bytes will\nbe ignored");
       }
     }
-    status=1;
     if((sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT)||(sweep_status==AGNENTROFIND_SWEEP_STATUS_NEEDLE)){
       sweep_mask_idx_max_max=needle_mask_idx_max;
     }
@@ -546,9 +550,9 @@ We need to allocate space for the full dump filename, which will contain the exi
     }else if(needle_prefix=='@'){
       memcpy(&needle_mask_list_base[0], &needle_filename_base[1], (size_t)(needle_filename_size_minus_1));
     }else{
-      status=filesys_file_read_exact(needle_file_size, needle_filename_base, needle_mask_list_base);
-      if(status){
-        if(status==FILESYS_STATUS_SIZE_CHANGED){
+      filesys_status=filesys_file_read_exact(needle_file_size, needle_filename_base, needle_mask_list_base);
+      if(filesys_status){
+        if(filesys_status==FILESYS_STATUS_SIZE_CHANGED){
           agnentrofind_error_print("(needle) size changed during execution");
           break;
         }else{
@@ -561,7 +565,6 @@ We need to allocate space for the full dump filename, which will contain the exi
     haystack_file_size_max=0;
     haystack_filename_count=0;
     haystack_filename_size=U16_MAX;
-    status=1;
     sweep_size=(sweep_mask_idx_max_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
     do{
       haystack_filename_list_char_idx_max=haystack_filename_size-1;
@@ -606,10 +609,10 @@ Ignore the return status of agnentroprox_mask_idx_max_get() because it doesn't m
       agnentrofind_error_print("All (haystack) files contain fewer masks than sweep would require");
       break;
     }
-    status=0;
     if(sweep_status==AGNENTROFIND_SWEEP_STATUS_HAYSTACK){
       sweep_mask_idx_max_max=haystack_mask_idx_max_max;
     }
+    status=0;
     if(append_mode==2){
       out_filename_list_size=filesys_filename_list_morph_size_get(haystack_filename_count, haystack_filename_base, haystack_filename_list_base, &out_filename_base[1]);
       out_filename_list_char_idx_max=out_filename_list_size-1;
@@ -743,6 +746,7 @@ If (sweep_status==AGNENTROFIND_SWEEP_STATUS_EXACT), then we need to look for exa
     rank_idx=0;
     do{
       granularity_status=0;
+      status=1;
       if(progress_status){
         DEBUG_PRINT("Analyzing ");
         DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_list_char_idx]);
@@ -1274,8 +1278,8 @@ Get rid of overlapping sweep regions, prioritizing those of inferior rank for re
                   dump_filename_base[dump_filename_char_idx]=(char)(digit);
                   dump_filename_char_idx++;
                 }while(digit_shift<=U64_BIT_MAX);
-                status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
-                if(((!cavalier_status)&status)|progress_status){
+                filesys_status=filesys_file_write(dump_size_clipped, dump_filename_base, &haystack_mask_list_base[match_u8_idx]);
+                if(((!cavalier_status)&&filesys_status)|progress_status){
                   DEBUG_PRINT("  Saving to ");
                   DEBUG_PRINT(dump_filename_base);
                   DEBUG_PRINT("... ");
