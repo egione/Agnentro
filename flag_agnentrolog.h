@@ -26,4 +26,4 @@ Agnentro Log Version Info
 /*
 BUILD_ID must increase with every code release, even if only a comment changes. It allows the user to discern one build from another, but is invisible to other libraries. If this library depends on other libraries, then it should be expressed as the sum of the local build ID plus the build IDs of those libraries, and in any event must increase monotonically even if some of the latter are removed.
 */
-#define AGNENTROLOG_BUILD_ID (4+ASCII_BUILD_ID+FILESYS_BUILD_ID)
+#define AGNENTROLOG_BUILD_ID (5+ASCII_BUILD_ID+FILESYS_BUILD_ID)

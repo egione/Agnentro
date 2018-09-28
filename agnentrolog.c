@@ -113,7 +113,7 @@ main(int argc, char *argv[]){
       DEBUG_PRINT("  agnentrolog granularity input output\n\n");
       DEBUG_PRINT("(granularity) is one less than the number of bytes per input mask, on [0, 7].\n\n");
       DEBUG_PRINT("(input) is the file or folder from which to read multiples of (granularity+1)\nbytes.\n\n");
-      DEBUG_PRINT("(output) is the folder, different from (input), to which to write the\ncorresponding log values. Each output log is the integer floor of the log2 of\nthe input mask, plus 1. 0 maps to 0\n\n");
+      DEBUG_PRINT("(output) is the file or folder, corresponding to but different from (input), to\nwhich to write the corresponding log values. Each output log is the integer\nfloor of the log2 of the input mask, plus 1. 0 maps to 0\n\n");
       break;
     }
     arg_idx=0;
