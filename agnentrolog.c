@@ -66,11 +66,11 @@ main(int argc, char *argv[]){
   u8 bit_count;
   u8 file_status;
   u8 filesys_status;
-  ULONG in_file_count;
   ULONG in_file_idx;
   ULONG in_file_size;
   ULONG in_file_size_max;
   char *in_filename_base;
+  ULONG in_filename_count;
   char *in_filename_list_base;
   ULONG in_filename_list_char_idx;
   ULONG in_filename_list_char_idx_max;
@@ -93,7 +93,7 @@ main(int argc, char *argv[]){
   u8 status;
 
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 0));
+  status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 4));
   in_filename_list_base=NULL;
   in_u8_list_base=NULL;
   out_filename_list_base=NULL;
@@ -135,7 +135,7 @@ main(int argc, char *argv[]){
     in_filename_base=argv[2];
     out_filename_base=argv[3];
     in_file_size_max=0;
-    in_file_count=0;
+    in_filename_count=0;
     in_filename_list_size=U16_MAX;
     mask_size_in=(u8)(parameter+1);
     status=1;
@@ -147,12 +147,16 @@ main(int argc, char *argv[]){
         break;
       }
       in_filename_list_size_new=in_filename_list_size;
-      in_file_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
-      if(!in_file_count){
+      in_filename_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
+      if(!in_filename_count){
         agnentrolog_error_print("(textpath) not found or inaccessible");
         break;
       }
-      status=0;
+      status=filesys_filename_list_sort(in_filename_count, in_filename_list_base);
+      if(status){
+        agnentrolog_out_of_memory_print();
+        break;
+      }
       if(in_filename_list_size<in_filename_list_size_new){
         in_filename_list_base=filesys_free(in_filename_list_base);
         in_filename_list_size=in_filename_list_size_new;
@@ -164,7 +168,7 @@ main(int argc, char *argv[]){
     }
     in_u8_list_base=(u8 *)(DEBUG_MALLOC_PARANOID(in_file_size_max));
     status=!in_u8_list_base;
-    out_filename_list_size=filesys_filename_list_morph_size_get(in_file_count, in_filename_base, in_filename_list_base, out_filename_base);
+    out_filename_list_size=filesys_filename_list_morph_size_get(in_filename_count, in_filename_base, in_filename_list_base, out_filename_base);
     out_filename_char_idx_max=out_filename_list_size-1;
     out_filename_list_base=filesys_char_list_malloc(out_filename_char_idx_max);
     status=(u8)(status|!out_filename_list_base);
@@ -172,7 +176,7 @@ main(int argc, char *argv[]){
       agnentrolog_out_of_memory_print();
       break;
     }
-    filesys_filename_list_morph(in_file_count, in_filename_base, in_filename_list_base, out_filename_base, out_filename_list_base);
+    filesys_filename_list_morph(in_filename_count, in_filename_base, in_filename_list_base, out_filename_base, out_filename_list_base);
     in_filename_list_char_idx=0;
     in_file_idx=0;
     out_filename_char_idx=0;
@@ -238,7 +242,7 @@ main(int argc, char *argv[]){
       in_file_idx++;
       out_filename_char_idx=out_filename_char_idx_new;
       status=0;
-    }while(in_file_idx!=in_file_count);
+    }while(in_file_idx!=in_filename_count);
   }while(0);
   filesys_free(out_filename_list_base);
   DEBUG_FREE_PARANOID(in_u8_list_base);

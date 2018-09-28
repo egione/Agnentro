@@ -278,7 +278,7 @@ main(int argc, char *argv[]){
 
   overflow_status=0;
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
-  status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 2));
+  status=(u8)(status|filesys_init(FILESYS_BUILD_BREAK_COUNT_EXPECTED, 4));
   status=(u8)(status|fracterval_u128_init(FRU128_BUILD_BREAK_COUNT_EXPECTED, 0));
   loggamma_base=loggamma_init(LOGGAMMA_BUILD_BREAK_COUNT_EXPECTED, 0);
   status=(u8)(status|!loggamma_base);
@@ -574,7 +574,11 @@ We need to allocate space for the full dump filename, which will contain the exi
         agnentroscan_error_print("(haystack) not found or inaccessible");
         break;
       }
-      status=0;
+      status=filesys_filename_list_sort(haystack_filename_count, haystack_filename_list_base);
+      if(status){
+        agnentroscan_out_of_memory_print();
+        break;
+      }
       if(clip_mode){
         haystack_file_size_max=sweep_size;
       }

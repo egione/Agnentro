@@ -808,6 +808,130 @@ Account for the case in which we need an extra FILESYS_PATH_SEPARATOR for each t
   return filename_list_size;
 }
 
+u8
+filesys_filename_list_sort(ULONG filename_count, char *filename_list_base){
+  ULONG byte_idx;
+  ULONG file_idx_idx_idx;
+  ULONG file_idx_idx_list_base[U8_SPAN+1U];
+  ULONG file_idx_idx0;
+  ULONG file_idx_idx1;
+  ULONG *file_idx_list_base0;
+  ULONG *file_idx_list_base1;
+  ULONG *file_idx_list_base2;
+  ULONG file_idx;
+  ULONG *filename_char_idx_list_base;
+  char *filename_list_base0;
+  char *filename_list_base1;
+  ULONG filename_list_char_idx0;
+  ULONG filename_list_char_idx1;
+  ULONG filename_size;
+  ULONG *filename_size_list_base;
+  ULONG filename_size_max;
+  ULONG filename_size_min;
+  ULONG list_size;
+  u8 status;
+
+  status=!filename_count;
+  if(1U<filename_count){
+    list_size=filename_count<<ULONG_SIZE_LOG2;
+    file_idx_list_base0=DEBUG_MALLOC_PARANOID(list_size);
+    status=!file_idx_list_base0;
+    file_idx_list_base1=DEBUG_MALLOC_PARANOID(list_size);
+    status=(u8)(status|!file_idx_list_base1);
+    filename_char_idx_list_base=DEBUG_MALLOC_PARANOID(list_size);
+    status=(u8)(status|!filename_char_idx_list_base);
+    filename_size_list_base=DEBUG_MALLOC_PARANOID(list_size);
+    status=(u8)(status|!filename_size_list_base);
+    if(!status){
+      file_idx=0;
+      filename_list_base0=filename_list_base;
+      filename_list_char_idx0=0;
+      filename_size_max=0;
+      filename_size_min=ULONG_MAX;
+      status=1;
+      do{
+        filename_char_idx_list_base[file_idx]=filename_list_char_idx0;
+        filename_size=strlen(&filename_list_base0[filename_list_char_idx0]);
+        filename_list_char_idx0+=filename_size+1U;
+        filename_size_max=MAX(filename_size, filename_size_max);
+        filename_size_min=MIN(filename_size, filename_size_min);
+        filename_size_list_base[file_idx]=filename_size;
+        file_idx++;
+      }while(file_idx!=filename_count);
+      filename_list_base1=DEBUG_MALLOC_PARANOID(filename_list_char_idx0);
+      status=(!filename_list_base1)|!filename_size_min;
+      if(!status){
+        file_idx_idx0=0;
+        list_size=(U8_SPAN+1U)<<ULONG_SIZE_LOG2;
+        do{
+          file_idx_list_base0[file_idx_idx0]=file_idx_idx0;
+          file_idx_idx0++;
+        }while(file_idx_idx0!=filename_count);
+        byte_idx=filename_size_max-1U;
+        do{
+          memset(file_idx_idx_list_base, 0, (size_t)(list_size));
+          file_idx=0;
+          do{
+            filename_size=filename_size_list_base[file_idx];
+            file_idx_idx_idx=0;
+            if(byte_idx<filename_size){
+              filename_list_char_idx0=filename_char_idx_list_base[file_idx];
+              file_idx_idx_idx=(u8)(filename_list_base0[filename_list_char_idx0+byte_idx]);
+              file_idx_idx_idx++;
+            }
+            file_idx_idx_list_base[file_idx_idx_idx]++;
+            file_idx++;
+          }while(file_idx!=filename_count);
+          file_idx_idx_idx=0;
+          file_idx_idx0=0;
+          do{
+            file_idx_idx1=file_idx_idx_list_base[file_idx_idx_idx];
+            file_idx_idx_list_base[file_idx_idx_idx]=file_idx_idx0;
+            file_idx_idx0+=file_idx_idx1;
+          }while((file_idx_idx_idx++)<=U8_MAX);
+          file_idx_idx0=0;
+          do{
+            file_idx=file_idx_list_base0[file_idx_idx0];
+            filename_size=filename_size_list_base[file_idx];
+            file_idx_idx_idx=0;
+            if(byte_idx<filename_size){
+              filename_list_char_idx0=filename_char_idx_list_base[file_idx];
+              file_idx_idx_idx=(u8)(filename_list_base0[filename_list_char_idx0+byte_idx]);
+              file_idx_idx_idx++;
+            }
+            file_idx_idx1=file_idx_idx_list_base[file_idx_idx_idx];
+            file_idx_list_base1[file_idx_idx1]=file_idx;
+            file_idx_idx1++;
+            file_idx_idx_list_base[file_idx_idx_idx]=file_idx_idx1;
+            file_idx_idx0++;
+          }while(file_idx_idx0!=filename_count);
+          file_idx_list_base2=file_idx_list_base0;
+          file_idx_list_base0=file_idx_list_base1;
+          file_idx_list_base1=file_idx_list_base2;
+        }while(byte_idx--);
+        file_idx_idx0=0;
+        filename_list_char_idx1=0;
+        do{
+          file_idx=file_idx_list_base0[file_idx_idx0];
+          filename_list_char_idx0=filename_char_idx_list_base[file_idx];
+          filename_size=filename_size_list_base[file_idx];
+          filename_size++;
+          memcpy(&filename_list_base1[filename_list_char_idx1], &filename_list_base0[filename_list_char_idx0], (size_t)(filename_size));
+          filename_list_char_idx1+=filename_size;
+          file_idx_idx0++;
+        }while(file_idx_idx0!=filename_count);
+        memcpy(filename_list_base0, filename_list_base1, (size_t)(filename_list_char_idx1));
+      }
+      DEBUG_FREE_PARANOID(filename_list_base1);
+    }
+    DEBUG_FREE_PARANOID(filename_size_list_base);
+    DEBUG_FREE_PARANOID(filename_char_idx_list_base);
+    DEBUG_FREE_PARANOID(file_idx_list_base1);
+    DEBUG_FREE_PARANOID(file_idx_list_base0);
+  }
+  return status;
+}
+
 void *
 filesys_free(void *base){
 /*
