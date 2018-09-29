@@ -1038,11 +1038,10 @@ Convert all matches to divcompressivity.
         if(!cavalier_status){
           if((!progress_status)&(granularity_status|status)){
             if(filesys_status!=FILESYS_STATUS_WRITE_FAIL){
-              DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_list_char_idx]);
+              DEBUG_WRITE(&haystack_filename_list_base[haystack_filename_list_char_idx]);
             }else{
-              DEBUG_PRINT(&out_filename_list_base[out_filename_list_char_idx]);
+              DEBUG_WRITE(&out_filename_list_base[out_filename_list_char_idx]);
             }
-            DEBUG_PRINT("\n");
           }
 /*
 Don't warn about incompatible granularity if we have some other error which would moot the issue.
@@ -1154,8 +1153,7 @@ Don't attempt to merge ranking sweeps in haystack mode, as there's only one entr
             DEBUG_F128_PAIR("", entropy.a, entropy.b);
           }
           DEBUG_PRINT(" ");
-          DEBUG_PRINT(&haystack_filename_list_base[haystack_filename_idx_list_base[rank_idx]]);
-          DEBUG_PRINT("\n");
+          DEBUG_WRITE(&haystack_filename_list_base[haystack_filename_idx_list_base[rank_idx]]);
           rank_idx++;
         }
       }else{

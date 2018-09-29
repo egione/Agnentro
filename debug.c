@@ -503,7 +503,7 @@ Print a field name followed by "=", or nothing if *name_base is null.
   void
   debug_print(char *string_base){
 /*
-Print a string.
+Print a string then flush the print buffer.
 */
     printf("%s", string_base);
     debug_print_flush();
@@ -755,6 +755,16 @@ In:
     debug_name(name_base);
     printf("%02X", value);
     debug_print_newline_if(name_base);
+    return;
+  }
+
+  void
+  debug_write(char *string_base){
+/*
+Print a string followed by a newline then flush the print buffer.
+*/
+    printf("%s\n", string_base);
+    debug_print_flush();
     return;
   }
 #endif

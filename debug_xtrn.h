@@ -51,4 +51,5 @@ License version 3 along with the Dyspoissometer Library (filename
   extern void debug_u64(char *name_base, u64 value);
   extern void debug_u64_pair(char *name_base, u64 value0, u64 value1);
   extern void debug_u8(char *name_base, u8 value);
+  extern void debug_write(char *string_base);
 #endif

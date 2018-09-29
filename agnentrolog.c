@@ -210,11 +210,10 @@ main(int argc, char *argv[]){
       }
       if(status){
         if(filesys_status!=FILESYS_STATUS_WRITE_FAIL){
-          DEBUG_PRINT(&in_filename_list_base[in_filename_list_char_idx]);
+          DEBUG_WRITE(&in_filename_list_base[in_filename_list_char_idx]);
         }else{
-          DEBUG_PRINT(&out_filename_list_base[out_filename_char_idx]);
+          DEBUG_WRITE(&out_filename_list_base[out_filename_char_idx]);
         }
-        DEBUG_PRINT("\n");
         switch(filesys_status){
         case FILESYS_STATUS_NOT_FOUND:
           agnentrolog_error_print("Not found");

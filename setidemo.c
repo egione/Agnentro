@@ -375,8 +375,7 @@ It's safe to ignore the status return from agnentroprox_mask_idx_max_get() when 
     DEBUG_U8("deltafy_status", deltafy_status);
     DEBUG_U8("densify_status", densify_status);
     DEBUG_PRINT("file=");
-    DEBUG_PRINT(filename_base);
-    DEBUG_PRINT("\n");
+    DEBUG_WRITE(filename_base);
     DEBUG_U64("file_size", file_size);
     DEBUG_PRINT("mean_signed=");
     if(sign_status==1){

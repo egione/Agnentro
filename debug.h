@@ -53,6 +53,7 @@ License version 3 along with the Dyspoissometer Library (filename
   #define DEBUG_U64(name_base, value) debug_u64(name_base, value)
   #define DEBUG_U64_PAIR(name_base, value0, value1) debug_u64_pair(name_base, value0, value1)
   #define DEBUG_U8(name_base, value) debug_u8(name_base, value)
+  #define DEBUG_WRITE(string_base) debug_write(string_base)
 #else
   #define DEBUG_ALLOCATION_CHECK()
   #define DEBUG_BIGUINT(name_base, chunk_idx_max, chunk_list_base)
@@ -84,4 +85,5 @@ License version 3 along with the Dyspoissometer Library (filename
   #define DEBUG_U64(name_base, value)
   #define DEBUG_U64_PAIR(name_base, value0, value1)
   #define DEBUG_U8(name_base, value)
+  #define DEBUG_WRITE(string_base)
 #endif

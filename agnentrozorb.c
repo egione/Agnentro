@@ -513,8 +513,7 @@ Set mask_idx_max_max to the largest value it could be without wrapping so that A
       DEBUG_U64("", match_u8_idx_u64);
     }
     DEBUG_PRINT(" ");
-    DEBUG_PRINT(mask_list_filename_base);
-    DEBUG_PRINT("\n");
+    DEBUG_WRITE(mask_list_filename_base);
     error_status=0;
   }while(0);
   status=0;
