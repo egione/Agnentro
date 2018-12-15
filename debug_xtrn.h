@@ -39,7 +39,6 @@ License version 3 along with the Dyspoissometer Library (filename
   extern void debug_name(char *name_base);
   extern void debug_print(char *string_base);
   extern void debug_print_flush(void);
-  extern void debug_print_if(u8 status, char *string_base);
   extern void debug_print_newline_if(char *string_base);
   extern void debug_ptr(char *name_base, void *base);
   extern void *debug_realloc_paranoid(void *base, ULONG size);

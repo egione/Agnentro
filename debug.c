@@ -520,25 +520,14 @@ Flush the OS print queue in order to ensure that text display occurs before the 
   }
 
   void
-  debug_print_if(u8 status, char *string_base){
-/*
-Print a string if and only if a status value is nonzero.
-*/
-    if(status){
-      debug_print(string_base);
-    }
-    return;
-  }
-
-  void
   debug_print_newline_if(char *string_base){
 /*
-Print a newline character if and only if *string_base is nonnull.
+Print a newline character if and only if *string_base is nonnull. Flush the print buffer in either case.
 */
     if(*string_base){
       printf("\n");
-      debug_print_flush();
     }
+    debug_print_flush();
     return;
   }
 
