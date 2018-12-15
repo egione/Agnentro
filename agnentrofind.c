@@ -152,6 +152,7 @@ main(int argc, char *argv[]){
   ULONG entropy_list_size;
   u128 entropy_mean;
   fru128 entropy_raw;
+  u8 fatal_status;
   u8 file_status;
   u8 filesys_status;
   u8 granularity;
@@ -167,8 +168,8 @@ main(int argc, char *argv[]){
   ULONG haystack_filename_idx;
   ULONG *haystack_filename_idx_list_base;
   char *haystack_filename_list_base;
-  ULONG haystack_filename_size;
-  ULONG haystack_filename_size_new;
+  ULONG haystack_filename_list_size;
+  ULONG haystack_filename_list_size_new;
   ULONG haystack_mask_idx_max;
   ULONG haystack_mask_idx_max_max;
   ULONG haystack_mask_idx_max_parallel;
@@ -232,6 +233,7 @@ main(int argc, char *argv[]){
   ULONG rank_idx_min;
   fru128 *rank_list_base;
   u8 remask_status;
+  u8 retry_status;
   u128 score;
   ULONG score_idx;
   fru128 score_packed;
@@ -562,41 +564,43 @@ We need to allocate space for the full dump filename, which will contain the exi
       }
     }
     haystack_filename_base=argv[2];
+    fatal_status=0;
     haystack_file_size_max=0;
     haystack_filename_count=0;
-    haystack_filename_size=U16_MAX;
-    sweep_size=(sweep_mask_idx_max_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
+    haystack_filename_list_size=U16_MAX;
+    retry_status=0;
     do{
-      haystack_filename_list_char_idx_max=haystack_filename_size-1;
+      haystack_filename_list_char_idx_max=haystack_filename_list_size-1;
       haystack_filename_list_base=filesys_char_list_malloc(haystack_filename_list_char_idx_max);
       if(!haystack_filename_list_base){
+        fatal_status=1;
         agnentrofind_out_of_memory_print();
         break;
       }
-      haystack_filename_size_new=haystack_filename_size;
-      haystack_filename_count=filesys_filename_list_get(&haystack_file_size_max, &file_status, haystack_filename_list_base, &haystack_filename_size_new, haystack_filename_base);
-      if(!haystack_filename_count){
+      haystack_filename_list_size_new=haystack_filename_list_size;
+      retry_status=filesys_filename_list_get(&fatal_status, &haystack_file_size_max, &file_status, &haystack_filename_count, haystack_filename_list_base, &haystack_filename_list_size_new, haystack_filename_base);
+      if(fatal_status){
         agnentrofind_error_print("(haystack) not found or inaccessible");
         break;
       }
-      status=filesys_filename_list_sort(haystack_filename_count, haystack_filename_list_base);
-      if(status){
-        agnentrofind_out_of_memory_print();
-        break;
-      }
-      if(clip_mode){
-        haystack_file_size_max=sweep_size;
-      }
-      if(haystack_filename_size<haystack_filename_size_new){
+      if(retry_status){
         haystack_filename_list_base=filesys_free(haystack_filename_list_base);
-        haystack_filename_size=haystack_filename_size_new;
-        status=1;
+        haystack_filename_list_size=haystack_filename_list_size_new;
       }
-    }while(status);
+    }while(retry_status);
+    if(fatal_status){
+      break;
+    }
+    status=filesys_filename_list_sort(haystack_filename_count, haystack_filename_list_base);
     if(status){
+      agnentrofind_out_of_memory_print();
       break;
     }
     status=1;
+    sweep_size=(sweep_mask_idx_max_max+1)*(u8)((u8)(granularity*(!overlap_status))+1);
+    if(clip_mode){
+      haystack_file_size_max=sweep_size;
+    }
     if(haystack_file_size_max<mask_size){
       agnentrofind_error_print("All (haystack) files are smaller than a single (granularity+1)-sized mask");
       break;

@@ -64,6 +64,7 @@ int
 main(int argc, char *argv[]){
   ULONG arg_idx;
   u8 bit_count;
+  u8 fatal_status;
   u8 file_status;
   u8 filesys_status;
   ULONG in_file_idx;
@@ -90,6 +91,7 @@ main(int argc, char *argv[]){
   ULONG out_filename_list_size;
   ULONG out_u8_idx;
   u64 parameter;
+  u8 retry_status;
   u8 status;
 
   status=ascii_init(ASCII_BUILD_BREAK_COUNT_EXPECTED, 0);
@@ -134,38 +136,41 @@ main(int argc, char *argv[]){
     }
     in_filename_base=argv[2];
     out_filename_base=argv[3];
+    fatal_status=0;
     in_file_size_max=0;
     in_filename_count=0;
     in_filename_list_size=U16_MAX;
     mask_size_in=(u8)(parameter+1);
+    retry_status=0;
     status=1;
     do{
       in_filename_list_char_idx_max=in_filename_list_size-1;
       in_filename_list_base=filesys_char_list_malloc(in_filename_list_char_idx_max);
       if(!in_filename_list_base){
+        fatal_status=1;
         agnentrolog_out_of_memory_print();
         break;
       }
       in_filename_list_size_new=in_filename_list_size;
-      in_filename_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
-      if(!in_filename_count){
-        agnentrolog_error_print("(textpath) not found or inaccessible");
+      retry_status=filesys_filename_list_get(&fatal_status, &in_file_size_max, &file_status, &in_filename_count, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
+      if(fatal_status){
+        agnentrolog_error_print("(input) not found or inaccessible");
         break;
       }
-      status=filesys_filename_list_sort(in_filename_count, in_filename_list_base);
-      if(status){
-        agnentrolog_out_of_memory_print();
-        break;
-      }
-      if(in_filename_list_size<in_filename_list_size_new){
+      if(retry_status){
         in_filename_list_base=filesys_free(in_filename_list_base);
         in_filename_list_size=in_filename_list_size_new;
-        status=1;
       }
-    }while(status);
-    if(status){
+    }while(retry_status);
+    if(fatal_status){
       break;
     }
+    status=filesys_filename_list_sort(in_filename_count, in_filename_list_base);
+    if(status){
+      agnentrolog_out_of_memory_print();
+      break;
+    }
+    status=1;
     in_u8_list_base=(u8 *)(DEBUG_MALLOC_PARANOID(in_file_size_max));
     status=!in_u8_list_base;
     out_filename_list_size=filesys_filename_list_morph_size_get(in_filename_count, in_filename_base, in_filename_list_base, out_filename_base);

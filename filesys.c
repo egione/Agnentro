@@ -473,16 +473,20 @@ Out:
   return filename_size;
 }
 
-ULONG
-filesys_filename_list_get(ULONG *file_size_max_base, u8 *file_status_base, char *filename_list_base, ULONG *filename_list_size_max_base, char *target_base){
+u8
+filesys_filename_list_get(u8 *fatal_status_base, ULONG *file_size_max_base, u8 *file_status_base, ULONG *filename_count_base, char *filename_list_base, ULONG *filename_list_size_max_base, char *target_base){
 /*
 Given a file, return the name of that file if it exists. Given a folder, return the relative path and name of every file which it contains, ignoring links, block devices, character devices, and sockets.
 
 In:
 
-  *file_size_max_base undefined.
+  *fatal_status_base is undefined.
 
-  *file_status_base undefined.
+  *file_size_max_base is undefined.
+
+  *file_status_base is undefined.
+
+  *filename_count_base is undefined.
 
   *filename_list_base is undefined and writable for (*filename_list_size_max_base+1) bytes.
 
@@ -492,15 +496,19 @@ In:
 
 Out:
 
-  Returns the number of items at *filename_list_base, all of which being null-terminated. Zero implies that *target_base was not found.
+  Returns zero on success, else one. Zero merely means that the process completed without encountering an error return from memory allocation or OS function calls; *filename_count_list_base may still be zero. This value shall be one if  *fatal_status_base is one.
+
+  *fatal_status_base is zero if the return value is zero, or if retrying this function with a larger *filename_list_size_max_base might result in a return value of zero. Otherwise a fatal error occurred, which includes the following cases without limitation: (1) In:*filename_list_size_max_base was ULONG_MAX but was nevertheless found to be insufficient; (2) the deepest nested folder exceeds lexical level FILESYS_DIRECTORY_DEPTH_IDX_MAX; and (3) if any discovered full pathname, including *target_base itself, exceeds size (FILESYS_PATHNAME_CHAR_IDX_MAX+1).
 
   *file_size_max_base is the maximum file size encountered, which is zero if the return value is zero.
 
-  *file_status is one if *target_base is a file or the return value is zero, else zero if it's a folder; and likewise for equivalent links.
+  *file_status_base is one if *target_base is a file or the return value is zero, else zero if it's a folder; and likewise for equivalent links.
+
+  *filename_count_base is the number of items at *filename_list_base, all of which being null-terminated. This value may be may be zero even if the return value is zero, indicating that *target_base was not found; or nonzero even if the return value is one, indicating partial but valid results at *filename_list_base.
 
   *filename_list_base is just a copy of *target_base if it's a file that exists, else a concatenation of (return value) null-terminated relative paths and filenames subordinate to *target_base. Points to a null character if the return value is zero.
 
-  *filename_list_size_max_base is at least the defined size at filename_list_base. It has been inflated by filesys_hull_size_get() in order to prevent trivial changes to the folder tree from indefinitely delaying the successful completion of this process; it should complete successfully within O(log(N)) attempts -- and usually just one -- given N files. This value is zero if the return value is zero.
+  *filename_list_size_max_base is at least the defined size at filename_list_base. It has been inflated by filesys_hull_size_get() in order to prevent trivial changes to the folder tree from indefinitely delaying the successful completion of this process; it should complete successfully within O(log(N)) attempts -- and usually just one -- given N files. This value will be nonzero even if the return value is zero.
 */
   u8 continue_status;
   DIR *dir_handle;
@@ -510,11 +518,12 @@ Out:
   ULONG dirent_idx;
   char *dirname_base;
   ULONG dirname_size;
-  ULONG file_count;
+  u8 fatal_status;
   ULONG file_size;
   ULONG file_size_max;
   u64 file_size_u64;
   char *filename_base;
+  ULONG filename_count;
   ULONG filename_list_size;
   ULONG filename_list_size_max;
   ULONG filename_list_size_new;
@@ -528,24 +537,27 @@ Out:
     struct stat filename_stat;
   #endif
   u8 rollback_status;
+  u8 status;
 
   filename_list_size_max=*filename_list_size_max_base;
-  file_count=0;
   file_size=0;
   file_size_max=0;
   file_size_u64=0;
+  filename_count=0;
   filename_list_size=0;
   *file_status_base=1;
   filename_size=(ULONG)(strlen(target_base));
   while((1<filename_size)&&(target_base[filename_size-1]==FILESYS_PATH_SEPARATOR)){
     filename_size--;
   }
+  fatal_status=0;
+  status=0;
   filename_list_base[0]=0;
   target_base[filename_size]=0;
   if(filename_size&&(filename_size<=(FILESYS_PATHNAME_CHAR_IDX_MAX+1))){
     filename_size++;
     dir_handle_list_base=DEBUG_MALLOC_PARANOID((FILESYS_DIRECTORY_DEPTH_IDX_MAX+1)*(ULONG)(sizeof(DIR *)));
-    filename_base=filesys_char_list_malloc(FILESYS_PATHNAME_CHAR_IDX_MAX);
+    filename_base=filesys_char_list_malloc(FILESYS_PATHNAME_CHAR_IDX_MAX+1);
     filename_size_list_base=DEBUG_MALLOC_PARANOID((FILESYS_DIRECTORY_DEPTH_IDX_MAX+1)<<ULONG_SIZE_LOG2);
     if(dir_handle_list_base&&filename_base&&filename_size_list_base){
       strcpy(filename_base, target_base);
@@ -570,7 +582,9 @@ Ignore everything but files and folders -- even links to them -- because we don'
                 rollback_status=1;
               }
             }else{
-              rollback_status=1;
+              fatal_status=1;
+              rollback_status=fatal_status;
+              status=fatal_status;
             }
           #endif
         }
@@ -581,20 +595,34 @@ Ignore everything but files and folders -- even links to them -- because we don'
               file_size_u64=(u64)(filename_stat.st_size);
             #else
               rollback_status=!!filesys_file_size_get(&file_size_u64, filename_base);
+              if(rollback_status){
+                fatal_status=rollback_status;
+                status=rollback_status;
+              }
             #endif
             file_size=(ULONG)(file_size_u64);
             #ifdef _32_
               if(file_size!=file_size_u64){
-                rollback_status=1;
+                fatal_status=1;
+                rollback_status=fatal_status;
+                status=fatal_status;
               }
             #endif
             if(!rollback_status){
               file_size_max=MAX(file_size, file_size_max);
               filename_list_size_new=filename_list_size+filename_size;
-              if((filename_list_size<filename_list_size_new)&&(filename_list_size_new<=filename_list_size_max)){
-                file_count++;
-                memcpy(&filename_list_base[filename_list_size], filename_base, (size_t)(filename_size));
-                filename_list_size=filename_list_size_new;
+              if(filename_list_size<filename_list_size_new){
+                if(filename_list_size_new<=filename_list_size_max){
+                  filename_count++;
+                  memcpy(&filename_list_base[filename_list_size], filename_base, (size_t)(filename_size));
+                  filename_list_size=filename_list_size_new;
+                }else{
+                  fatal_status=!(~filename_list_size_max);
+                  status=1;
+                }
+              }else{
+                fatal_status=1;
+                status=fatal_status;
               }
               rollback_status=1;
             }
@@ -608,7 +636,9 @@ Ignore everything but files and folders -- even links to them -- because we don'
               rollback_status=0;
             }else{
               closedir(dir_handle_new);
-              rollback_status=1;
+              fatal_status=1;
+              rollback_status=fatal_status;
+              status=fatal_status;
             }
           }
         }
@@ -630,7 +660,9 @@ Ignore everything but files and folders -- even links to them -- because we don'
             rollback_status=0;
             filename_size=filename_size_old+dirname_size;
             if((FILESYS_PATHNAME_CHAR_IDX_MAX+1)<filename_size){
-              rollback_status=1;
+              fatal_status=1;
+              rollback_status=fatal_status;
+              status=fatal_status;
             }else if(dirname_size<=3){
               if(1<dirname_size){
                 if(dirname_base[0]=='.'){
@@ -674,9 +706,11 @@ Ignore everything but files and folders -- even links to them -- because we don'
     filesys_free(filename_base);
     DEBUG_FREE_PARANOID(dir_handle_list_base);
   }
+  *fatal_status_base=fatal_status;
   *file_size_max_base=file_size_max;
+  *filename_count_base=filename_count;
   *filename_list_size_max_base=filesys_hull_size_get(filename_list_size);
-  return file_count;
+  return status;
 }
 
 void
@@ -954,7 +988,7 @@ Out:
 ULONG
 filesys_hull_size_get(ULONG size_projected){
 /*
-Compute MAX(MIN(4, (2^ceil(log2(size_projected))), ULONG_MAX). This enables exponential backoff of projected allocation needs, which will terminate in tractable time because going slightly above a power of 2 will result in approximately double the allocation size required. The lower bound of 4 isn't magical; it's just convenient and not worth optimizing down.
+Compute MAX(MIN(4, (2^ceil(log2(size_projected+1))), ULONG_MAX). This enables exponential backoff of projected allocation needs, which will terminate in tractable time because going slightly above a power of 2 will result in approximately double the allocation size required. The lower bound of 4 isn't magical; it's just convenient and not worth optimizing down.
 
 In:
 
@@ -966,12 +1000,18 @@ Out:
 */
   ULONG hull_size;
 
-  hull_size=4;
-  while(4<size_projected){
+  hull_size=1;
+  while(size_projected){
     size_projected>>=1;
     hull_size<<=1;
   }
-  hull_size-=!hull_size;
+  if(hull_size<4){
+    if(hull_size){
+      hull_size=4;
+    }else{
+      hull_size=~hull_size;
+    }
+  }
   return hull_size;
 }
 

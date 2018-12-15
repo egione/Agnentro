@@ -89,6 +89,7 @@ main(int argc, char *argv[]){
   u8 delta_count;
   u8 delta_idx;
   u8 densify_status;
+  u8 fatal_status;
   u8 file_status;
   u8 filesys_status;
   u8 granularity;
@@ -144,6 +145,7 @@ main(int argc, char *argv[]){
   ULONG out_u8_idx;
   u8 overflow_status;
   u64 parameter;
+  u8 retry_status;
   u8 saturate_mode;
   u8 status;
   u8 surroundify_status;
@@ -265,38 +267,41 @@ main(int argc, char *argv[]){
     }
     in_filename_base=argv[4];
     out_filename_base=argv[5];
+    fatal_status=0;
     in_file_size_max=0;
     in_filename_count=0;
     in_filename_list_size=U16_MAX;
     mask_bit_count_delta=(u8)(mask_bit_count_delta-mask_bit_count_out);
     mask_span_in=0;
+    retry_status=0;
     do{
       in_filename_list_char_idx_max=in_filename_list_size-1;
       in_filename_list_base=filesys_char_list_malloc(in_filename_list_char_idx_max);
       if(!in_filename_list_base){
+        fatal_status=1;
         agnentroquant_out_of_memory_print();
         break;
       }
       in_filename_list_size_new=in_filename_list_size;
-      in_filename_count=filesys_filename_list_get(&in_file_size_max, &file_status, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
-      if(!in_filename_count){
+      retry_status=filesys_filename_list_get(&fatal_status, &in_file_size_max, &file_status, &in_filename_count, in_filename_list_base, &in_filename_list_size_new, in_filename_base);
+      if(fatal_status){
         agnentroquant_error_print("(input) not found or inaccessible");
         break;
       }
-      status=filesys_filename_list_sort(in_filename_count, in_filename_list_base);
-      if(status){
-        agnentroquant_out_of_memory_print();
-        break;
-      }
-      if(in_filename_list_size<in_filename_list_size_new){
+      if(retry_status){
         in_filename_list_base=filesys_free(in_filename_list_base);
         in_filename_list_size=in_filename_list_size_new;
-        status=1;
       }
-    }while(status);
-    if(status){
+    }while(retry_status);
+    if(fatal_status){
       break;
     }
+    status=filesys_filename_list_sort(in_filename_count, in_filename_list_base);
+    if(status){
+      agnentroquant_out_of_memory_print();
+      break;
+    }
+    status=1;
     in_u8_list_base=maskops_mask_list_malloc(U8_BYTE_MAX, in_file_size_max);
     status=!in_u8_list_base;
     out_filename_list_size=filesys_filename_list_morph_size_get(in_filename_count, in_filename_base, in_filename_list_base, out_filename_base);
@@ -308,8 +313,8 @@ main(int argc, char *argv[]){
       break;
     }
     filesys_filename_list_morph(in_filename_count, in_filename_base, in_filename_list_base, out_filename_base, out_filename_list_base);
-    in_filename_list_char_idx=0;
     in_file_idx=0;
+    in_filename_list_char_idx=0;
     mask_u64_max=0;
     mask_u64_min=0;
     out_filename_char_idx=0;
