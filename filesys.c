@@ -709,7 +709,7 @@ Ignore everything but files and folders -- even links to them -- because we don'
   *fatal_status_base=fatal_status;
   *file_size_max_base=file_size_max;
   *filename_count_base=filename_count;
-  *filename_list_size_max_base=filesys_hull_size_get(filename_list_size);
+  *filename_list_size_max_base=filesys_hull_size_get(filename_list_size_max);
   return status;
 }
 
