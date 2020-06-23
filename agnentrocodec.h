@@ -22,7 +22,6 @@ License version 3 along with the Agnentro Library (haystack_filename
 */
 TYPEDEF_START
   ULONG *code_chunk_list_base;
-  ULONG freq_idx_min_list_base[U32_BITS];
   ULONG *freq_tree_base;
   ULONG *pochhammer_chunk_list_base;
   ULONG *remainder_chunk_list_base;
@@ -31,6 +30,7 @@ TYPEDEF_START
   u64 code_bit_idx_max;
   u64 code_bit_idx_max_max;
   ULONG code_chunk_idx_max;
+  ULONG freq_idx_min_list_base[U32_BITS];
   ULONG span_chunk_idx_max;
   u32 mask_max;
   u8 granularity;

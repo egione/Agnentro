@@ -107,8 +107,11 @@ See https://en.wikipedia.org/wiki/Multiply-with-carry which explains how this Ma
 #else
   #define REVERSE_ULONG REVERSE_U16
 #endif
+/*
+The following macros are used in lieu of typedef so that they can be globally overridden with __attribute__ flags. Previously, ((packed)) was used for efficiency, but it caused problems (and is generally unhelpful anyway because data structures are manually engineered to have the most aligned variables first. ((packed)) also causes inefficient code to be generated on some platforms.
+*/
 #define TYPEDEF_END(typedef_struct_name) }typedef_struct_name;
-#define TYPEDEF_START typedef struct __attribute__ ((packed)) {
+#define TYPEDEF_START typedef struct {
 /*
 u128, the unsigned 128-bit integer type, is defined differently on 32-bit and 64-bit platforms. The main reason is that some compilers for the former have no such intrinsic support. Also, the compiler may do a better optimization job if u128 encapsulation is not used, allowing it to interleave operations with finer granularity.
 */

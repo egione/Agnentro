@@ -1,6 +1,6 @@
 /*
 ASCII
-Copyright 2016 Russell Leidich
+Copyright 2017 Russell Leidich
 
 This collection of files constitutes the ASCII Library. (This is a
 library in the abstact sense; it's not intended to compile to a ".lib"

@@ -24,7 +24,7 @@ extern u8 fracterval_u64_divide_u64(fru64 *a_base, fru64 p, u64 v);
 extern void *fracterval_u64_free(void *base);
 extern void fracterval_u64_from_fractoid_u64_mantissa_u64_product(fru64 *a_base, u64 p, u64 q);
 extern u8 fracterval_u64_init(u32 build_break_count, u32 build_feature_count);
-extern fru64 *fracterval_u64_list_malloc(ULONG fracterval_u64_idx_max);
+extern fru64 *fracterval_u64_list_malloc(ULONG fru64_idx_max);
 extern u8 fracterval_u64_log_delta_u64(fru64 *a_base, u64 v);
 extern u8 fracterval_u64_log_delta_u64_cached(fru64 *a_base, ULONG log_delta_idx_max, fru64 *log_delta_list_base, u64 *log_delta_parameter_list_base, u64 v);
 extern u8 fracterval_u64_log_mantissa_delta_u64(fru64 *a_base, u64 p, u64 q);

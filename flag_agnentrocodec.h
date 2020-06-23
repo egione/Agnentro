@@ -46,4 +46,4 @@ This value should NOT be used by any library other than this one; doing so could
 /*
 BUILD_ID must increase with every code release, even if only a comment changes. It allows the user to discern one build from another, but is invisible to other libraries. If this library depends on other libraries, then it should be expressed as the sum of the local build ID plus the build IDs of those libraries, and in any event must increase monotonically even if some of the latter are removed.
 */
-#define AGNENTROCODEC_BUILD_ID (7+BIGUINT_BUILD_ID+FRU128_BUILD_ID+LOGGAMMA_BUILD_ID)
+#define AGNENTROCODEC_BUILD_ID (8+BIGUINT_BUILD_ID+FRU128_BUILD_ID+LOGGAMMA_BUILD_ID)
