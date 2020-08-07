@@ -46,6 +46,17 @@ Verify that all allocations have been freed exactly once.
 
   void
   debug_biguint(char *name_base, ULONG chunk_idx_max, ULONG *chunk_list_base){
+/*
+Print a hexadecimal big whole number starting with its most significant ULONG.
+
+In:
+
+  *name_base is a text identifier for the output.
+
+  chunk_idx_max is the index containing the MSB of *chunk_list_base.
+
+  *chunk_list_base is a list of chunks of a biguint.
+*/
     ULONG chunk;
     u64 chunk_count;
     ULONG chunk_idx;
@@ -307,7 +318,7 @@ In:
 
   chunk_count is the number of chunk to print.
 
-  chunk_list_base is base of the list of chunks casted to (u8 *). This is normally considered bad coding practice, but this is only the debugger, which should not ship with published code, so the tradeoff favors convenience.
+  chunk_list_base is base of the list of chunks casted to (u8 *). This is bad coding practice, but it's a cheat for simplicty that seems to work.
 
   chunk_size_log2 is 0/1/2/3/4 for 8/16/32/64/128-bit chunks, respectively.
 */
@@ -504,6 +515,10 @@ Print a field name followed by "=", or nothing if *name_base is null.
   debug_print(char *string_base){
 /*
 Print a string then flush the print buffer.
+
+In:
+
+  *string_base is the text to print.
 */
     printf("%s", string_base);
     debug_print_flush();
@@ -523,6 +538,10 @@ Flush the OS print queue in order to ensure that text display occurs before the 
   debug_print_newline_if(char *string_base){
 /*
 Print a newline character if and only if *string_base is nonnull. Flush the print buffer in either case.
+
+In:
+
+  *string_base is the text to test for nullness.
 */
     if(*string_base){
       printf("\n");

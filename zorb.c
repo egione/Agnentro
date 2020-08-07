@@ -323,7 +323,6 @@ Out:
   u32 uint;
 
   LMD_SEED_INIT(LMD2_C0, lmd2_c0, LMD2_X0, lmd2_x0)
-  LMD_ITERAND_INIT(lmd2_c0, lmd2_x0 ,lmd2_iterand)
   LMD_ACCUMULATOR_INIT(lmd2)
   mask_idx_max=zorb_base->mask_idx_max;
   uint=(u32)(mask_idx_max);
