@@ -27,15 +27,15 @@ License version 3 along with the Dyspoissometer Library (filename
   #define DEBUG_BIGUINT(name_base, chunk_idx_max, chunk_list_base) debug_biguint(name_base, chunk_idx_max, chunk_list_base)
   #define DEBUG_BITMAP(name_base, bit_count, bit_idx_min, chunk_list_base) debug_bitmap(name_base, bit_count, bit_idx_min, chunk_list_base)
   #define DEBUG_CALLOC_PARANOID(size) debug_calloc_paranoid(size)
-  #define DEBUG_EXIT(status) debug_exit(status);
-  #define DEBUG_F128(name_base, value) debug_f128(name_base, value);
-  #define DEBUG_F128_PAIR(name_base, value0, value1) debug_f128_pair(name_base, value0, value1);
-  #define DEBUG_F64(name_base, value) debug_f64(name_base, value);
-  #define DEBUG_F64_PAIR(name_base, value0, value1) debug_f64_pair(name_base, value0, value1);
+  #define DEBUG_EXIT(status) debug_exit(status)
+  #define DEBUG_F128(name_base, value) debug_f128(name_base, value)
+  #define DEBUG_F128_PAIR(name_base, value0, value1) debug_f128_pair(name_base, value0, value1)
+  #define DEBUG_F64(name_base, value) debug_f64(name_base, value)
+  #define DEBUG_F64_PAIR(name_base, value0, value1) debug_f64_pair(name_base, value0, value1)
   #define DEBUG_FREE_PARANOID(base) debug_free_paranoid(base)
   #define DEBUG_LINE() debug_line(__LINE__)
-  #define DEBUG_LIST(name_base, chunk_count, list_base, chunk_size_log2) debug_list(name_base, chunk_count, list_base, chunk_size_log2)
-  #define DEBUG_LIST_CUSTOM(name_base, chunk_count, list_base, chunk_size_log2, compilable) debug_list_custom(name_base, chunk_count, list_base, chunk_size_log2, compilable)
+  #define DEBUG_LIST(name_base, chunk_count, chunk_list_base, chunk_size_log2) debug_list(name_base, chunk_count, chunk_list_base, chunk_size_log2)
+  #define DEBUG_LIST_CUSTOM(name_base, chunk_count, chunk_list_base, chunk_size_log2, compilable) debug_list_custom(name_base, chunk_count, chunk_list_base, chunk_size_log2, compilable)
   #define DEBUG_MALLOC_PARANOID(size) debug_malloc_paranoid(size)
   #define DEBUG_MEMORY_LEAK_REPORT(base) debug_memory_leak_report(base)
   #define DEBUG_NAME(name_base) debug_name(name_base)
@@ -58,15 +58,15 @@ License version 3 along with the Dyspoissometer Library (filename
   #define DEBUG_BIGUINT(name_base, chunk_idx_max, chunk_list_base)
   #define DEBUG_BITMAP(name_base, bit_count, bit_idx_min, chunk_list_base)
   #define DEBUG_CALLOC_PARANOID(size) calloc((size_t)(1), (size_t)(size))
-  #define DEBUG_EXIT(status) exit(status);
-  #define DEBUG_F64(name_base, value)
-  #define DEBUG_F64_PAIR(name_base, value0, value1)
+  #define DEBUG_EXIT(status) exit(status)
   #define DEBUG_F128(name_base, value)
   #define DEBUG_F128_PAIR(name_base, value0, value1)
+  #define DEBUG_F64(name_base, value)
+  #define DEBUG_F64_PAIR(name_base, value0, value1)
   #define DEBUG_FREE_PARANOID(base) free(base)
   #define DEBUG_LINE()
-  #define DEBUG_LIST(name_base, chunk_count, list_base, chunk_size_log2)
-  #define DEBUG_LIST_CUSTOM(name_base, chunk_count, list_base, chunk_size_log2, compilable)
+  #define DEBUG_LIST(name_base, chunk_count, chunk_list_base, chunk_size_log2)
+  #define DEBUG_LIST_CUSTOM(name_base, chunk_count, chunk_list_base, chunk_size_log2, compilable)
   #define DEBUG_MALLOC_PARANOID(size) malloc((size_t)(size))
   #define DEBUG_MEMORY_LEAK_REPORT(base)
   #define DEBUG_NAME(name_base) debug_name(name_base)

@@ -30,7 +30,7 @@ This value is set to the sum of breakage events in the source code of this libra
 When calling the initialization code for this library, always use the corresponding constant ending in "_EXPECTED". This will force a runtime error, in addition to a build error below, if the programmer fails to notice subordinate build breakages which may affect the correctness of transactions with this library.
 */
 #define ZORB_BUILD_BREAK_COUNT (0+AGNENTROPROX_BUILD_BREAK_COUNT)
-#define ZORB_BUILD_BREAK_COUNT_EXPECTED 14
+#define ZORB_BUILD_BREAK_COUNT_EXPECTED 16
 #if ZORB_BUILD_BREAK_COUNT!=ZORB_BUILD_BREAK_COUNT_EXPECTED
   #error ZORB is unaware of the latest non-backward-compatible changes to the libraries that it uses.
 #endif

@@ -31,7 +31,7 @@ This value is set to the sum of breakage events in the source code of this libra
 When calling the initialization code for this library, always use the corresponding constant ending in "_EXPECTED". This will force a runtime error, in addition to a build error below, if the programmer fails to notice subordinate build breakages which may affect the correctness of transactions with this library.
 */
 #define AGNENTROCODEC_BUILD_BREAK_COUNT (0+BIGUINT_BUILD_BREAK_COUNT+FRU128_BUILD_BREAK_COUNT+LOGGAMMA_BUILD_BREAK_COUNT)
-#define AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED 8
+#define AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED 10
 #if AGNENTROCODEC_BUILD_BREAK_COUNT!=AGNENTROCODEC_BUILD_BREAK_COUNT_EXPECTED
   #error Agnentrocodec is unaware of the latest non-backward-compatible changes to the libraries that it uses.
 #endif

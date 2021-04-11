@@ -196,7 +196,7 @@ TYPEDEF_END(fru128);
     __a--
 
   #define U128_DECREMENT_U64_HI(__a, __p) \
-    __a=(__p.b)-U64_MAX; \
+    __a=(__p)-U64_MAX; \
     __a--
 
   #define U128_DECREMENT_U64_HI_SELF(__a) \
@@ -259,7 +259,7 @@ TYPEDEF_END(fru128);
     __a++
 
   #define U128_INCREMENT_U64_HI(__a, __p) \
-    __a=(__p.b)+U64_MAX; \
+    __a=(__p)+U64_MAX; \
     __a++
 
   #define U128_INCREMENT_U64_HI_SELF(__a) \

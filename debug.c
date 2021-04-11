@@ -318,7 +318,7 @@ In:
 
   chunk_count is the number of chunk to print.
 
-  chunk_list_base is base of the list of chunks casted to (u8 *). This is bad coding practice, but it's a cheat for simplicty that seems to work.
+  chunk_list_base is base of the list of chunks casted to (u8 *). This is normally considered bad coding practice, but this is only the debugger, which should not ship with published code, so the tradeoff favors convenience.
 
   chunk_size_log2 is 0/1/2/3/4 for 8/16/32/64/128-bit chunks, respectively.
 */
@@ -503,7 +503,11 @@ Report a memory leak then exit.
   void
   debug_name(char *name_base){
 /*
-Print a field name followed by "=", or nothing if *name_base is null.
+Print (a field name followed by "=") or nothing.
+
+In:
+
+  *name_base is a text identifier for the output. Iff nonnull, then "=" will be printed after it.
 */
     if(*name_base){
       printf("%s=", name_base);
@@ -537,11 +541,11 @@ Flush the OS print queue in order to ensure that text display occurs before the 
   void
   debug_print_newline_if(char *string_base){
 /*
-Print a newline character if and only if *string_base is nonnull. Flush the print buffer in either case.
+Print a newline character iff a string is nonnull. Flush the print buffer in either case.
 
 In:
 
-  *string_base is the text to test for nullness.
+  *string_base must be nonnull in order to print a newline character. debug_print_flush() is called in either case.
 */
     if(*string_base){
       printf("\n");
