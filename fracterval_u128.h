@@ -203,20 +203,20 @@ TYPEDEF_END(fru128);
     __a-=U64_MAX; \
     __a--
 
-  #define U128_DIVIDE_U128_SATURATE(__a, __p, __q, __z) \
-    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __p, __q))
+  #define U128_DIVIDE_U128(__a, __p, __q, __z) \
+    __z=(u8)(__z|u128_divide_u128(&__a, __p, __q))
 
-  #define U128_DIVIDE_U128_SATURATE_SELF(__a, __p, __z) \
-    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __a, __p))
+  #define U128_DIVIDE_U128_SELF(__a, __p, __z) \
+    __z=(u8)(__z|u128_divide_u128(&__a, __a, __p))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE(__a, __p, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __p, __v))
+  #define U128_DIVIDE_U64_TO_U128(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128(&__a, __p, __v))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(__a, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __a, __v))
+  #define U128_DIVIDE_U64_TO_U128_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128(&__a, __a, __v))
 
-  #define U128_DIVIDE_U64_TO_U64_SATURATE(__t, __p, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u64_saturate(&__t, __p, __v))
+  #define U128_DIVIDE_U64_TO_U64(__t, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u64(&__t, __p, __v))
 
   #define U128_FROM_BOOL(__a, __c) \
     __a=0; \
@@ -329,11 +329,11 @@ TYPEDEF_END(fru128);
   #define U128_MSB_GET(__b, __p) \
     __b=u128_msb__get(__p)
 
-  #define U128_MULTIPLY_U64_SATURATE(__a, __p, __v, __z) \
-    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __p, __v))
+  #define U128_MULTIPLY_U64(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64(&__a, __p, __v))
 
-  #define U128_MULTIPLY_U64_SATURATE_SELF(__a, __v, __z) \
-    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __a, __v))
+  #define U128_MULTIPLY_U64_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64(&__a, __a, __v))
 
   #define U128_NEGATE(__a, __p) \
     __a=0U-(__p);
@@ -669,20 +669,20 @@ TYPEDEF_END(fru128);
   #define U128_DECREMENT_U64_HI_SELF(__a) \
     __a.b--
 
-  #define U128_DIVIDE_U128_SATURATE(__a, __p, __q, __z) \
-    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __p, __q))
+  #define U128_DIVIDE_U128(__a, __p, __q, __z) \
+    __z=(u8)(__z|u128_divide_u128(&__a, __p, __q))
 
-  #define U128_DIVIDE_U128_SATURATE_SELF(__a, __p, __z) \
-    __z=(u8)(__z|u128_divide_u128_saturate(&__a, __a, __p))
+  #define U128_DIVIDE_U128_SELF(__a, __p, __z) \
+    __z=(u8)(__z|u128_divide_u128(&__a, __a, __p))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE(__a, __p, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __p, __v))
+  #define U128_DIVIDE_U64_TO_U128(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128(&__a, __p, __v))
 
-  #define U128_DIVIDE_U64_TO_U128_SATURATE_SELF(__a, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u128_saturate(&__a, __a, __v))
+  #define U128_DIVIDE_U64_TO_U128_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u128(&__a, __a, __v))
 
-  #define U128_DIVIDE_U64_TO_U64_SATURATE(__t, __p, __v, __z) \
-    __z=(u8)(__z|u128_divide_u64_to_u64_saturate(&__t, __p, __v))
+  #define U128_DIVIDE_U64_TO_U64(__t, __p, __v, __z) \
+    __z=(u8)(__z|u128_divide_u64_to_u64(&__t, __p, __v))
 
   #define U128_FROM_BOOL(__a, __c) \
     __a.a=!__c; \
@@ -847,11 +847,11 @@ TYPEDEF_END(fru128);
   #define U128_MSB_GET(__b, __p) \
     __b=u128_msb__get(__p)
 
-  #define U128_MULTIPLY_U64_SATURATE(__a, __p, __v, __z) \
-    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __p, __v))
+  #define U128_MULTIPLY_U64(__a, __p, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64(&__a, __p, __v))
 
-  #define U128_MULTIPLY_U64_SATURATE_SELF(__a, __v, __z) \
-    __z=(u8)(__z|u128_multiply_u64_saturate(&__a, __a, __v))
+  #define U128_MULTIPLY_U64_SELF(__a, __v, __z) \
+    __z=(u8)(__z|u128_multiply_u64(&__a, __a, __v))
 
   #define U128_NEGATE(__a, __p) \
     __a.a=0U-(__p.a); \
@@ -1429,24 +1429,24 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
     _a.b=_p; \
   }while(0)
 
-#define FRU128_RATIO_U128_SATURATE(_a, _p, _q, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a.a, _p, _q)); \
+#define FRU128_RATIO_U128(_a, _p, _q, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u128(&_a.a, _p, _q)); \
   _a.b=_a.a
 
-#define FRU128_RATIO_U128_SATURATE_SELF(_a, _p, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a.a, _a.a, _p)); \
+#define FRU128_RATIO_U128_SELF(_a, _p, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u128(&_a.a, _a.a, _p)); \
   _a.b=_a.a
 
-#define FRU128_RATIO_U64_SATURATE(_a, _v, _w, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u64_saturate(&_a.a, _v, _w)); \
+#define FRU128_RATIO_U64(_a, _v, _w, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u64(&_a.a, _v, _w)); \
   _a.b=_a.a
 
-#define FRU128_RECIPROCAL_U128_SATURATE(_a, _p, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a.a, _p)); \
+#define FRU128_RECIPROCAL_U128(_a, _p, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u128(&_a.a, _p)); \
   _a.b=_a.a
 
-#define FRU128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a.a, _v)); \
+#define FRU128_RECIPROCAL_U64(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u64(&_a.a, _v)); \
   _a.b=_a.a
 
 #define FRU128_ROOT_FRACTOID_U128(_a, _p) \
@@ -1638,20 +1638,20 @@ See comments for FRU64_MEAN_TO_FTD64(), which operates in exactly the same manne
 #define FTD128_FROM_MANTISSA_U128_PRODUCT(_a, _p, _q) \
   _a=fractoid_u128_from_mantissa_u128_product(_p, _q)
 
-#define FTD128_RATIO_U128_SATURATE(_a, _p, _q, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a, _p, _q))
+#define FTD128_RATIO_U128(_a, _p, _q, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u128(&_a, _p, _q))
 
-#define FTD128_RATIO_U128_SATURATE_SELF(_a, _p, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u128_saturate(&_a, _a, _p))
+#define FTD128_RATIO_U128_SELF(_a, _p, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u128(&_a, _a, _p))
 
-#define FTD128_RATIO_U64_SATURATE(_a, _v, _w, _z) \
-  _z=(u8)(_z|fractoid_u128_ratio_u64_saturate(&_a, _v, _w))
+#define FTD128_RATIO_U64(_a, _v, _w, _z) \
+  _z=(u8)(_z|fractoid_u128_ratio_u64(&_a, _v, _w))
 
-#define FTD128_RECIPROCAL_U128_SATURATE(_a, _p, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a, _p))
+#define FTD128_RECIPROCAL_U128(_a, _p, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u128(&_a, _p))
 
-#define FTD128_RECIPROCAL_U128_SATURATE_SELF(_a, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u128_saturate(&_a, _a))
+#define FTD128_RECIPROCAL_U128_SELF(_a, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u128(&_a, _a))
 
-#define FTD128_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u128_reciprocal_u64_saturate(&_a, _v))
+#define FTD128_RECIPROCAL_U64(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u128_reciprocal_u64(&_a, _v))

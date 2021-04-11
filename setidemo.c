@@ -653,43 +653,43 @@ Set score_delta to the number of masks in the signal which were not included in 
       }
       U128_ADD_U64_LO_SELF(score_max, sweep_mask_count);
       if(mode_bitmap&AGNENTROPROX_MODE_AGNENTROPY){
-        FTD128_RATIO_U128_SATURATE(score, agnentropy_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, agnentropy_score, score_max, ignored_status);
         DEBUG_U128("agnentropy_score     ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_EXOELASTICITY){
-        FTD128_RATIO_U128_SATURATE(score, exoelasticity_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, exoelasticity_score, score_max, ignored_status);
         DEBUG_U128("exoelasticity_score  ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_EXOENTROPY){
-        FTD128_RATIO_U128_SATURATE(score, exoentropy_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, exoentropy_score, score_max, ignored_status);
         DEBUG_U128("exoentropy_score     ", score);
       }
       if(fourier_status){
-        FTD128_RATIO_U128_SATURATE(score, fourier_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, fourier_score, score_max, ignored_status);
         DEBUG_U128("fourier_score        ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_JSET){
-        FTD128_RATIO_U128_SATURATE(score, jset_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, jset_score, score_max, ignored_status);
         DEBUG_U128("jensen_shannon_score ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_KURTOSIS){
-        FTD128_RATIO_U128_SATURATE(score, kurtosis_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, kurtosis_score, score_max, ignored_status);
         DEBUG_U128("obtuse_kurtosis_score", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_LET){
-        FTD128_RATIO_U128_SATURATE(score, let_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, let_score, score_max, ignored_status);
         DEBUG_U128("leidich_score        ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_LOGFREEDOM){
-        FTD128_RATIO_U128_SATURATE(score, logfreedom_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, logfreedom_score, score_max, ignored_status);
         DEBUG_U128("logfreedom_score     ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_SHANNON){
-        FTD128_RATIO_U128_SATURATE(score, shannon_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, shannon_score, score_max, ignored_status);
         DEBUG_U128("shannon_score        ", score);
       }
       if(mode_bitmap&AGNENTROPROX_MODE_VARIANCE){
-        FTD128_RATIO_U128_SATURATE(score, variance_score, score_max, ignored_status);
+        FTD128_RATIO_U128(score, variance_score, score_max, ignored_status);
         DEBUG_U128("obtuse_variance_score", score);
       }
     }while(++iteration);

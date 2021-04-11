@@ -2205,11 +2205,11 @@ Compute (1-(normalized Jensen-Shannon divergence)) according to the method descr
   U128_FROM_U64_LO(uint0, (u64)(haystack_mask_count));
   FRU128_LOG_U128_NONZERO_CACHED(haystack_mask_count_log, log_u128_idx_max, log_u128_list_base, log_u128_parameter_list_base, uint0);
   mask_count_x2=(u64)(haystack_mask_count)<<1;
-  FTD128_RECIPROCAL_U64_SATURATE(haystack_mask_count_recip_half, mask_count_x2, ignored_status);
+  FTD128_RECIPROCAL_U64(haystack_mask_count_recip_half, mask_count_x2, ignored_status);
   U128_FROM_U64_LO(uint0, (u64)(needle_mask_count));
   FRU128_LOG_U128_NONZERO_CACHED(needle_mask_count_log, log_u128_idx_max, log_u128_list_base, log_u128_parameter_list_base, uint0);
   mask_count_x2=(u64)(needle_mask_count)<<1;
-  FTD128_RECIPROCAL_U64_SATURATE(needle_mask_count_recip_half, mask_count_x2, ignored_status);
+  FTD128_RECIPROCAL_U64(needle_mask_count_recip_half, mask_count_x2, ignored_status);
   FRU128_ADD_FRU128(jsd, haystack_mask_count_log, needle_mask_count_log, ignored_status);
   FRU128_SHIFT_RIGHT_SELF(jsd, 1);
   FRU128_SET_ZERO(jsd_minus_half);
@@ -2604,7 +2604,7 @@ The most we can shift coeff (below) to the left without overflow is (U64_BITS+U6
 */
   shift=(u8)(U64_BITS+U64_BITS_LOG2-shift);
   agnentroprox_base->ld_shift=shift;
-  FRU128_RATIO_U64_SATURATE(coeff, mask_count_numerator, mask_count, ignored_status);
+  FRU128_RATIO_U64(coeff, mask_count_numerator, mask_count, ignored_status);
   log2_recip_half=agnentroprox_base->log2_recip_half;
   FRU128_MULTIPLY_FTD128_SELF(coeff, log2_recip_half);
   agnentroprox_base->ld_coeff=coeff;
@@ -3168,7 +3168,7 @@ Out:
 /*
 The following divide can't saturate because (mean_numerator<mean_denominator), so we can ignore the return status.
 */
-  FTD128_RATIO_U128_SATURATE(mean_unsigned, mean_numerator, mean_denominator, ignored_status);
+  FTD128_RATIO_U128(mean_unsigned, mean_numerator, mean_denominator, ignored_status);
   agnentroprox_base->mean_unsigned=mean_unsigned;
   if(sign_status){
     U128_BIT_FLIP_SELF(mean_unsigned, U128_BIT_MAX);

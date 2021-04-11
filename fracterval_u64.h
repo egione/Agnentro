@@ -281,12 +281,12 @@ such that, in fact, the result is always contained by a fractoid.
     _a.b=_p; \
   }while(0)
 
-#define FRU64_RATIO_U64_SATURATE(_a, _v, _w, _z) \
-  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a.a, _v, _w)); \
+#define FRU64_RATIO_U64(_a, _v, _w, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64(&_a.a, _v, _w)); \
   _a.b=_a.a
 
-#define FRU64_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a.a, _v)); \
+#define FRU64_RECIPROCAL_U64(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64(&_a.a, _v)); \
   _a.b=_a.a
 
 #define FRU64_SET_AMBIGUOUS(_a) \
@@ -397,14 +397,14 @@ such that, in fact, the result is always contained by a fractoid.
 #define FTD64_FROM_MANTISSA_U64_PRODUCT(_a, _p, _q) \
   _a=fractoid_u64_from_mantissa_u64_product(_p, _q)
 
-#define FTD64_RATIO_U64_SATURATE(_a, _v, _w, _z) \
-  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _v, _w))
+#define FTD64_RATIO_U64(_a, _v, _w, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64(&_a, _v, _w))
 
-#define FTD64_RATIO_U64_SATURATE_SELF(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u64_ratio_u64_saturate(&_a, _a, _v))
+#define FTD64_RATIO_U64_SELF(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_ratio_u64(&_a, _a, _v))
 
-#define FTD64_RECIPROCAL_U64_SATURATE(_a, _v, _z) \
-  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _v))
+#define FTD64_RECIPROCAL_U64(_a, _v, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64(&_a, _v))
 
-#define FTD64_RECIPROCAL_U64_SATURATE_SELF(_a, _z) \
-  _z=(u8)(_z|fractoid_u64_reciprocal_u64_saturate(&_a, _a))
+#define FTD64_RECIPROCAL_U64_SELF(_a, _z) \
+  _z=(u8)(_z|fractoid_u64_reciprocal_u64(&_a, _a))

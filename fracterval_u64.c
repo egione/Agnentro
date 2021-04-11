@@ -1283,9 +1283,9 @@ Out:
 }
 
 u8
-fractoid_u64_ratio_u64_saturate(u64 *a_base, u64 v, u64 w){
+fractoid_u64_ratio_u64(u64 *a_base, u64 v, u64 w){
 /*
-Use FTD64_RATIO_U64_SATURATE() instead of calling here directly.
+Use FTD64_RATIO_U64() instead of calling here directly.
 
 Set a u64 fractoid to the ratio of 2 (u64)s.
 
@@ -1409,9 +1409,9 @@ Out:
 }
 
 u8
-fractoid_u64_reciprocal_u64_saturate(u64 *a_base, u64 v){
+fractoid_u64_reciprocal_u64(u64 *a_base, u64 v){
 /*
-Use FTD64_RECIPROCAL_U64_SATURATE() instead of calling here directly.
+Use FTD64_RECIPROCAL_U64() instead of calling here directly.
 
 Set a u64 fractoid to the reciprocal of a u64.
 

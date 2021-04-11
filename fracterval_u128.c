@@ -104,7 +104,7 @@ Out:
       divisor_u64++;
       U128_TO_U64_HI(quotient, dividend);
       if(divisor_u64){
-        U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+        U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
       }
       U128_FROM_U64_HI(a.b, quotient);
       U128_FROM_U64_PRODUCT(product, divisor_u128_lo, quotient);
@@ -120,7 +120,7 @@ Out:
       U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-46, dividend0, dividend1);
       U128_TO_U64_HI(quotient, dividend);
       if(divisor_u64){
-        U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+        U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
       }
       U128_ADD_U64_SHIFTED_SELF(a.b, U64_BITS-46, quotient);
       U128_FROM_U64_PRODUCT(product, divisor_u128_lo, quotient);
@@ -142,7 +142,7 @@ Out:
       U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-(46+46), dividend0, dividend1);
       U128_TO_U64_HI(quotient, dividend);
       if(divisor_u64){
-        U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+        U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
       }
       quotient>>=46+46-U64_BITS;
       U128_ADD_U64_LO_SELF(a.b, quotient);
@@ -219,11 +219,11 @@ Out:
   status=0;
   if(!divisor_hi){
     U128_TO_U64_LO(divisor_lo, q);
-    U128_DIVIDE_U64_TO_U128_SATURATE(a.a, p.a, divisor_lo, status);
-    U128_DIVIDE_U64_TO_U128_SATURATE(a.b, p.b, divisor_lo, status);
+    U128_DIVIDE_U64_TO_U128(a.a, p.a, divisor_lo, status);
+    U128_DIVIDE_U64_TO_U128(a.b, p.b, divisor_lo, status);
   }else{
-    U128_DIVIDE_U128_SATURATE(a.a, p.a, q, status);
-    U128_DIVIDE_U128_SATURATE(a.b, p.b, q, status);
+    U128_DIVIDE_U128(a.a, p.a, q, status);
+    U128_DIVIDE_U128(a.b, p.b, q, status);
   }
   *a_base=a;
   return status;
@@ -254,8 +254,8 @@ Out:
   u8 status;
 
   status=0;
-  U128_DIVIDE_U64_TO_U128_SATURATE(a.a, p.a, v, status);
-  U128_DIVIDE_U64_TO_U128_SATURATE(a.b, p.b, v, status);
+  U128_DIVIDE_U64_TO_U128(a.a, p.a, v, status);
+  U128_DIVIDE_U64_TO_U128(a.b, p.b, v, status);
   *a_base=a;
   return status;
 }
@@ -744,7 +744,7 @@ Out:
 
   Returns one if p is zero, else zero.
 
-  *a_base is log(p) expressed as a 6.121 fixed-point fracterval if v is nonzero, else zero.
+  *a_base is log(p) expressed as a 6.121 fixed-point fracterval if p is nonzero, else zero.
 */
   fru128 log;
   fru128 log_fractoid;
@@ -1273,8 +1273,8 @@ Out:
   u8 wrap_status;
 
   status=0;
-  U128_MULTIPLY_U64_SATURATE(a.a, p.a, v, status);
-  U128_MULTIPLY_U64_SATURATE(a.b, p.b, v, status);
+  U128_MULTIPLY_U64(a.a, p.a, v, status);
+  U128_MULTIPLY_U64(a.b, p.b, v, status);
   if(v){
     wrap_status=0;
     U128_ADD_U64_LO_SELF_CHECK(a.b, v, wrap_status);
@@ -1784,9 +1784,9 @@ Out:
 }
 
 u8
-fractoid_u128_ratio_u128_saturate(u128 *a_base, u128 p, u128 q){
+fractoid_u128_ratio_u128(u128 *a_base, u128 p, u128 q){
 /*
-Use FTD128_RATIO_U128_SATURATE() instead of calling here directly.
+Use FTD128_RATIO_U128() instead of calling here directly.
 
 Set a u128 fractoid to the ratio of 2 (u128)s.
 
@@ -1840,7 +1840,7 @@ Out:
     divisor_u64++;
     U128_TO_U64_HI(quotient, dividend);
     if(divisor_u64){
-      U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+      U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
     }
     U128_FROM_U64_HI(a, quotient);
     U128_FROM_U64_PRODUCT(product, divisor_u128_lo, quotient);
@@ -1856,7 +1856,7 @@ Out:
     U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-46, dividend0, dividend1);
     U128_TO_U64_HI(quotient, dividend);
     if(divisor_u64){
-      U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+      U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
     }
     U128_ADD_U64_SHIFTED_SELF(a, U64_BITS-46, quotient);
     U128_FROM_U64_PRODUCT(product, divisor_u128_lo, quotient);
@@ -1878,7 +1878,7 @@ Out:
     U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-(46+46), dividend0, dividend1);
     U128_TO_U64_HI(quotient, dividend);
     if(divisor_u64){
-      U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor_u64, status);
+      U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor_u64, status);
     }
     quotient>>=46+46-U64_BITS;
     U128_ADD_U64_LO_SELF(a, quotient);
@@ -1911,9 +1911,9 @@ Out:
 }
 
 u8
-fractoid_u128_ratio_u64_saturate(u128 *a_base, u64 v, u64 w){
+fractoid_u128_ratio_u64(u128 *a_base, u64 v, u64 w){
 /*
-Use FTD128_RATIO_U64_SATURATE() instead of calling here directly.
+Use FTD128_RATIO_U64() instead of calling here directly.
 
 Set a u128 fractoid to the ratio of 2 (u64)s.
 
@@ -1959,12 +1959,12 @@ Out:
     U128_SHIFT_LEFT(dividend1, divisor_shift, dividend);
     dividend=dividend1;
     divisor<<=(divisor_shift-U64_BITS);
-    U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor, status);
+    U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor, status);
     U128_FROM_U64_HI(a, quotient);
     U128_FROM_U64_PRODUCT(product, divisor, quotient);
     U128_SUBTRACT_U128_SELF(dividend1, product);
     U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-46, dividend0, dividend1);
-    U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor, status);
+    U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor, status);
     U128_ADD_U64_SHIFTED_SELF(a, U64_BITS-46, quotient);
     U128_FROM_U64_PRODUCT(product, divisor, quotient);
     U128_SHIFT_LEFT(product_shifted, U128_BITS-46, product);
@@ -1975,7 +1975,7 @@ Out:
     U128_SHIFT_RIGHT(product_shifted, 46, product);
     U128_SUBTRACT_U128_SELF(dividend1, product_shifted);
     U128_FROM_U128_PAIR_BIT_IDX(dividend, U128_BITS-(46+46), dividend0, dividend1);
-    U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend, divisor, status);
+    U128_DIVIDE_U64_TO_U64(quotient, dividend, divisor, status);
     quotient>>=46+46-U64_BITS;
     U128_ADD_U64_LO_SELF(a, quotient);
     U128_FROM_U64_PRODUCT(product, divisor, quotient);
@@ -2003,9 +2003,9 @@ Out:
 }
 
 u8
-fractoid_u128_reciprocal_u128_saturate(u128 *a_base, u128 p){
+fractoid_u128_reciprocal_u128(u128 *a_base, u128 p){
 /*
-Use FTD128_RECIPROCAL_U128_SATURATE() instead of calling here directly.
+Use FTD128_RECIPROCAL_U128() instead of calling here directly.
 
 Set a u128 fractoid to the reciprocal of a u128.
 
@@ -2027,15 +2027,15 @@ Out:
 
   U128_SET_ULP(one);
   status=0;
-  FTD128_RATIO_U128_SATURATE(a, one, p, status);
+  FTD128_RATIO_U128(a, one, p, status);
   *a_base=a;
   return status;
 }
 
 u8
-fractoid_u128_reciprocal_u64_saturate(u128 *a_base, u64 v){
+fractoid_u128_reciprocal_u64(u128 *a_base, u64 v){
 /*
-Use U128_RECIPROCAL_U64_SATURATE() instead of calling here directly.
+Use U128_RECIPROCAL_U64() instead of calling here directly.
 
 Set a u128 fractoid to the reciprocal of a u64.
 
@@ -2057,15 +2057,15 @@ Out:
 
   one=1;
   status=0;
-  FTD128_RATIO_U64_SATURATE(a, one, v, status);
+  FTD128_RATIO_U64(a, one, v, status);
   *a_base=a;
   return status;
 }
 
 u8
-u128_divide_u128_saturate(u128 *a_base, u128 p, u128 q){
+u128_divide_u128(u128 *a_base, u128 p, u128 q){
 /*
-Use U128_DIVIDE_U128_SATURATE() instead of calling here directly.
+Use U128_DIVIDE_U128() instead of calling here directly.
 
 Divide a u128 by a u128 and saturate the result to (2^128-1).
 
@@ -2104,7 +2104,7 @@ Out:
   U128_TO_U64_HI(divisor_hi, divisor);
   if(!divisor_hi){
     U128_TO_U64_LO(divisor_lo, divisor);
-    U128_DIVIDE_U64_TO_U128_SATURATE(a, dividend, divisor_lo, status);
+    U128_DIVIDE_U64_TO_U128(a, dividend, divisor_lo, status);
   }else if(U128_IS_LESS(divisor, dividend)){
     divisor_shift=0;
     do{
@@ -2121,8 +2121,8 @@ Out:
       U128_SHIFT_RIGHT_SELF(dividend_shifted, 1);
       dividend_shift++;
     }
-    U128_DIVIDE_U64_TO_U64_SATURATE(quotient, dividend_shifted, divisor_lo, status);
-    U128_MULTIPLY_U64_SATURATE(product, divisor, quotient, status);
+    U128_DIVIDE_U64_TO_U64(quotient, dividend_shifted, divisor_lo, status);
+    U128_MULTIPLY_U64(product, divisor, quotient, status);
     U128_SUBTRACT_U128_SELF(dividend, product);
     while(U128_IS_LESS_EQUAL(divisor, dividend)){
       U128_SUBTRACT_U128_SELF(dividend, divisor);
@@ -2137,9 +2137,9 @@ Out:
 }
 
 u8
-u128_divide_u64_to_u128_saturate(u128 *a_base, u128 p, u64 v){
+u128_divide_u64_to_u128(u128 *a_base, u128 p, u64 v){
 /*
-Use U128_DIVIDE_U64_TO_U128_SATURATE() instead of calling here directly.
+Use U128_DIVIDE_U64_TO_U128() instead of calling here directly.
 
 Divide a u128 by a u64 and saturate the result to (2^128-1).
 
@@ -2236,9 +2236,9 @@ Out:
 }
 
 u8
-u128_divide_u64_to_u64_saturate(u64 *t_base, u128 p, u64 v){
+u128_divide_u64_to_u64(u64 *t_base, u128 p, u64 v){
 /*
-Use U128_DIVIDE_U64_TO_U64_SATURATE() instead of calling here directly.
+Use U128_DIVIDE_U64_TO_U64() instead of calling here directly.
 
 Divide a u128 by a u64 and saturate the result to U64_MAX.
 
@@ -2461,9 +2461,9 @@ Out:
 }
 
 u8
-u128_multiply_u64_saturate(u128 *a_base, u128 p, u64 v){
+u128_multiply_u64(u128 *a_base, u128 p, u64 v){
 /*
-Use U128_MULTIPLY_U64_SATURATE() instead of calling here directly.
+Use U128_MULTIPLY_U64() instead of calling here directly.
 
 Multiply a u128 by a u64 and saturate the result to (2^128-1).
 

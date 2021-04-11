@@ -446,7 +446,7 @@ main(int argc, char *argv[]){
           if(saturate_mode==AGNENTROQUANT_SATURATE_NORMALIZE){
             if(mask_span_in){
               mask_u64-=mask_u64_min;
-              FTD64_RATIO_U64_SATURATE_SELF(mask_u64, mask_span_in, overflow_status);
+              FTD64_RATIO_U64_SELF(mask_u64, mask_span_in, overflow_status);
 /*
 There's one ambiguous case, namely where the fraction bits of mask_u64 are all ones. Rounding up may be wrong, as the uncertainty is 1ULP. However, if we don't round up, then we'll never actually utilize the full range. So just do it. Wrap is impossible because mask_u64 was less than mask_span_in prior to taking the ratio.
 */

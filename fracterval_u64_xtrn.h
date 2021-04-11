@@ -42,5 +42,5 @@ extern u8 fracterval_u64_shift_left(fru64 *a_base, u8 b, fru64 p);
 extern u64 *fracterval_u64_u64_list_malloc(ULONG u64_idx_max);
 extern void fracterval_u64_u64_list_zero(ULONG u64_idx_max, u64 *u64_list_base);
 extern u64 fractoid_u64_from_mantissa_u64_product(u64 v, u64 w);
-extern u8 fractoid_u64_ratio_u64_saturate(u64 *a_base, u64 v, u64 w);
-extern u8 fractoid_u64_reciprocal_u64_saturate(u64 *a_base, u64 v);
+extern u8 fractoid_u64_ratio_u64(u64 *a_base, u64 v, u64 w);
+extern u8 fractoid_u64_reciprocal_u64(u64 *a_base, u64 v);
